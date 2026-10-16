@@ -234,3 +234,9 @@ create policy "owner updates" on public.projects for update using (public.is_pro
 
 -- Task importance (migration task_importance): importance text '' | 'high' | 'crucial' on sheet_tasks, project_tasks
 --   and master_tasks (copied onto new sheets). Trigger guard_task_importance lets only admins set or change it.
+
+-- Push notifications (migration push_notifications): pg_net + pg_cron.
+--   push_subscriptions(endpoint pk, person_id, p256dh, auth): one row per device; saved with rpc save_push_subscription.
+--   Vault secrets vapid_public, vapid_private and notify_key; push_keys() hands them to the server only.
+--   Statement triggers notify_assigned() on sheet_tasks / project_tasks post new owners to the "notify" edge function,
+--   and cron job "task-reminders" (15:00 UTC daily) posts {"type":"reminders"}. Admins send messages through the same function.

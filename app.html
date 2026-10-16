@@ -245,6 +245,10 @@ body.signed-out nav.tabs, body.signed-out #me-btn { visibility: hidden; }
 .or::before, .or::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
 .auth-email { display: flex; flex-direction: column; gap: 10px; }
 .auth-email[hidden] { display: none; }
+.push-box { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; border-top: 1px dashed var(--line); padding-top: 12px; }
+.push-card { display: flex; gap: 10px; align-items: flex-start; padding: 14px 16px; }
+.push-card[hidden] { display: none; }
+.push-card .grow { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .auth-err { color: var(--red); }
 .auth-links { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .linkish { border: 0; background: none; padding: 2px 0; font: inherit; font-size: .9rem; color: var(--red); text-decoration: underline; cursor: pointer; }
@@ -1876,7 +1880,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     auth.state = "loading"; render();
     sb.rpc("claim_invite").then(function (r) {
       if (r.error || !r.data || !r.data.id) { auth.state = "notinvited"; render(); return; }
-      meId = r.data.id;
+      meId = r.data.id; refreshPush();
       return pull().then(function () {
         if (auth.state === "notinvited") return;
         auth.state = "ready"; render();
@@ -1953,9 +1957,12 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       '<form id="acct-pw" class="auth-email" hidden style="border-top:1px dashed var(--line);padding-top:12px"><strong>Create your password</strong><span class="muted small">Then you can sign in with your email and password on any device.</span>' +
       '<label class="field">New password<input type="password" id="acct-pw1" minlength="8" required autocomplete="new-password"></label><label class="field">Type it again<input type="password" id="acct-pw2" minlength="8" required autocomplete="new-password"></label>' +
       '<div id="acct-pw-msg" class="small" hidden></div><button class="btn">Save password</button></form>' +
+      '<div class="push-box" id="acct-push"><strong>Notifications on this device</strong>' + pushBoxHtml() + "</div>" +
       '<div class="row" style="justify-content:flex-end"><button class="btn" data-close>Close</button><button class="btn primary" id="acct-out">Sign out</button></div>',
       function (el) {
-        el.querySelector("#acct-out").addEventListener("click", function () { closeModal(); sb.auth.signOut(); });
+        wirePushBox(el.querySelector("#acct-push"));
+        // Signing out stops this device getting the person's notifications.
+        el.querySelector("#acct-out").addEventListener("click", function () { closeModal(); disablePush().then(function () { sb.auth.signOut(); }); });
         // Only people without a password yet see the password form; a forgotten password is reset from the sign-in screen.
         sb.auth.getSession().then(function (r) { if (!sessionHasPassword(r.data && r.data.session)) el.querySelector("#acct-pw").hidden = false; });
         el.querySelector("#acct-pw").addEventListener("submit", function (e) {
@@ -1968,6 +1975,124 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
             if (r.error) return say(friendlyAuthError(r.error.message), true);
             e.target.reset(); e.target.hidden = true; toast("Password saved. Sign in with your email and password from now on.");
           });
+        });
+      });
+  }
+
+  // ---------- push notifications ----------
+  // Public half of the app's push key (the private half stays on the server).
+  var VAPID_PUBLIC = "BF8-FuefaLoT1snkJggnw3BoAFiVZbtkV-Gct4jkEbDPXWdedsZlJV0ySSDqz-ckd9fBRAfky4-d1D5TNR0znKo";
+  function isIos() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
+  function isInstalled() { return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; }
+  function pushSupported() { return ONLINE && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window; }
+  // "on", "off", "blocked", "install" (iPhone, not added to the Home Screen yet) or "unsupported".
+  function pushState() {
+    if (!ONLINE) return Promise.resolve("unsupported");
+    if (!pushSupported()) return Promise.resolve(isIos() && !isInstalled() ? "install" : "unsupported");
+    if (Notification.permission === "denied") return Promise.resolve("blocked");
+    return pushReg().then(function (reg) { return reg ? reg.pushManager.getSubscription() : null; })
+      .then(function (sub) { return sub && Notification.permission === "granted" ? "on" : "off"; }).catch(function () { return "off"; });
+  }
+  function pushReg() {
+    return Promise.race([navigator.serviceWorker.getRegistration().then(function (r) { return r || navigator.serviceWorker.register("sw.js"); }),
+      new Promise(function (res) { setTimeout(function () { res(null); }, 4000); })]);
+  }
+  function b64ToBytes(b) { var s = atob((b + "===".slice((b.length + 3) % 4)).replace(/-/g, "+").replace(/_/g, "/")), a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; }
+  function saveSub(sub) {
+    var j = sub.toJSON();
+    return sb.rpc("save_push_subscription", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth }).then(function (r) { if (r.error) throw r.error; });
+  }
+  function enablePush() {
+    return Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") throw new Error(perm === "denied" ? "blocked" : "dismissed");
+      return pushReg();
+    }).then(function (reg) {
+      if (!reg) throw new Error("no-worker");
+      return reg.pushManager.getSubscription().then(function (sub) { return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID_PUBLIC) }); });
+    }).then(saveSub);
+  }
+  function disablePush() {
+    if (!pushSupported()) return Promise.resolve();
+    return pushReg().then(function (reg) { return reg && reg.pushManager.getSubscription(); }).then(function (sub) {
+      if (!sub) return;
+      return sb.from("push_subscriptions").delete().eq("endpoint", sub.endpoint).then(function () { return sub.unsubscribe(); });
+    }).catch(function () {});
+  }
+  // Keeps this device linked to whoever is signed in on it.
+  function refreshPush() {
+    if (!pushSupported() || Notification.permission !== "granted") return;
+    pushReg().then(function (reg) { return reg && reg.pushManager.getSubscription(); }).then(function (sub) { if (sub) return saveSub(sub); }).catch(function () {});
+  }
+  var PUSH_TEXT = {
+    on: "On. You'll hear about new tasks, tasks due soon and team announcements.",
+    off: "Get a notification when you're given a task, when something is due, and for team announcements.",
+    blocked: "Notifications are blocked for this site. Turn them on in your phone or browser settings, then come back.",
+    install: "On iPhone, add this app to your Home Screen first (Share, then Add to Home Screen). Open it from there and turn notifications on.",
+    unsupported: "This browser can't show notifications from the app."
+  };
+  function pushErrorText(e) {
+    var m = e && e.message;
+    if (m === "blocked") return PUSH_TEXT.blocked;
+    if (m === "dismissed") return "Notifications weren't allowed. Tap Turn on again and choose Allow.";
+    return "Couldn't turn on notifications just now. Try again in a minute.";
+  }
+  // Fills a notifications box (profile pop-up or To Do card) with the current state and a button.
+  function wirePushBox(box, onChange) {
+    function draw(st) {
+      knownPush = st; box.querySelector(".push-text").textContent = PUSH_TEXT[st];
+      var b = box.querySelector(".push-btn"); b.hidden = !(st === "on" || st === "off"); b.textContent = st === "on" ? "Turn off" : "Turn on"; b.dataset.state = st; b.disabled = false;
+      if (onChange) onChange(st);
+    }
+    box.querySelector(".push-btn").addEventListener("click", function (e) {
+      var b = e.currentTarget, on = b.dataset.state === "on"; b.disabled = true;
+      (on ? disablePush() : enablePush()).then(function () { toast(on ? "Notifications turned off on this device" : "Notifications are on"); return pushState(); })
+        .then(draw).catch(function (err) { b.disabled = false; box.querySelector(".push-text").textContent = pushErrorText(err); });
+    });
+    pushState().then(draw);
+  }
+  var knownPush = null; // last state seen, so the To Do card doesn't blink on every redraw
+  function pushBoxHtml() { return '<div class="push-text muted small"></div><button type="button" class="btn push-btn" hidden>Turn on</button>'; }
+  function pushNudgeOff() { try { return localStorage.getItem(KEY + "-pushnudge") === "off"; } catch (e) { return false; } }
+  // A card on To Do inviting people to turn notifications on, until they do or dismiss it.
+  function wirePushNudge() {
+    var card = document.getElementById("push-nudge"); if (!card || card.dataset.wired) return; card.dataset.wired = "1";
+    card.querySelector("[data-push-dismiss]").addEventListener("click", function () { try { localStorage.setItem(KEY + "-pushnudge", "off"); } catch (e) {} card.remove(); });
+    pushState().then(function (st) {
+      if (st !== "off" && st !== "install") { card.remove(); return; }
+      card.hidden = false;
+      wirePushBox(card, function (s2) { if (s2 === "on") setTimeout(function () { card.remove(); }, 1500); });
+    });
+  }
+  function pushNudgeHtml() {
+    if (!ONLINE || pushNudgeOff() || (knownPush && knownPush !== "off" && knownPush !== "install")) return "";
+    return '<div class="card push-card" id="push-nudge"' + (knownPush ? "" : " hidden") + '><div class="grow" style="min-width:0"><strong>Turn on notifications</strong>' + pushBoxHtml() + '</div><button type="button" class="icon-btn" data-push-dismiss aria-label="Not now">✕</button></div>';
+  }
+  // Admins: send a notification to one person or the whole team.
+  function sendNoticeModal(personId) {
+    var people = S.people.filter(function (p) { return p.status !== "Inactive"; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+    openModal('<h1>Send notification</h1><form id="sn-form" style="display:flex;flex-direction:column;gap:12px">' +
+      '<label class="field">To<select id="sn-to"><option value="team">Whole team</option>' + people.map(function (p) { return '<option value="' + p.id + '"' + (p.id === personId ? " selected" : "") + ">" + esc(p.name) + "</option>"; }).join("") + "</select></label>" +
+      fld("Title <span class=\"muted small\" style=\"font-weight:400\">optional</span>", "sn-title", "", true, "text", ' maxlength="80" placeholder="From ' + esc(currentUser().name) + '"') +
+      fld("Message", "sn-body", "", true, "area", ' rows="3" maxlength="500" placeholder="Practice moved to 6pm tonight"') +
+      '<div id="sn-msg" class="small" hidden></div>' +
+      '<p class="muted small" style="margin:0">It goes to every device where they turned notifications on.</p>' +
+      '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary" id="sn-send">Send</button></div></form>',
+      function (el) {
+        el.querySelector("#sn-form").addEventListener("submit", function (e) {
+          e.preventDefault(); e.stopPropagation();
+          var to = el.querySelector("#sn-to").value, body = el.querySelector("#sn-body").value.trim(), msg = el.querySelector("#sn-msg"), btn = el.querySelector("#sn-send");
+          function say(t) { msg.hidden = false; msg.textContent = t; msg.style.color = "var(--red)"; }
+          if (!body) return say("Write a message first.");
+          btn.disabled = true; btn.textContent = "Sending…";
+          sb.functions.invoke("notify", { body: { type: "send", to: to === "team" ? "team" : [to], title: el.querySelector("#sn-title").value.trim(), body: body } }).then(function (r) {
+            btn.disabled = false; btn.textContent = "Send";
+            if (r.error || !r.data || !r.data.ok) return say("Couldn't send it just now. Try again in a minute.");
+            var d = r.data, who = to === "team" ? "" : (byId(S.people, to) || {}).name;
+            closeModal();
+            if (!d.reached) toast(to === "team" ? "No one has turned notifications on yet" : who + " hasn't turned notifications on yet");
+            else if (to === "team") toast("Sent to " + d.reached + " of " + d.people + " people" + (d.reached < d.people ? ". The rest haven't turned notifications on yet." : ""));
+            else toast("Sent to " + who);
+          }).catch(function () { btn.disabled = false; btn.textContent = "Send"; say("Couldn't reach the server. Check your connection and try again."); });
         });
       });
   }
@@ -2032,7 +2157,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     renderChrome();
     app.classList.remove("wide");
     if (view.tab !== "messages" || !view.convoId) { app.classList.remove("convo-mode"); document.documentElement.classList.remove("typing"); }
-    if (view.tab === "dashboard") app.innerHTML = todoView();
+    if (view.tab === "dashboard") { app.innerHTML = todoView(); wirePushNudge(); }
     else if (view.tab === "people") app.innerHTML = peopleView();
     else if (view.tab === "docs") app.innerHTML = docsView();
     else if (view.tab === "messages") {
@@ -2877,7 +3002,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   // ---------- people ----------
   function peopleView() {
     var admin = isAdmin();
-    var h = '<div class="row spread"><h1>People</h1><div class="row">' + (admin ? '<button class="btn" data-act="invite">+ Invite</button>' : "") + kebab("people-menu", [["people-settings", "Settings"]]) + "</div></div>";
+    var h = '<div class="row spread"><h1>People</h1><div class="row">' + (admin ? '<button class="btn" data-act="invite">+ Invite</button>' : "") + kebab("people-menu", (admin && ONLINE ? [["send-notice", "Send notification"]] : []).concat([["people-settings", "Settings"]])) + "</div></div>";
     if (!ONLINE) h += '<div class="note">Test mode: real sign-ins come later. Tap your name at the top to see the app as any person on this list.</div>';
     var ps = peopleSort(), byRole = ps === "role", act = S.people.filter(function (p) { return p.status !== "Inactive"; });
     h += '<div class="row spread"><span class="muted small">' + act.length + (act.length === 1 ? " person" : " people") + '</span><div class="seg" role="group" aria-label="Sort people"><button data-act="psort-az" aria-pressed="' + (ps === "az") + '">A to Z</button><button data-act="psort-za" aria-pressed="' + (ps === "za") + '">Z to A</button><button data-act="psort-role" aria-pressed="' + byRole + '">By position</button></div></div>';
@@ -2960,7 +3085,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       '<div class="grid2">' + fld("Email", "pm-email", p.email, admin, "email", ' placeholder="name@example.com"') + fld("Phone", "pm-phone", p.phone, admin, "tel") + "</div>" +
       (admin ? roleSel : fld("Role", "", p.role, false)) +
       '<div id="pm-err" class="small" style="color:var(--red)" hidden></div>' +
-      (!isNew ? '<div class="row spread"><div class="muted small">' + esc(p.status) + (p.invited ? " · invited " + esc(fmtDate(p.invited)) : "") + "</div>" + (admin && awaitingJoin(p) ? '<button type="button" class="btn" id="pm-resend">Resend invite</button>' : "") + "</div>" : "") +
+      (!isNew ? '<div class="row spread"><div class="muted small">' + esc(p.status) + (p.invited ? " · invited " + esc(fmtDate(p.invited)) : "") + "</div>" + (admin && awaitingJoin(p) ? '<button type="button" class="btn" id="pm-resend">Resend invite</button>' : admin && ONLINE && p.status !== "Inactive" ? '<button type="button" class="btn" id="pm-notify">Send notification</button>' : "") + "</div>" : "") +
       (admin ? '<div class="row spread">' + (!isNew ? '<div class="row"><button type="button" class="btn danger" id="pm-remove">Remove</button><button type="button" class="btn" id="pm-active">' + (p.status === "Inactive" ? "Reactivate" : "Deactivate") + "</button>" + "</div>" : "<span></span>") +
         '<div class="row"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary">' + (isNew ? "Add and invite" : "Save") + "</button></div></div>"
         : '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Close</button></div>') + "</form>" +
@@ -2968,6 +3093,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       function (el) {
         if (!admin) return;
         var rs = el.querySelector("#pm-resend"); if (rs) rs.addEventListener("click", function () { closeModal(); resendInvite(p); });
+        var pn = el.querySelector("#pm-notify"); if (pn) pn.addEventListener("click", function () { closeModal(); sendNoticeModal(p.id); });
         var cl = el.querySelector("#pm-copy-link"); if (cl) cl.addEventListener("click", function () { copyText(APP_LINK, "Invite link copied"); });
         var err = el.querySelector("#pm-err");
         function fail(m) { err.textContent = m; err.hidden = false; }
@@ -3084,7 +3210,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   function mineOf(tasks) { return tasks.filter(function (t) { return isMine(t) || isSupporting(t); }); }
   function todoView() {
     var up = S.sheets.filter(function (s) { return !isPast(s.date); }).sort(sortSheets), me = currentUser();
-    var h = '<div><h1>To Do</h1><div class="muted">Hey ' + esc(me.name.split(" ")[0]) + "! Here's what you're in charge of.</div></div>";
+    var h = '<div><h1>To Do</h1><div class="muted">Hey ' + esc(me.name.split(" ")[0]) + "! Here's what you're in charge of.</div></div>" + pushNudgeHtml();
     // Only work this person owns: tasks where they're the owner, plus subtasks assigned to them.
     function owned(tasks) {
       var mine = tasks.filter(isMine), subs = [];
@@ -4130,6 +4256,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       case "psort-az": case "psort-za": case "psort-role": setPeopleSort(t.dataset.act.slice(6)); render(); break;
       case "goto-tab": view.tab = t.dataset.tab; view.sheetId = null; view.projectId = null; view.masterId = null; render(); window.scrollTo(0, 0); break;
       case "people-settings": peopleSettingsModal(); break;
+      case "send-notice": if (isAdmin()) sendNoticeModal(); break;
       case "team-person": teamPersonModal(t.dataset.name); break;
       case "project-people": var ppj = byId(S.projects, view.projectId); if (ppj && canEditMembers(ppj)) projectPeopleModal(ppj); break;
       case "delete-project": if (isAdmin()) deleteProjectModal(byId(S.projects, view.projectId)); break;
