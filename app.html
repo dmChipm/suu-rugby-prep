@@ -1882,7 +1882,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     function pw(id, label, ac) { return '<label class="field">' + label + '<input type="password" id="' + id + '" required' + (ac === "new-password" ? ' minlength="8"' : "") + ' autocomplete="' + ac + '"></label>'; }
     if (auth.mode === "reset") return '<div class="auth card"><h1>Choose a new password</h1><p class="muted" style="margin:0">For ' + esc(auth.email) + ". At least 8 characters.</p>" + err +
       '<form class="auth-email" data-auth-form="reset">' + pw("auth-pw", "New password", "new-password") + pw("auth-pw2", "Type it again", "new-password") + '<button class="btn primary">Save password and sign in</button></form></div>';
-    if (auth.mode === "create") return '<div class="auth card"><h1>Create a password</h1><p class="muted" style="margin:0">Use the email your coach invited. At least 8 characters.</p>' + err +
+    if (auth.mode === "create") return '<div class="auth card"><h1>Create a password</h1><p class="muted" style="margin:0">Use the email your coach added to the team. At least 8 characters. You\'ll be signed in right away.</p>' + err +
       '<form class="auth-email" data-auth-form="create">' + emailFld + pw("auth-pw", "Password", "new-password") + pw("auth-pw2", "Type it again", "new-password") + '<button class="btn primary">Create password</button></form>' +
       '<div class="auth-links"><button class="linkish" data-auth="mode-signin">I already have a password</button></div></div>';
     if (auth.mode === "forgot") return '<div class="auth card"><h1>Reset your password</h1><p class="muted" style="margin:0">We\'ll email you a link to choose a new one.</p>' + err +
@@ -1948,12 +1948,20 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       function done(r, ok) { if (r.error) { auth.error = friendlyAuthError(r.error.message); render(); } else ok(r); }
       if (kind === "email") sb.auth.signInWithOtp({ email: email, options: { emailRedirectTo: appUrl() } }).then(function (r) { done(r, function () { auth.note = "We sent a sign-in link to"; auth.sent = true; render(); }); });
       if (kind === "password") sb.auth.signInWithPassword({ email: email, password: pass }).then(function (r) { done(r, function () {}); });
-      if (kind === "create") sb.auth.signUp({ email: email, password: pass, options: { emailRedirectTo: appUrl() } }).then(function (r) {
-        done(r, function (r) {
-          if (r.data && r.data.user && r.data.user.identities && !r.data.user.identities.length) { auth.error = "That email already has an account. Sign in, or use Forgot password."; auth.mode = "signin"; render(); return; }
-          if (!r.data.session) { auth.note = "Almost done. We sent a link to confirm"; auth.sent = true; render(); }
+      // New teammates: the create-account function makes a ready-to-use account for emails on the People list, so no confirmation email is needed.
+      if (kind === "create") sb.functions.invoke("create-account", { body: { email: email, password: pass } }).then(function (r) {
+        if (!r.error) return sb.auth.signInWithPassword({ email: email, password: pass }).then(function (x) { done(x, function () {}); });
+        var ctx = r.error.context, read = ctx && ctx.json ? ctx.json().catch(function () { return {}; }) : Promise.resolve({});
+        return read.then(function (b) {
+          var code = b && b.error;
+          if (code === "exists") { auth.mode = "signin"; auth.error = "That email already has a password. Sign in below, or tap Forgot password."; }
+          else if (code === "not_invited") auth.error = "That email isn't on the team list yet. Ask a coach or admin to add it on the People page, then try again.";
+          else if (code === "weak_password") auth.error = "Use at least 8 characters.";
+          else if (code === "bad_email") auth.error = "Check the email address and try again.";
+          else auth.error = "Couldn't create your password just now. Try again in a minute.";
+          render();
         });
-      });
+      }).catch(function () { auth.error = "Couldn't reach the server. Check your connection and try again."; render(); });
       if (kind === "forgot") sb.auth.resetPasswordForEmail(email, { redirectTo: appUrl() }).then(function (r) { done(r, function () { auth.note = "We sent a password reset link to"; auth.sent = true; render(); }); });
       if (kind === "reset") sb.auth.updateUser({ password: pass }).then(function (r) {
         done(r, function () {
