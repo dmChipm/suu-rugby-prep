@@ -235,6 +235,9 @@ body.signed-out nav.tabs, body.signed-out #me-btn { visibility: hidden; }
 .or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .85rem; }
 .or::before, .or::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
 .auth-email { display: flex; flex-direction: column; gap: 10px; }
+.auth-err { color: var(--red); }
+.auth-links { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.linkish { border: 0; background: none; padding: 2px 0; font: inherit; font-size: .9rem; color: var(--red); text-decoration: underline; cursor: pointer; }
 .menu-wrap { position: relative; }
 .kebab { width: 40px; height: 40px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
 .kebab span { width: 4px; height: 4px; border-radius: 50%; background: var(--ink); }
@@ -333,7 +336,7 @@ h2 { font-size: 1.25rem; font-weight: 600; color: var(--ink); letter-spacing: 0;
 .menu, .combo-list { border: 2px solid var(--pop); border-radius: 14px; box-shadow: 4px 4px 0 var(--shade); }
 .modal { border: 2px solid var(--pop); border-radius: 22px; box-shadow: 6px 6px 0 rgba(200, 16, 46, .35); animation: pop-in .22s cubic-bezier(.2, 1.4, .4, 1); }
 @keyframes pop-in { from { transform: scale(.92) rotate(-1deg); opacity: 0; } to { transform: none; opacity: 1; } }
-input[type=text], input[type=date], input[type=email], input[type=tel], select, textarea, .search input { border: 2px solid var(--line); border-radius: 12px; }
+input[type=text], input[type=date], input[type=email], input[type=password], input[type=tel], select, textarea, .search input { border: 2px solid var(--line); border-radius: 12px; }
 input:focus, select:focus, textarea:focus { border-color: var(--red); outline: none; box-shadow: 0 0 0 3px var(--red-soft); }
 
 .pill, .kind, .flag { font-family: var(--display); font-weight: 600; text-transform: none; letter-spacing: 0; font-size: .8rem; padding: 2px 10px; }
@@ -1672,7 +1675,9 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   var CFG = window.RUGBY_CONFIG || null;
   var ONLINE = !!(CFG && window.supabase && window.supabase.createClient);
   var sb = ONLINE ? window.supabase.createClient(CFG.url, CFG.key) : null;
-  var auth = { state: ONLINE ? "loading" : "ready", email: "", sent: false, error: "" };
+  var auth = { state: ONLINE ? "loading" : "ready", email: "", sent: false, error: "", mode: "signin", note: "" };
+  // Arriving from a "reset your password" email: show the new-password form before entering the app.
+  try { auth.recovery = /type=recovery/.test(location.hash); } catch (e) { auth.recovery = false; }
   var meId = null, last = null, pushChain = Promise.resolve(), pushing = 0, pendingPull = false, pullTimer = null;
   var TABLES = ["role_access", "people", "masters", "master_tasks", "sheets", "sheet_tasks", "task_notes", "documents", "projects", "project_tasks", "conversations", "messages", "message_reactions", "conversation_reads"];
   var KEYCOL = { role_access: "role" };
@@ -1837,7 +1842,9 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   }
 
   function startSession(session) {
-    auth.email = session.user.email || ""; auth.state = "loading"; render();
+    auth.email = session.user.email || "";
+    if (auth.recovery) { auth.state = "signedout"; auth.mode = "reset"; render(); return; }
+    auth.state = "loading"; render();
     sb.rpc("claim_invite").then(function (r) {
       if (r.error || !r.data || !r.data.id) { auth.state = "notinvited"; render(); return; }
       meId = r.data.id;
@@ -1852,6 +1859,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   function bootOnline() {
     sb.auth.onAuthStateChange(function (ev, session) {
       if (ev === "SIGNED_IN" && session && auth.state !== "ready" && auth.state !== "loading") startSession(session);
+      if (ev === "PASSWORD_RECOVERY") { auth.recovery = true; auth.mode = "reset"; auth.state = "signedout"; render(); }
       if (ev === "SIGNED_OUT") { auth.state = "signedout"; meId = null; render(); }
     });
     sb.auth.getSession().then(function (r) {
@@ -1867,21 +1875,55 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     if (auth.state === "notinvited") return '<div class="auth card"><h1>Not on the team list yet</h1><p><b>' + esc(auth.email) +
       "</b> hasn't been invited, or the account has been deactivated. Ask a coach to add this email on the People page, then sign in again.</p>" +
       '<button class="btn" data-auth="signout">Use a different account</button></div>';
-    if (auth.sent) return '<div class="auth card"><h1>Check your email</h1><p>We sent a sign-in link to <b>' + esc(auth.email) + "</b>. Open it on this device to finish signing in.</p>" +
-      '<button class="btn" data-auth="back">Use a different email</button></div>';
-    return '<div class="auth card"><h1>Sign in</h1><p class="muted" style="margin:0">SUU Women\'s Rugby game prep. Use the Google account or email your coach invited.</p>' +
-      (auth.error ? '<div class="small" style="color:var(--red)">' + esc(auth.error) + "</div>" : "") +
-      '<button class="btn google" data-auth="google"><span class="g" aria-hidden="true">G</span> Continue with Google</button>' +
+    if (auth.sent) return '<div class="auth card"><h1>Check your email</h1><p>' + esc(auth.note || "We sent a sign-in link to") + ' <b>' + esc(auth.email) + "</b>. Open it on this device to finish.</p>" +
+      '<button class="btn" data-auth="back">Back to sign in</button></div>';
+    var err = auth.error ? '<div class="small auth-err" role="alert">' + esc(auth.error) + "</div>" : "";
+    var emailFld = '<label class="field">Email<input type="email" id="auth-email" required autocomplete="email" value="' + esc(auth.email || prefill) + '" placeholder="you@example.com"></label>';
+    function pw(id, label, ac) { return '<label class="field">' + label + '<input type="password" id="' + id + '" required' + (ac === "new-password" ? ' minlength="8"' : "") + ' autocomplete="' + ac + '"></label>'; }
+    if (auth.mode === "reset") return '<div class="auth card"><h1>Choose a new password</h1><p class="muted" style="margin:0">For ' + esc(auth.email) + ". At least 8 characters.</p>" + err +
+      '<form class="auth-email" data-auth-form="reset">' + pw("auth-pw", "New password", "new-password") + pw("auth-pw2", "Type it again", "new-password") + '<button class="btn primary">Save password and sign in</button></form></div>';
+    if (auth.mode === "create") return '<div class="auth card"><h1>Create a password</h1><p class="muted" style="margin:0">Use the email your coach invited. At least 8 characters.</p>' + err +
+      '<form class="auth-email" data-auth-form="create">' + emailFld + pw("auth-pw", "Password", "new-password") + pw("auth-pw2", "Type it again", "new-password") + '<button class="btn primary">Create password</button></form>' +
+      '<div class="auth-links"><button class="linkish" data-auth="mode-signin">I already have a password</button></div></div>';
+    if (auth.mode === "forgot") return '<div class="auth card"><h1>Reset your password</h1><p class="muted" style="margin:0">We\'ll email you a link to choose a new one.</p>' + err +
+      '<form class="auth-email" data-auth-form="forgot">' + emailFld + '<button class="btn primary">Email me a reset link</button></form>' +
+      '<div class="auth-links"><button class="linkish" data-auth="mode-signin">Back to sign in</button></div></div>';
+    if (auth.mode === "link") return '<div class="auth card"><h1>Sign in with a link</h1><p class="muted" style="margin:0">We\'ll email you a one-time sign-in link. No password needed.</p>' + err +
+      '<form class="auth-email" data-auth-form="email">' + emailFld + '<button class="btn primary">Email me a sign-in link</button></form>' +
+      '<div class="auth-links"><button class="linkish" data-auth="mode-signin">Back to sign in</button></div></div>';
+    return '<div class="auth card"><h1>Sign in</h1><p class="muted" style="margin:0">SUU Women\'s Rugby game prep. Use the Google account or email your coach invited.</p>' + err +
+      '<form class="auth-email" data-auth-form="password">' + emailFld + pw("auth-pw", "Password", "current-password") + '<button class="btn primary">Sign in</button></form>' +
+      '<div class="auth-links"><button class="linkish" data-auth="mode-forgot">Forgot password?</button><button class="linkish" data-auth="mode-create">First time? Create a password</button></div>' +
       '<div class="or"><span>or</span></div>' +
-      '<form class="auth-email" data-auth-form="email"><label class="field">Email<input type="email" id="auth-email" required autocomplete="email" value="' + esc(prefill) + '" placeholder="you@example.com"></label>' +
-      '<button class="btn primary">Email me a sign-in link</button></form></div>';
+      '<button class="btn google" data-auth="google"><span class="g" aria-hidden="true">G</span> Continue with Google</button>' +
+      '<button class="btn" data-auth="mode-link">Email me a sign-in link instead</button></div>';
   }
 
+  function friendlyAuthError(m) {
+    if (/invalid login credentials/i.test(m)) return "That email and password don't match. Try again, or tap Forgot password.";
+    if (/email not confirmed/i.test(m)) return "Confirm your email first. Check your inbox for the link we sent.";
+    if (/rate limit|too many/i.test(m)) return "Too many tries in a short time. Wait a few minutes, then try again.";
+    if (/password should be|weak/i.test(m)) return "Pick a longer or less common password.";
+    return m;
+  }
   function accountModal() {
     var me = currentUser();
     openModal("<h1>" + esc(me.name) + '</h1><div class="muted">' + esc(me.role) + (isAdmin() ? " · Admin access" : "") + "</div><div>" + esc(auth.email) + "</div>" +
+      '<form id="acct-pw" class="auth-email" style="border-top:1px dashed var(--line);padding-top:12px"><strong>Set or change your password</strong><span class="muted small">Then you can sign in with your email and password on any device.</span>' +
+      '<label class="field">New password<input type="password" id="acct-pw1" minlength="8" required autocomplete="new-password"></label><label class="field">Type it again<input type="password" id="acct-pw2" minlength="8" required autocomplete="new-password"></label>' +
+      '<div id="acct-pw-msg" class="small" hidden></div><button class="btn">Save password</button></form>' +
       '<div class="row" style="justify-content:flex-end"><button class="btn" data-close>Close</button><button class="btn primary" id="acct-out">Sign out</button></div>',
-      function (el) { el.querySelector("#acct-out").addEventListener("click", function () { closeModal(); sb.auth.signOut(); }); });
+      function (el) {
+        el.querySelector("#acct-out").addEventListener("click", function () { closeModal(); sb.auth.signOut(); });
+        el.querySelector("#acct-pw").addEventListener("submit", function (e) {
+          e.preventDefault(); e.stopPropagation();
+          var a = el.querySelector("#acct-pw1").value, b = el.querySelector("#acct-pw2").value, msg = el.querySelector("#acct-pw-msg");
+          function say(t, bad) { msg.hidden = false; msg.textContent = t; msg.style.color = bad ? "var(--red)" : "var(--done)"; }
+          if (a !== b) return say("Those passwords don't match.", true);
+          if (a.length < 8) return say("Use at least 8 characters.", true);
+          sb.auth.updateUser({ password: a }).then(function (r) { if (r.error) say(friendlyAuthError(r.error.message), true); else { say("Password saved."); e.target.reset(); } });
+        });
+      });
   }
 
   if (ONLINE) {
@@ -1890,15 +1932,34 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       var a = b.dataset.auth;
       if (a === "google") sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: appUrl() } }).then(function (r) { if (r.error) { auth.error = r.error.message; render(); } });
       if (a === "signout") sb.auth.signOut();
-      if (a === "back") { auth.sent = false; render(); }
+      if (a === "back") { auth.sent = false; auth.mode = "signin"; render(); }
+      if (a.indexOf("mode-") === 0) { var em = app.querySelector("#auth-email"); if (em) auth.email = em.value.trim(); auth.mode = a.slice(5); auth.error = ""; render(); }
     });
     app.addEventListener("submit", function (e) {
       if (!e.target.matches("[data-auth-form]")) return;
       e.preventDefault(); e.stopImmediatePropagation();
-      var email = e.target.querySelector("#auth-email").value.trim(); if (!email) return;
-      auth.error = ""; auth.email = email;
-      sb.auth.signInWithOtp({ email: email, options: { emailRedirectTo: appUrl() } }).then(function (r) {
-        if (r.error) auth.error = r.error.message; else auth.sent = true; render();
+      var f = e.target, kind = f.dataset.authForm, em = f.querySelector("#auth-email"), p1 = f.querySelector("#auth-pw"), p2 = f.querySelector("#auth-pw2");
+      var email = em ? em.value.trim() : auth.email, pass = p1 ? p1.value : "", btn = f.querySelector("button");
+      if (em && !email) return;
+      if (p2 && pass !== p2.value) { auth.error = "Those passwords don't match."; render(); return; }
+      if (p1 && kind !== "password" && pass.length < 8) { auth.error = "Use at least 8 characters."; render(); return; }
+      auth.error = ""; auth.email = email; if (btn) { btn.disabled = true; btn.textContent = "One moment…"; }
+      function done(r, ok) { if (r.error) { auth.error = friendlyAuthError(r.error.message); render(); } else ok(r); }
+      if (kind === "email") sb.auth.signInWithOtp({ email: email, options: { emailRedirectTo: appUrl() } }).then(function (r) { done(r, function () { auth.note = "We sent a sign-in link to"; auth.sent = true; render(); }); });
+      if (kind === "password") sb.auth.signInWithPassword({ email: email, password: pass }).then(function (r) { done(r, function () {}); });
+      if (kind === "create") sb.auth.signUp({ email: email, password: pass, options: { emailRedirectTo: appUrl() } }).then(function (r) {
+        done(r, function (r) {
+          if (r.data && r.data.user && r.data.user.identities && !r.data.user.identities.length) { auth.error = "That email already has an account. Sign in, or use Forgot password."; auth.mode = "signin"; render(); return; }
+          if (!r.data.session) { auth.note = "Almost done. We sent a link to confirm"; auth.sent = true; render(); }
+        });
+      });
+      if (kind === "forgot") sb.auth.resetPasswordForEmail(email, { redirectTo: appUrl() }).then(function (r) { done(r, function () { auth.note = "We sent a password reset link to"; auth.sent = true; render(); }); });
+      if (kind === "reset") sb.auth.updateUser({ password: pass }).then(function (r) {
+        done(r, function () {
+          auth.recovery = false; auth.mode = "signin"; try { history.replaceState(null, "", location.pathname + location.search); } catch (x) {}
+          sb.auth.getSession().then(function (g) { if (g.data && g.data.session) startSession(g.data.session); });
+          toast("Password saved");
+        });
       });
     }, true);
   }
