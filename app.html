@@ -220,6 +220,15 @@ nav.tabs button { white-space: nowrap; }
 .tasks li.flag-warn { box-shadow: inset 4px 0 0 var(--warn); }
 table.grid tr.flag-bad td:first-child { box-shadow: inset 4px 0 0 var(--red); }
 table.grid tr.flag-warn td:first-child { box-shadow: inset 4px 0 0 var(--warn); }
+.imp-mark { color: var(--red); font-weight: 900; }
+.imp-mark.high { color: var(--warn); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Overdue crucial tasks pulse red; heat-1..5 is days overdue, so the pulse deepens each day. */
+.crit-late { --heat: .14; animation: crit-pulse 3.2s ease-in-out infinite; }
+.crit-late.heat-2 { --heat: .2; } .crit-late.heat-3 { --heat: .27; } .crit-late.heat-4 { --heat: .34; } .crit-late.heat-5 { --heat: .42; }
+tr.crit-late td { background: transparent; }
+@keyframes crit-pulse { 0%, 100% { background-color: rgba(200, 16, 46, calc(var(--heat) * .35)); } 50% { background-color: rgba(200, 16, 46, var(--heat)); } }
+@media (prefers-reduced-motion: reduce) { .crit-late { animation: none; background-color: rgba(200, 16, 46, var(--heat)); } }
 .stat.warn .v { color: var(--warn); }
 .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 520px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -1387,7 +1396,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
         var off = t.dueOffset;
         return { id: uid(), mtId: t.id, text: t.text, supporters: (t.supporters || []).slice(), owner: t.owner || "", details: t.details || "", links: t.links || "", notes: "", notesLog: [],
           due: info.date && off !== null && off !== "" && !isNaN(off) ? addDays(info.date, -Number(off)) : "",
-          status: "Not Started", done: false, completed: "", optional: !!t.optional, confirmation: "",
+          status: "Not Started", done: false, completed: "", optional: !!t.optional, confirmation: "", importance: imp(t),
           subtasks: (t.subtasks || []).map(function (q) { return { id: uid(), text: q.text, owner: q.owner || "", done: false, by: "", files: [] }; }), files: [] };
       })
     };
@@ -1605,6 +1614,25 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     if (t.owner) { var o = t.owner.trim().toLowerCase(), op = S.people.filter(function (p) { return p.name.trim().toLowerCase() === o; })[0]; if (op && op.status === "Inactive") f.push({ lv: "warn", k: "owner", tx: "Owner deactivated" }); }
     return f;
   }
+  // Importance: "" (normal), "high" or "crucial". Only admins set it.
+  var IMPORTANCE = [["", "Normal"], ["high", "High"], ["crucial", "Crucial"]];
+  function imp(t) { return t && (t.importance === "high" || t.importance === "crucial") ? t.importance : ""; }
+  function ttl(text, t) {
+    var lv = imp(t);
+    if (lv === "crucial") return '<span class="imp-mark" aria-hidden="true">!</span> ' + esc(text) + ' <span class="imp-mark" aria-hidden="true">!</span><span class="sr-only"> (crucial)</span>';
+    if (lv === "high") return '<span class="imp-mark high" aria-hidden="true">!</span> ' + esc(text) + '<span class="sr-only"> (high importance)</span>';
+    return esc(text);
+  }
+  // Row classes: the warning stripe, plus a red pulse on overdue crucial tasks that deepens each day it stays late.
+  function rowFlags(t) {
+    var f = flagLevel(t), c = f ? " flag-" + f : "";
+    if (imp(t) === "crucial" && isLate(t)) c += " crit-late heat-" + Math.min(5, daysBetween(t.due, todayIso()));
+    return c;
+  }
+  function importanceField(id, t, editable) {
+    if (!editable) return imp(t) ? fld("Importance", "", imp(t) === "crucial" ? "Crucial" : "High", false) : "";
+    return '<label class="field">Importance<select id="' + id + '">' + IMPORTANCE.map(function (o) { return '<option value="' + o[0] + '"' + (imp(t) === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select></label>";
+  }
   function flagLevel(t) { var f = flagsOf(t); return f.some(function (x) { return x.lv === "bad"; }) ? "bad" : f.length ? "warn" : ""; }
   function flagChips(t) { return flagsOf(t).filter(function (x) { return x.k !== "blocked"; }).map(function (x) { return '<span class="flag ' + x.lv + '">⚑ ' + esc(x.tx) + "</span>"; }).join(""); }
   function flaggedCount(s) { return s.tasks.filter(function (t) { return flagsOf(t).length; }).length; }
@@ -1701,7 +1729,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       r.masters[m.id] = { id: m.id, name: m.name, game_info: !!m.gameInfo, position: mi, rules: m.rules ? cleanRules(m.rules) : null };
       m.tasks.forEach(function (t, i) {
         r.master_tasks[t.id] = { id: t.id, master_id: m.id, text: t.text, owner: t.owner || "", details: t.details || "", links: t.links || "", notes: t.notes || "",
-          due_offset: t.dueOffset === null || t.dueOffset === "" || t.dueOffset === undefined ? null : Number(t.dueOffset), position: i, supporters: t.supporters || [], optional: !!t.optional, needs_confirmation: !!t.needsConfirm,
+          due_offset: t.dueOffset === null || t.dueOffset === "" || t.dueOffset === undefined ? null : Number(t.dueOffset), position: i, supporters: t.supporters || [], optional: !!t.optional, needs_confirmation: !!t.needsConfirm, importance: imp(t),
           subtasks: (t.subtasks || []).map(function (q) { return { id: q.id, text: q.text, owner: q.owner || "" }; }) };
       });
     });
@@ -1710,7 +1738,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
         label: s.label || "", example: !!s.example, rules: s.rules ? cleanRules(s.rules) : null, created_at: new Date(s.created || Date.now()).toISOString() };
       s.tasks.concat(s.archived || []).forEach(function (t, i) {
         r.sheet_tasks[t.id] = { archived_at: arcIso(t), archived_by: t.archivedBy || "", id: t.id, sheet_id: s.id, master_task_id: nul(t.mtId), text: t.text, owner: t.owner || "", details: t.details || "", links: t.links || "", notes: "",
-          due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), position: i, supporters: t.supporters || [], optional: !!t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [] };
+          due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), position: i, supporters: t.supporters || [], optional: !!t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], importance: imp(t) };
         (t.notesLog || []).forEach(function (n) {
           r.task_notes[n.id] = { id: n.id, sheet_task_id: t.id, author: n.by || "", body: n.text, created_at: new Date(n.at).toISOString() };
         });
@@ -1733,7 +1761,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     (st.projects || []).concat(st.archivedProjects || []).forEach(function (pj, pi) {
       r.projects[pj.id] = { archived_at: arcIso(pj), archived_by: pj.archivedBy || "", id: pj.id, name: pj.name, description: pj.description || "", lead: pj.lead || "", members: pj.members || [], due: nul(pj.due), position: pi, created_at: new Date(pj.created || Date.now()).toISOString() };
       pj.tasks.concat(pj.archived || []).forEach(function (t, i) {
-        r.project_tasks[t.id] = { archived_at: arcIso(t), archived_by: t.archivedBy || "", id: t.id, project_id: pj.id, text: t.text, owner: t.owner || "", due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), notes: t.notes || "", position: i, supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [] };
+        r.project_tasks[t.id] = { archived_at: arcIso(t), archived_by: t.archivedBy || "", id: t.id, project_id: pj.id, text: t.text, owner: t.owner || "", due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), notes: t.notes || "", position: i, supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [], importance: imp(t) };
       });
     });
     (st.documents || []).forEach(function (d) {
@@ -1751,7 +1779,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       .sort(function (a, b) { return a.name.localeCompare(b.name); });
     function byPos(a, b) { return a.position - b.position; }
     var mt = {}; d.master_tasks.slice().sort(byPos).forEach(function (t) {
-      (mt[t.master_id] = mt[t.master_id] || []).push({ id: t.id, text: t.text, owner: t.owner, details: t.details, links: t.links, notes: t.notes, dueOffset: t.due_offset, supporters: t.supporters || [], optional: t.optional, needsConfirm: t.needs_confirmation, subtasks: t.subtasks || [] });
+      (mt[t.master_id] = mt[t.master_id] || []).push({ id: t.id, text: t.text, owner: t.owner, details: t.details, links: t.links, notes: t.notes, dueOffset: t.due_offset, supporters: t.supporters || [], optional: t.optional, needsConfirm: t.needs_confirmation, subtasks: t.subtasks || [], importance: t.importance || "" });
     });
     st.masters = d.masters.slice().sort(byPos).map(function (m) { return { id: m.id, name: m.name, gameInfo: m.game_info, rules: m.rules || null, tasks: mt[m.id] || [] }; });
     var notes = {}; d.task_notes.slice().sort(function (a, b) { return a.created_at.localeCompare(b.created_at); }).forEach(function (n) {
@@ -1759,7 +1787,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     });
     var stx = {}; d.sheet_tasks.slice().sort(byPos).forEach(function (t) {
       (stx[t.sheet_id] = stx[t.sheet_id] || []).push({ id: t.id, mtId: t.master_task_id, text: t.text, owner: t.owner, details: t.details, links: t.links, notes: "",
-        due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, supporters: t.supporters || [], notesLog: notes[t.id] || [], optional: t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "" });
+        due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, supporters: t.supporters || [], notesLog: notes[t.id] || [], optional: t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "", importance: t.importance || "" });
     });
     st.sheets = d.sheets.map(function (s) {
       return { id: s.id, masterId: s.master_id, masterName: s.master_name, gameInfo: s.game_info, opponent: s.opponent, date: s.date || "", label: s.label,
@@ -1773,7 +1801,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     st.reacts = (d.message_reactions || []).map(function (x) { return { id: x.id, msgId: x.message_id, convoId: x.conversation_id, personId: x.person_id, emoji: x.emoji, at: Date.parse(x.created_at) }; });
     st.reads = {}; (d.conversation_reads || []).forEach(function (x) { st.reads[x.conversation_id] = Date.parse(x.last_read); });
     var ptx = {}; (d.project_tasks || []).slice().sort(byPos).forEach(function (t) {
-      (ptx[t.project_id] = ptx[t.project_id] || []).push({ id: t.id, text: t.text, owner: t.owner, due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, notes: t.notes || "", supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "" });
+      (ptx[t.project_id] = ptx[t.project_id] || []).push({ id: t.id, text: t.text, owner: t.owner, due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, notes: t.notes || "", supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "", importance: t.importance || "" });
     });
     st.projects = (d.projects || []).slice().sort(byPos).map(function (x) {
       var all = ptx[x.id] || [];
@@ -2183,7 +2211,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     if (table) {
       h += '<div class="tablewrap"><table class="grid"><thead><tr><th>Date Completed</th><th>Task</th><th>Status</th><th>Owner</th><th>Helpers</th><th>Due Date</th><th>Details</th><th>Links</th><th>Confirmation</th><th>Other Notes</th></tr></thead><tbody>';
       shown.forEach(function (t) {
-        h += '<tr data-open-task="' + t.id + '" tabindex="0" class="' + (isDone(t) ? "is-done" : "") + (flagLevel(t) ? " flag-" + flagLevel(t) : "") + '"><td class="nowrap">' + esc(fmtShort(t.completed)) + '</td><td class="tname">' + esc(t.text) + (t.optional ? ' <span class="tag">Optional</span>' : "") + (flagsOf(t).length ? '<div class="meta" style="margin-top:4px">' + flagChips(t) + "</div>" : "") + "</td><td>" + statusPill(t) +
+        h += '<tr data-open-task="' + t.id + '" tabindex="0" class="' + (isDone(t) ? "is-done" : "") + rowFlags(t) + '"><td class="nowrap">' + esc(fmtShort(t.completed)) + '</td><td class="tname">' + ttl(t.text, t) + (t.optional ? ' <span class="tag">Optional</span>' : "") + (flagsOf(t).length ? '<div class="meta" style="margin-top:4px">' + flagChips(t) + "</div>" : "") + "</td><td>" + statusPill(t) +
           "</td><td>" + esc(t.owner) + "</td><td>" + esc((t.supporters || []).join(", ")) + '</td><td class="nowrap' + (isLate(t) ? " late" : "") + '">' + esc(fmtShort(t.due)) + '</td><td class="clip">' + esc(howTo(s, t)) +
           '</td><td class="clip">' + linkList(linksOf(s, t)).join("<br>") + '</td><td class="clip">' + (needsConfirm(t) ? esc(t.confirmation || "") || '<span class="muted">Needed</span>' : "") + '</td><td class="clip">' + (t.notesLog && t.notesLog.length ? esc(t.notesLog[t.notesLog.length - 1].text) + (t.notesLog.length > 1 ? ' <span class="muted">(+' + (t.notesLog.length - 1) + " more)</span>" : "") : "") + "</td></tr>";
       });
@@ -2197,8 +2225,8 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
         if (t.owner) meta.push("<span>" + esc(t.owner) + "</span>");
         if (t.due && !isDone(t)) meta.push('<span class="' + (isLate(t) ? "late" : "") + '">Due ' + esc(fmtShort(t.due)) + "</span>");
         if (isDone(t) && t.completed) meta.push("<span>" + esc(fmtShort(t.completed)) + "</span>");
-        return '<li class="' + (isDone(t) ? "is-done" : "") + (flagLevel(t) ? " flag-" + flagLevel(t) : "") + '"><label class="check" title="Mark done"><input type="checkbox" id="t-' + t.id + '" data-toggle="' + t.id + '" aria-label="Done: ' + esc(t.text) + '" ' + (isDone(t) ? "checked" : "") + "></label>" +
-          '<div class="tcol"><button class="tmain" data-open-task="' + t.id + '"><span class="txt">' + esc(t.text) + '</span><span class="meta">' + meta.join("") + "</span></button></div></li>";
+        return '<li class="' + (isDone(t) ? "is-done" : "") + rowFlags(t) + '"><label class="check" title="Mark done"><input type="checkbox" id="t-' + t.id + '" data-toggle="' + t.id + '" aria-label="Done: ' + esc(t.text) + '" ' + (isDone(t) ? "checked" : "") + "></label>" +
+          '<div class="tcol"><button class="tmain" data-open-task="' + t.id + '"><span class="txt">' + ttl(t.text, t) + '</span><span class="meta">' + meta.join("") + "</span></button></div></li>";
       };
       var inline = view.sf === "Complete", openT = inline ? shown : shown.filter(function (t) { return !isDone(t); }), doneT = inline ? [] : shown.filter(isDone);
       h += '<ul class="tasks">' + openT.map(row).join("");
@@ -2300,7 +2328,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       if (t.dueOffset !== null && t.dueOffset !== "") meta.push("<span>Due " + esc(dueOffsetText(t.dueOffset, m)) + "</span>");
       if (t.optional) meta.push('<span class="tag">Optional</span>');
       if (t.needsConfirm) meta.push('<span class="tag">Confirmation</span>');
-      h += '<li><span class="num">' + (i + 1) + '</span><button class="tmain" data-open-mtask="' + t.id + '"><span class="txt">' + esc(t.text) + "</span>" +
+      h += '<li><span class="num">' + (i + 1) + '</span><button class="tmain" data-open-mtask="' + t.id + '"><span class="txt">' + ttl(t.text, t) + "</span>" +
         (meta.length || extras(t) ? '<span class="meta">' + meta.join("") + extras(t) + "</span>" : "") + "</button>" +
         (admin ? '<button class="icon-btn" aria-label="Move up" title="Move up" data-move="' + t.id + '" data-dir="-1" ' + (i === 0 ? "disabled" : "") + '>↑</button>' +
           '<button class="icon-btn" aria-label="Move down" title="Move down" data-move="' + t.id + '" data-dir="1" ' + (i === m.tasks.length - 1 ? "disabled" : "") + '>↓</button>' : "") + "</li>";
@@ -2585,10 +2613,11 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     var admin = isAdmin();
     var statusSel = '<label class="field">Status<select id="tk-status">' + STATUSES.map(function (x) { return "<option" + (x === t.status ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></label>";
     var mt = masterTaskOf(s, t), editHow = admin && !mt, how = howTo(s, t), links = linkList(linksOf(s, t)), canSup = admin || isMine(t), sup = (t.supporters || []).slice();
-    openModal('<h1 style="font-size:1.3rem">' + esc(t.text) + "</h1>" + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") + '<form style="display:flex;flex-direction:column;gap:12px">' +
+    openModal('<h1 style="font-size:1.3rem">' + ttl(t.text, t) + "</h1>" + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") + '<form style="display:flex;flex-direction:column;gap:12px">' +
       (admin ? fld("Task", "tk-text", t.text, true) : "") +
       '<div class="grid2">' + statusSel + (admin ? ownerCombo("tk-owner", t.owner) : fld("Owner", "", t.owner, false)) +
       fld("Due Date", "tk-due", t.due, admin, "date") + fld("Date Completed", "tk-completed", t.completed, admin, "date") + "</div>" +
+      importanceField("tk-imp", t, admin) +
       supportersField("tk-sup", t.supporters || [], canSup) +
       workBlock("tk", admin || isMine(t) || isSupporting(t)) +
       (needsConfirm(t) ? fld("Confirmation <span class=\"muted small\" style=\"font-weight:400\">confirmation number, who confirmed, or other proof</span>", "tk-confirm", t.confirmation || "", true, "text") : "") +
@@ -2637,7 +2666,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
         autosave = wireAutosave(el, function () {
           if (admin) {
             var name = el.querySelector("#tk-text").value.trim(); if (name) t.text = name;
-            t.owner = el.querySelector("#tk-owner").value.trim(); t.due = el.querySelector("#tk-due").value;
+            t.owner = el.querySelector("#tk-owner").value.trim(); t.due = el.querySelector("#tk-due").value; t.importance = el.querySelector("#tk-imp").value;
             if (editHow) { t.details = el.querySelector("#tk-details").value.trim(); t.links = el.querySelector("#tk-links").value.trim(); }
           }
           var cf = el.querySelector("#tk-confirm"); if (cf) t.confirmation = cf.value.trim();
@@ -2654,9 +2683,10 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     var due = admin
       ? '<label class="field">Due Date<span class="row" style="gap:8px;flex-wrap:nowrap"><input type="number" id="mt-off" min="-60" max="365" step="1" style="width:6em" value="' + (t.dueOffset === null ? "" : esc(t.dueOffset)) + '"><span class="muted small" style="font-weight:400">days before the ' + what + " (0 = " + what + " day)</span></span></label>"
       : fld("Due Date", "", t.dueOffset === null || t.dueOffset === "" ? "" : dueOffsetText(t.dueOffset, m), false);
-    openModal('<h1 style="font-size:1.3rem">' + esc(t.text) + '</h1><form style="display:flex;flex-direction:column;gap:12px">' +
+    openModal('<h1 style="font-size:1.3rem">' + ttl(t.text, t) + '</h1><form style="display:flex;flex-direction:column;gap:12px">' +
       (admin ? fld("Task", "mt-text", t.text, true) : "") +
       '<div class="grid2">' + (admin ? ownerCombo("mt-owner", t.owner) : fld("Owner", "", t.owner, false)) + due + "</div>" +
+      importanceField("mt-imp", t, admin) +
       supportersField("mt-sup", t.supporters || [], admin) +
       '<div class="field"><span>Subtasks <span class="muted small" style="font-weight:400">copied onto every new sheet</span></span><ul class="subs" id="mt-subs"></ul>' +
       (admin ? '<div class="sub-add"><input type="text" id="mt-subnew" placeholder="Add a subtask" autocomplete="off" aria-label="New subtask">' +
@@ -2681,7 +2711,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
         });
         autosave = wireAutosave(el, function () {
           var name = el.querySelector("#mt-text").value.trim(); if (name) t.text = name;
-          t.owner = el.querySelector("#mt-owner").value.trim();
+          t.owner = el.querySelector("#mt-owner").value.trim(); t.importance = el.querySelector("#mt-imp").value;
           t.supporters = msup.filter(function (n) { return n.toLowerCase() !== t.owner.toLowerCase(); });
           t.optional = el.querySelector("#mt-optional").checked; t.needsConfirm = el.querySelector("#mt-confirm").checked;
           var off = el.querySelector("#mt-off").value.trim(); t.dueOffset = off === "" || isNaN(off) ? null : Math.round(Number(off));
@@ -3045,7 +3075,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       return '<div class="task-grp"><button type="button" class="grp-link" ' + g.open + ' aria-label="Open ' + esc(g.title) + ", " + g.pct + '% done"><span class="row spread"><b class="clip1">' + esc(g.title) + '</b><span class="muted small" style="flex:none">' + g.pct + "% done</span></span>" +
         '<span class="bar' + (g.pct === 100 ? " full" : "") + '"><i style="width:' + g.pct + '%"></i></span></button><ul class="tasks">' + items.map(function (t) {
           if (t.__sub) return '<li class="mine-row"><button class="tmain" ' + g.row(t.__parent) + '><span class="txt">' + esc(t.__sub.text) + '</span><span class="meta"><span class="tag">Subtask</span><span>Part of: ' + esc(t.__parent.text) + "</span></span></button></li>";
-          return '<li class="mine-row' + (flagLevel(t) ? " flag-" + flagLevel(t) : "") + '"><button class="tmain" ' + g.row(t) + '><span class="txt">' + esc(t.text) + '</span><span class="meta">' + statusPill(t) + flagChips(t) + (isMine(t) ? "" : '<span class="tag">Helping</span>') +
+          return '<li class="mine-row' + rowFlags(t) + '"><button class="tmain" ' + g.row(t) + '><span class="txt">' + ttl(t.text, t) + '</span><span class="meta">' + statusPill(t) + flagChips(t) + (isMine(t) ? "" : '<span class="tag">Helping</span>') +
             (t.due ? '<span class="' + (isLate(t) ? "late" : "") + '">Due ' + esc(fmtShort(t.due)) + "</span>" : "") + "</span></button></li>";
         }).join("") + "</ul>" + (g.items.length > 4 ? '<button class="btn ghost more" data-expand="' + g.key + '">' + (open ? "Show fewer" : "Show all " + g.items.length) + "</button>" : "") + "</div>";
     }).join("") + "</div>";
@@ -3131,7 +3161,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       var allItems = g[2].slice().sort(function (a, b) { return (a.t.due || "9").localeCompare(b.t.due || "9"); });
       var open = view.expand[g[0]], items = open ? allItems : allItems.slice(0, 5);
       h += '<div class="card" id="grp-' + g[0] + '"><div class="grp-head"><strong>' + g[1] + '</strong><span class="muted small">' + allItems.length + (allItems.length === 1 ? " task" : " tasks") + '</span></div><ul class="tasks">' + items.map(function (x) {
-        return '<li class="' + (flagLevel(x.t) ? "flag-" + flagLevel(x.t) : "") + '"><button class="tmain" data-open-sheet="' + x.s.id + '" data-focus-task="' + x.t.id + '"><span class="txt">' + esc(x.t.text) + '</span><span class="meta">' + statusPill(x.t) + flagChips(x.t) +
+        return '<li class="' + rowFlags(x.t) + '"><button class="tmain" data-open-sheet="' + x.s.id + '" data-focus-task="' + x.t.id + '"><span class="txt">' + ttl(x.t.text, x.t) + '</span><span class="meta">' + statusPill(x.t) + flagChips(x.t) +
           "<span>" + esc(sheetTitle(x.s)) + "</span>" + (x.t.due ? '<span class="' + (isLate(x.t) ? "late" : "") + '">Due ' + esc(fmtShort(x.t.due)) + "</span>" : "") +
           (x.t.owner ? "<span>" + esc(x.t.owner) + "</span>" : '<span class="muted">No owner</span>') + '</span></button><span class="chev" aria-hidden="true">›</span></li>';
       }).join("") + "</ul>" + (allItems.length > 5 ? '<button class="btn ghost more" data-expand="' + g[0] + '">' + (open ? "Show fewer" : "Show all " + allItems.length) + "</button>" : "") + "</div>";
@@ -3622,7 +3652,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       var hits = all.filter(function (x) { return matchSF(x.t, view.psf); }).sort(function (a, b) { return (a.t.due || "9").localeCompare(b.t.due || "9"); });
       h += '<div class="card" id="psf-list"><div class="grp-head"><strong>' + esc(sfLabel(view.psf)) + '</strong><span class="row" style="gap:8px"><span class="muted small">' + hits.length + (hits.length === 1 ? " task" : " tasks") + '</span><button type="button" class="btn ghost" data-sf-clear>Close</button></span></div><ul class="tasks">' +
         (hits.length ? hits.map(function (x) {
-          return '<li class="' + (flagLevel(x.t) ? "flag-" + flagLevel(x.t) : "") + '"><button class="tmain" data-open-project="' + x.p.id + '" data-focus-ptask="' + x.t.id + '"><span class="txt">' + esc(x.t.text) + '</span><span class="meta">' + statusPill(x.t) + flagChips(x.t) +
+          return '<li class="' + rowFlags(x.t) + '"><button class="tmain" data-open-project="' + x.p.id + '" data-focus-ptask="' + x.t.id + '"><span class="txt">' + ttl(x.t.text, x.t) + '</span><span class="meta">' + statusPill(x.t) + flagChips(x.t) +
             "<span>" + esc(x.p.name) + "</span>" + (x.t.due ? '<span class="' + (isLate(x.t) ? "late" : "") + '">Due ' + esc(fmtShort(x.t.due)) + "</span>" : "") + (x.t.owner ? "<span>" + esc(x.t.owner) + "</span>" : '<span class="muted">No owner</span>') + '</span></button><span class="chev" aria-hidden="true">›</span></li>';
         }).join("") : '<li class="muted">None right now.</li>') + "</ul></div>";
     }
@@ -3678,7 +3708,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     var next = open.slice().sort(function (a, b) { return (b.late - a.late) || (a.due || "9").localeCompare(b.due || "9"); }).slice(0, 3);
     var wkey = "weekOpen_" + scope;
     function nextLi(x) {
-      return '<li><button class="tmain" ' + x.open + '><span class="txt">' + esc(x.t.text) + '</span><span class="meta">' + (x.sub ? "<span>Part of: " + esc(x.sub) + "</span>" : statusPill(x.t)) + '<span class="muted">' + esc(x.where) + "</span>" +
+      return '<li><button class="tmain" ' + x.open + '><span class="txt">' + ttl(x.t.text, x.t) + '</span><span class="meta">' + (x.sub ? "<span>Part of: " + esc(x.sub) + "</span>" : statusPill(x.t)) + '<span class="muted">' + esc(x.where) + "</span>" +
         (x.due ? '<span class="' + (x.late ? "late" : "") + '">Due ' + esc(fmtShort(x.due)) + "</span>" : "") + '</span></button><span class="chev" aria-hidden="true">›</span></li>';
     }
     h += '<div class="card mydash">' +
@@ -3706,7 +3736,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     return rows.map(function (x) {
       var pc = Math.round(x.d * 100 / x.t), n = x.open.length + x.subs.length, open = view.expand["w-" + x.p.id], left = open ? n : 4;
       var lis = x.open.map(function (t) {
-        return '<li class="mine-row' + (flagLevel(t) ? " flag-" + flagLevel(t) : "") + '"><button class="tmain" data-open-project="' + x.p.id + '" data-focus-ptask="' + t.id + '"><span class="txt">' + esc(t.text) + '</span><span class="meta">' + statusPill(t) + flagChips(t) +
+        return '<li class="mine-row' + rowFlags(t) + '"><button class="tmain" data-open-project="' + x.p.id + '" data-focus-ptask="' + t.id + '"><span class="txt">' + ttl(t.text, t) + '</span><span class="meta">' + statusPill(t) + flagChips(t) +
           (isMine(t) ? "" : '<span class="tag">Helping</span>') + (t.due ? '<span class="' + (isLate(t) ? "late" : "") + '">Due ' + esc(fmtShort(t.due)) + "</span>" : "") + "</span></button></li>";
       }).concat(x.subs.map(function (y) {
         return '<li class="mine-row"><button class="tmain" data-open-project="' + x.p.id + '" data-focus-ptask="' + y.k.id + '"><span class="txt">' + esc(y.q.text) + '</span><span class="meta"><span class="tag">Subtask</span><span>Part of: ' + esc(y.k.text) + "</span></span></button></li>";
@@ -3811,8 +3841,8 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     var pshown = pj.tasks.filter(function (t) { return matchSF(t, view.sf); });
     h += sfBanner(view.sf, pshown.length);
     h += '<div class="card"><ul class="tasks">' + (pshown.length ? pshown.map(function (t) {
-      return '<li class="' + (isDone(t) ? "is-done" : "") + (flagLevel(t) ? " flag-" + flagLevel(t) : "") + '"><label class="check" title="Mark done"><input type="checkbox" id="pt-' + t.id + '" data-ptoggle="' + t.id + '" aria-label="Done: ' + esc(t.text) + '" ' + (isDone(t) ? "checked" : "") + "></label>" +
-        '<button class="tmain" data-open-ptask="' + t.id + '"><span class="txt">' + esc(t.text) + '</span><span class="meta">' + statusPill(t) + flagChips(t) + (t.owner ? "<span>" + esc(t.owner) + ((t.supporters || []).length ? " +" + t.supporters.length : "") + "</span>" : '<span class="muted">No owner</span>') + (workTags(t).length ? '<span class="tag">' + workTags(t).join(" · ") + "</span>" : "") +
+      return '<li class="' + (isDone(t) ? "is-done" : "") + rowFlags(t) + '"><label class="check" title="Mark done"><input type="checkbox" id="pt-' + t.id + '" data-ptoggle="' + t.id + '" aria-label="Done: ' + esc(t.text) + '" ' + (isDone(t) ? "checked" : "") + "></label>" +
+        '<button class="tmain" data-open-ptask="' + t.id + '"><span class="txt">' + ttl(t.text, t) + '</span><span class="meta">' + statusPill(t) + flagChips(t) + (t.owner ? "<span>" + esc(t.owner) + ((t.supporters || []).length ? " +" + t.supporters.length : "") + "</span>" : '<span class="muted">No owner</span>') + (workTags(t).length ? '<span class="tag">' + workTags(t).join(" · ") + "</span>" : "") +
         (t.due ? '<span class="' + (isLate(t) ? "late" : "") + '">Due ' + esc(fmtShort(t.due)) + "</span>" : "") + "</span></button></li>";
     }).join("") : '<li class="muted">No tasks yet.</li>') + "</ul>" +
       (mgr ? '<form class="add" id="f-add-ptask"><input type="text" id="new-ptask" placeholder="Add a task" aria-label="New task" autocomplete="off"><button class="btn primary">Add</button></form>' : "") + "</div>";
@@ -3846,11 +3876,12 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   function projectTaskModal(pj, t) {
     var mgr = canManageProject(pj), canWork = mgr || isMine(t) || isSupporting(t), psup = (t.supporters || []).slice(), pool = projectPool(pj);
     var statusSel = '<label class="field">Status<select id="pk-status">' + STATUSES.map(function (x) { return "<option" + (x === t.status ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></label>";
-    openModal('<h1 style="font-size:1.3rem">' + esc(t.text) + "</h1>" + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") +
+    openModal('<h1 style="font-size:1.3rem">' + ttl(t.text, t) + "</h1>" + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") +
       '<div class="muted small">' + esc(pj.name) + '</div><form style="display:flex;flex-direction:column;gap:12px">' +
       (mgr ? fld("Task", "pk-text", t.text, true) : "") +
       '<div class="grid2">' + statusSel + (mgr ? ownerCombo("pk-owner", t.owner) : fld("Owner", "", t.owner, false)) +
       fld("Due Date", "pk-due", t.due, mgr, "date") + fld("Date Completed", "pk-completed", t.completed, true, "date") + "</div>" +
+      importanceField("pk-imp", t, isAdmin()) +
       supportersField("pk-sup", t.supporters || [], mgr) +
       (t.by && isDone(t) ? '<div class="muted small">Marked done by ' + esc(t.by) + "</div>" : "") +
       workBlock("pk", canWork) +
@@ -3872,6 +3903,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
             var n = el.querySelector("#pk-text").value.trim(); if (n) t.text = n; t.owner = el.querySelector("#pk-owner").value.trim(); t.due = el.querySelector("#pk-due").value;
             t.supporters = psup.filter(function (x) { return x.toLowerCase() !== (t.owner || "").toLowerCase(); });
           }
+          var pim = el.querySelector("#pk-imp"); if (pim && isAdmin()) t.importance = pim.value;
           t.notes = el.querySelector("#pk-notes").value.trim();
           setStatus(t, st.value, comp.value); save(); render();
         }, ["pk-sup"].concat(workSkip("pk")));

@@ -231,3 +231,6 @@ create policy "owner updates" on public.projects for update using (public.is_pro
 -- project_owner_tasks (applied): a project's owner (lead) can add tasks to their project.
 -- create policy "owner inserts" on public.project_tasks for insert to authenticated
 --   with check (exists (select 1 from public.projects pj where pj.id = project_id and public.is_project_owner(pj.lead)));
+
+-- Task importance (migration task_importance): importance text '' | 'high' | 'crucial' on sheet_tasks, project_tasks
+--   and master_tasks (copied onto new sheets). Trigger guard_task_importance lets only admins set or change it.
