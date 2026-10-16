@@ -1891,11 +1891,10 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     if (auth.mode === "link") return '<div class="auth card"><h1>Sign in with a link</h1><p class="muted" style="margin:0">We\'ll email you a one-time sign-in link. No password needed.</p>' + err +
       '<form class="auth-email" data-auth-form="email">' + emailFld + '<button class="btn primary">Email me a sign-in link</button></form>' +
       '<div class="auth-links"><button class="linkish" data-auth="mode-signin">Back to sign in</button></div></div>';
-    return '<div class="auth card"><h1>Sign in</h1><p class="muted" style="margin:0">SUU Women\'s Rugby game prep. Use the Google account or email your coach invited.</p>' + err +
+    return '<div class="auth card"><h1>Sign in</h1><p class="muted" style="margin:0">SUU Women\'s Rugby game prep. Use the email your coach invited.</p>' + err +
       '<form class="auth-email" data-auth-form="password">' + emailFld + pw("auth-pw", "Password", "current-password") + '<button class="btn primary">Sign in</button></form>' +
       '<div class="auth-links"><button class="linkish" data-auth="mode-forgot">Forgot password?</button><button class="linkish" data-auth="mode-create">First time? Create a password</button></div>' +
       '<div class="or"><span>or</span></div>' +
-      '<button class="btn google" data-auth="google"><span class="g" aria-hidden="true">G</span> Continue with Google</button>' +
       '<button class="btn" data-auth="mode-link">Email me a sign-in link instead</button></div>';
   }
 
@@ -2888,7 +2887,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   function adminCount(people, access) { return people.filter(function (p) { return access[p.role] && p.status !== "Inactive"; }).length; }
   function inviteLink(p) { return APP_LINK + (p.email && !/claude\.ai/.test(APP_LINK) ? (APP_LINK.indexOf("?") < 0 ? "?" : "&") + "email=" + encodeURIComponent(p.email) : ""); }
   function inviteText(p) {
-    var how = p.email ? " Sign in with Google or your email (" + p.email + ")." : "";
+    var how = p.email ? " Sign in with your email (" + p.email + ") and tap \"First time? Create a password\"." : "";
     return "Hi " + p.name.split(" ")[0] + ", you've been added to the SUU Women's Rugby game prep app as " + p.role + ". Open it here: " + inviteLink(p) + how;
   }
 
