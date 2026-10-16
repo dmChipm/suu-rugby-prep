@@ -240,6 +240,7 @@ body.signed-out nav.tabs, body.signed-out #me-btn { visibility: hidden; }
 .or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .85rem; }
 .or::before, .or::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
 .auth-email { display: flex; flex-direction: column; gap: 10px; }
+.auth-email[hidden] { display: none; }
 .auth-err { color: var(--red); }
 .auth-links { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .linkish { border: 0; background: none; padding: 2px 0; font: inherit; font-size: .9rem; color: var(--red); text-decoration: underline; cursor: pointer; }
@@ -1912,22 +1913,38 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     if (/password should be|weak/i.test(m)) return "Pick a longer or less common password.";
     return m;
   }
+  // True once this account has a password: saved on the account, or this session signed in with one.
+  function sessionHasPassword(ses) {
+    if (!ses || !ses.user) return false;
+    if (ses.user.user_metadata && ses.user.user_metadata.has_password) return true;
+    try {
+      var claims = JSON.parse(atob(ses.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+      var pw = (claims.amr || []).some(function (a) { return a.method === "password"; });
+      if (pw) sb.auth.updateUser({ data: { has_password: true } });
+      return pw;
+    } catch (e) { return false; }
+  }
   function accountModal() {
     var me = currentUser();
     openModal("<h1>" + esc(me.name) + '</h1><div class="muted">' + esc(me.role) + (isAdmin() ? " · Admin access" : "") + "</div><div>" + esc(auth.email) + "</div>" +
-      '<form id="acct-pw" class="auth-email" style="border-top:1px dashed var(--line);padding-top:12px"><strong>Set or change your password</strong><span class="muted small">Then you can sign in with your email and password on any device.</span>' +
+      '<form id="acct-pw" class="auth-email" hidden style="border-top:1px dashed var(--line);padding-top:12px"><strong>Create your password</strong><span class="muted small">Then you can sign in with your email and password on any device.</span>' +
       '<label class="field">New password<input type="password" id="acct-pw1" minlength="8" required autocomplete="new-password"></label><label class="field">Type it again<input type="password" id="acct-pw2" minlength="8" required autocomplete="new-password"></label>' +
       '<div id="acct-pw-msg" class="small" hidden></div><button class="btn">Save password</button></form>' +
       '<div class="row" style="justify-content:flex-end"><button class="btn" data-close>Close</button><button class="btn primary" id="acct-out">Sign out</button></div>',
       function (el) {
         el.querySelector("#acct-out").addEventListener("click", function () { closeModal(); sb.auth.signOut(); });
+        // Only people without a password yet see the password form; a forgotten password is reset from the sign-in screen.
+        sb.auth.getSession().then(function (r) { if (!sessionHasPassword(r.data && r.data.session)) el.querySelector("#acct-pw").hidden = false; });
         el.querySelector("#acct-pw").addEventListener("submit", function (e) {
           e.preventDefault(); e.stopPropagation();
           var a = el.querySelector("#acct-pw1").value, b = el.querySelector("#acct-pw2").value, msg = el.querySelector("#acct-pw-msg");
           function say(t, bad) { msg.hidden = false; msg.textContent = t; msg.style.color = bad ? "var(--red)" : "var(--done)"; }
           if (a !== b) return say("Those passwords don't match.", true);
           if (a.length < 8) return say("Use at least 8 characters.", true);
-          sb.auth.updateUser({ password: a }).then(function (r) { if (r.error) say(friendlyAuthError(r.error.message), true); else { say("Password saved."); e.target.reset(); } });
+          sb.auth.updateUser({ password: a, data: { has_password: true } }).then(function (r) {
+            if (r.error) return say(friendlyAuthError(r.error.message), true);
+            e.target.reset(); e.target.hidden = true; toast("Password saved. Sign in with your email and password from now on.");
+          });
         });
       });
   }
@@ -1968,7 +1985,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
         });
       }).catch(function () { auth.error = "Couldn't reach the server. Check your connection and try again."; render(); });
       if (kind === "forgot") sb.auth.resetPasswordForEmail(email, { redirectTo: appUrl() }).then(function (r) { done(r, function () { auth.note = "We sent a password reset link to"; auth.sent = true; render(); }); });
-      if (kind === "reset") sb.auth.updateUser({ password: pass }).then(function (r) {
+      if (kind === "reset") sb.auth.updateUser({ password: pass, data: { has_password: true } }).then(function (r) {
         done(r, function () {
           auth.recovery = false; auth.mode = "signin"; try { history.replaceState(null, "", location.pathname + location.search); } catch (x) {}
           sb.auth.getSession().then(function (g) { if (g.data && g.data.session) startSession(g.data.session); });
