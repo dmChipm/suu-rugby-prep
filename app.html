@@ -78,11 +78,6 @@ h2 { font-size: 1.15rem; letter-spacing: .06em; color: var(--muted); }
 .item:hover { border-color: var(--red); }
 .item .grow { flex: 1; min-width: 0; }
 .item .title { font-weight: 700; font-size: 1.05rem; }
-.item.person-wait { padding: 0 12px 0 0; flex-wrap: wrap; gap: 0 10px; }
-.person-open { all: unset; box-sizing: border-box; flex: 1 1 220px; min-width: 0; display: flex; gap: 14px; align-items: center; padding: 14px 16px; cursor: pointer; border-radius: 14px; }
-.person-open:focus-visible { outline: 2px solid var(--red); outline-offset: -2px; }
-.item.person-wait .resend { margin: 0 0 0 auto; white-space: nowrap; }
-@media (max-width: 480px) { .item.person-wait { padding: 0 12px 12px 0; } .item.person-wait .resend { margin-left: 16px; } }
 .chev { color: var(--muted); font-size: 1.3rem; }
 
 .kind { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--red-soft); color: var(--red); }
@@ -2861,8 +2856,6 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       var inner = '<div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + '</div><div class="grow"><div class="title">' + esc(p.name) +
         (p.id === S.currentUserId ? ' <span class="muted small">(you)</span>' : "") + '</div><div class="muted small">' + (byRole ? esc(contact || "No contact info") : esc(p.role) + (S.roleAccess[p.role] ? " · Admin access" : "")) + "</div></div>" +
         '<span class="pill ' + (p.status === "Active" ? "st-done" : "st-ip") + '">' + esc(p.status) + "</span>";
-      // Invited people who haven't signed in yet get a Resend invite button beside their row.
-      if (admin && awaitingJoin(p)) return '<div class="item person-wait"><button class="person-open" data-open-person="' + p.id + '">' + inner + '</button><button class="btn resend" data-act="resend-invite" data-person="' + p.id + '">Resend invite</button></div>';
       return '<button class="item" data-open-person="' + p.id + '">' + inner + "</button>";
     }
     if (!byRole) h += act.length ? '<div class="list">' + act.slice().sort(function (a, b) { return ps === "za" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name); }).map(personItem).join("") + "</div>" : '<div class="card empty">No one yet.</div>';
@@ -4106,7 +4099,6 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       case "goto-tab": view.tab = t.dataset.tab; view.sheetId = null; view.projectId = null; view.masterId = null; render(); window.scrollTo(0, 0); break;
       case "people-settings": peopleSettingsModal(); break;
       case "team-person": teamPersonModal(t.dataset.name); break;
-      case "resend-invite": var rp = byId(S.people, t.dataset.person); if (rp) resendInvite(rp); break;
       case "project-people": var ppj = byId(S.projects, view.projectId); if (ppj && canEditMembers(ppj)) projectPeopleModal(ppj); break;
       case "delete-project": if (isAdmin()) deleteProjectModal(byId(S.projects, view.projectId)); break;
       case "new-sheet": if (isAdmin()) newSheetModal(); break;
