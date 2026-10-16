@@ -78,6 +78,11 @@ h2 { font-size: 1.15rem; letter-spacing: .06em; color: var(--muted); }
 .item:hover { border-color: var(--red); }
 .item .grow { flex: 1; min-width: 0; }
 .item .title { font-weight: 700; font-size: 1.05rem; }
+.item.person-wait { padding: 0 12px 0 0; flex-wrap: wrap; gap: 0 10px; }
+.person-open { all: unset; box-sizing: border-box; flex: 1 1 220px; min-width: 0; display: flex; gap: 14px; align-items: center; padding: 14px 16px; cursor: pointer; border-radius: 14px; }
+.person-open:focus-visible { outline: 2px solid var(--red); outline-offset: -2px; }
+.item.person-wait .resend { margin: 0 0 0 auto; white-space: nowrap; }
+@media (max-width: 480px) { .item.person-wait { padding: 0 12px 12px 0; } .item.person-wait .resend { margin-left: 16px; } }
 .chev { color: var(--muted); font-size: 1.3rem; }
 
 .kind { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--red-soft); color: var(--red); }
@@ -2836,9 +2841,12 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     h += '<div class="row spread"><span class="muted small">' + act.length + (act.length === 1 ? " person" : " people") + '</span><div class="seg" role="group" aria-label="Sort people"><button data-act="psort-az" aria-pressed="' + (ps === "az") + '">A to Z</button><button data-act="psort-za" aria-pressed="' + (ps === "za") + '">Z to A</button><button data-act="psort-role" aria-pressed="' + byRole + '">By position</button></div></div>';
     function personItem(p) {
       var contact = [p.email, p.phone].filter(Boolean).join(" · ");
-      return '<button class="item" data-open-person="' + p.id + '"><div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + '</div><div class="grow"><div class="title">' + esc(p.name) +
+      var inner = '<div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + '</div><div class="grow"><div class="title">' + esc(p.name) +
         (p.id === S.currentUserId ? ' <span class="muted small">(you)</span>' : "") + '</div><div class="muted small">' + (byRole ? esc(contact || "No contact info") : esc(p.role) + (S.roleAccess[p.role] ? " · Admin access" : "")) + "</div></div>" +
-        '<span class="pill ' + (p.status === "Active" ? "st-done" : "st-ip") + '">' + esc(p.status) + "</span></button>";
+        '<span class="pill ' + (p.status === "Active" ? "st-done" : "st-ip") + '">' + esc(p.status) + "</span>";
+      // Invited people who haven't signed in yet get a Resend invite button beside their row.
+      if (admin && awaitingJoin(p)) return '<div class="item person-wait"><button class="person-open" data-open-person="' + p.id + '">' + inner + '</button><button class="btn resend" data-act="resend-invite" data-person="' + p.id + '">Resend invite</button></div>';
+      return '<button class="item" data-open-person="' + p.id + '">' + inner + "</button>";
     }
     if (!byRole) h += act.length ? '<div class="list">' + act.slice().sort(function (a, b) { return ps === "za" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name); }).map(personItem).join("") + "</div>" : '<div class="card empty">No one yet.</div>';
     else ROLES.forEach(function (r) {
@@ -2895,6 +2903,8 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   }
   function initials(n) { return String(n || "?").split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0].toUpperCase(); }).join(""); }
   function adminCount(people, access) { return people.filter(function (p) { return access[p.role] && p.status !== "Inactive"; }).length; }
+  function awaitingJoin(p) { return p.status === "Invited" && !p.joined && !!(p.email || p.phone); }
+  function resendInvite(p) { p.invited = todayIso(); save(); render(); inviteModal(p, true); }
   function inviteLink(p) { return APP_LINK + (p.email && !/claude\.ai/.test(APP_LINK) ? (APP_LINK.indexOf("?") < 0 ? "?" : "&") + "email=" + encodeURIComponent(p.email) : ""); }
   function inviteText(p) {
     var how = p.email ? " Sign in with your email (" + p.email + ") and tap \"First time? Create a password\"." : "";
@@ -2910,13 +2920,14 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       '<div class="grid2">' + fld("Email", "pm-email", p.email, admin, "email", ' placeholder="name@example.com"') + fld("Phone", "pm-phone", p.phone, admin, "tel") + "</div>" +
       (admin ? roleSel : fld("Role", "", p.role, false)) +
       '<div id="pm-err" class="small" style="color:var(--red)" hidden></div>' +
-      (!isNew ? '<div class="muted small">' + esc(p.status) + (p.invited ? " · invited " + esc(fmtDate(p.invited)) : "") + "</div>" : "") +
+      (!isNew ? '<div class="row spread"><div class="muted small">' + esc(p.status) + (p.invited ? " · invited " + esc(fmtDate(p.invited)) : "") + "</div>" + (admin && awaitingJoin(p) ? '<button type="button" class="btn" id="pm-resend">Resend invite</button>' : "") + "</div>" : "") +
       (admin ? '<div class="row spread">' + (!isNew ? '<div class="row"><button type="button" class="btn danger" id="pm-remove">Remove</button><button type="button" class="btn" id="pm-active">' + (p.status === "Inactive" ? "Reactivate" : "Deactivate") + "</button>" + "</div>" : "<span></span>") +
         '<div class="row"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary">' + (isNew ? "Add and invite" : "Save") + "</button></div></div>"
         : '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Close</button></div>') + "</form>" +
       (isNew && admin ? '<div class="invite-link"><div class="grow" style="min-width:0"><div class="title">Invite link</div><div class="muted small">The app link to send people you have already added.</div></div><button type="button" class="btn" id="pm-copy-link">Copy invite link</button></div>' : ""),
       function (el) {
         if (!admin) return;
+        var rs = el.querySelector("#pm-resend"); if (rs) rs.addEventListener("click", function () { closeModal(); resendInvite(p); });
         var cl = el.querySelector("#pm-copy-link"); if (cl) cl.addEventListener("click", function () { copyText(APP_LINK, "Invite link copied"); });
         var err = el.querySelector("#pm-err");
         function fail(m) { err.textContent = m; err.hidden = false; }
@@ -2969,12 +2980,12 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     try { navigator.clipboard.writeText(text).then(function () { notice(okMsg); }, fallback); } catch (e) { fallback(); }
   }
 
-  function inviteModal(p) {
+  function inviteModal(p, again) {
     var msg = inviteText(p), link = inviteLink(p), digits = (p.phone || "").replace(/[^\d+]/g, "");
     // sms: and mailto: open the phone's Messages and Mail apps; "?&body=" works on both iPhone and Android.
     var sms = "sms:" + digits + "?&body=" + encodeURIComponent(msg);
     var mail = "mailto:" + encodeURIComponent(p.email || "") + "?subject=" + encodeURIComponent("Your invite to the SUU Women's Rugby prep app") + "&body=" + encodeURIComponent(msg);
-    openModal("<h1>Invite " + esc(p.name.split(" ")[0]) + "</h1>" +
+    openModal("<h1>" + (again ? "Resend invite to " : "Invite ") + esc(p.name.split(" ")[0]) + "</h1>" +
       '<p style="margin:0">Send the invite link' + (p.phone ? ' by text to <b class="sel">' + esc(p.phone) + "</b>" : "") + (p.phone && p.email ? " or" : "") + (p.email ? ' by email to <b class="sel">' + esc(p.email) + "</b>" : "") + ".</p>" +
       '<div class="inv-msg">' + esc(msg) + "</div>" +
       '<div class="row inv-actions">' +
@@ -4078,6 +4089,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       case "goto-tab": view.tab = t.dataset.tab; view.sheetId = null; view.projectId = null; view.masterId = null; render(); window.scrollTo(0, 0); break;
       case "people-settings": peopleSettingsModal(); break;
       case "team-person": teamPersonModal(t.dataset.name); break;
+      case "resend-invite": var rp = byId(S.people, t.dataset.person); if (rp) resendInvite(rp); break;
       case "project-people": var ppj = byId(S.projects, view.projectId); if (ppj && canEditMembers(ppj)) projectPeopleModal(ppj); break;
       case "delete-project": if (isAdmin()) deleteProjectModal(byId(S.projects, view.projectId)); break;
       case "new-sheet": if (isAdmin()) newSheetModal(); break;
