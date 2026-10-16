@@ -1901,7 +1901,9 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   function friendlyAuthError(m) {
     if (/invalid login credentials/i.test(m)) return "That email and password don't match. Try again, or tap Forgot password.";
     if (/email not confirmed/i.test(m)) return "Confirm your email first. Check your inbox for the link we sent.";
-    if (/rate limit|too many/i.test(m)) return "Too many tries in a short time. Wait a few minutes, then try again.";
+    if (/email rate limit|over_email_send/i.test(m)) return "The app couldn't send the email right now because its hourly email limit was reached. Try again in an hour, or ask an admin.";
+    if (/error sending|smtp/i.test(m)) return "The app couldn't send the email. Try again in a few minutes, or ask an admin.";
+    if (/rate limit|too many|security purposes/i.test(m)) return "Too many tries in a short time. Wait a minute, then try again.";
     if (/password should be|weak/i.test(m)) return "Pick a longer or less common password.";
     return m;
   }
