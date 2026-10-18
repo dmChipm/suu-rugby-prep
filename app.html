@@ -474,14 +474,16 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .boot-loader.out { opacity: 0; pointer-events: none; }
 .bl-scene { position: absolute; width: var(--w); height: auto; left: 50%; top: calc(var(--ground) - var(--w) * .375); transform: translateX(-50%); display: block; overflow: visible; }
 .boot-loader .ps-runner { position: static; filter: none; }
+.boot-loader .ps-runner.run .rn-legf, .boot-loader .ps-runner.run .rn-legb, .boot-loader .ps-runner.run .rn-armf, .boot-loader .ps-runner.run .rn-armb { animation-duration: .18s; }
+.boot-loader .ps-runner.run .rn-bob { animation-duration: .09s; }
 .boot-loader .ps-runner svg { width: 76px; height: 95px; overflow: visible; }
-.bl-pos { animation: bl-pos 9s linear infinite; }
-.bl-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: bl-pose 9s linear infinite; }
-.bl-carry { transform: translate(20px, -50px) rotate(-20deg); animation: bl-carry 9s ease-in-out infinite; }
-.bl-kick { transform-box: fill-box; transform-origin: center; animation: bl-kick 9s linear infinite; }
-.bl-run { animation: bl-run 9s linear infinite; }
-.bl-crouch { opacity: 0; animation: bl-crouch 9s linear infinite; }
-/* 9 second loop: run in (0-43%), crouch to score (43-54%), pick the ball up and loop back round (54-73%),
+.bl-pos { animation: bl-pos 4s linear infinite; }
+.bl-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: bl-pose 4s linear infinite; }
+.bl-carry { transform: translate(20px, -50px) rotate(-20deg); animation: bl-carry 4s ease-in-out infinite; }
+.bl-kick { transform-box: fill-box; transform-origin: center; animation: bl-kick 4s linear infinite; }
+.bl-run { animation: bl-run 4s linear infinite; }
+.bl-crouch { opacity: 0; animation: bl-crouch 4s linear infinite; }
+/* 4 second loop: run in (0-43%), crouch to score (43-54%), pick the ball up and loop back round (54-73%),
    crouch to set it down (73-77%), step back (77-82%), run up and kick (82-88%), ball sails through the posts (88-97%). */
 @keyframes bl-pos {
   0% { transform: translate(-40px, 182px); opacity: 0; } 2% { opacity: 1; }
@@ -2483,6 +2485,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "The loading screen animation runs in 4 seconds."],
     ["2026-10-18", "On the loading screen she picks the ball up after the try, sets it down for the conversion, steps back and kicks."],
     ["2026-10-18", "On the loading screen she slows down, eases into the crouch and lowers the ball to the ground smoothly."],
     ["2026-10-18", "Every rugby ball in the app lost its football laces and now has a modern swoosh stripe."],
