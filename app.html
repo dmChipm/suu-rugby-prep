@@ -1894,6 +1894,24 @@ table.a-grid td:first-child { min-width: 170px; }
     }, 400);
   }
   function flushPendingPull() { if (pendingPull) schedulePull(); }
+  // Coming back to the app (reopened from the Home Screen or another tab): load the newest version if one went
+  // live while it was away, otherwise refresh the data.
+  var hiddenAt = 0;
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) { hiddenAt = Date.now(); return; }
+    if (!ONLINE || !hiddenAt) return;
+    hiddenAt = 0;
+    newVersionLive().then(function (isNew) {
+      var busy = document.getElementById("modal-root").firstChild || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
+      if (isNew && !busy) { location.reload(); return; }
+      if (auth.state === "ready") schedulePull();
+    });
+  });
+  function newVersionLive() {
+    if (!CFG || !CFG.build || !window.fetch) return Promise.resolve(false);
+    return fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (v) { v = v.trim(); return !!v && v !== CFG.build; }).catch(function () { return false; });
+  }
   document.addEventListener("focusout", function () { setTimeout(flushPendingPull, 50); });
 
   function push(quiet) {
@@ -2371,6 +2389,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-17", "The app refreshes itself when you reopen it: it loads the newest version if one went live, and always pulls the latest data."],
     ["2026-10-17", "Settings that aren't about people (notifications, sounds, analytics) are now line items in your profile at the top right."],
     ["2026-10-17", "Analytics for admins: who finishes what, how often and how fast, by person and by task. Open it from your profile at the top right, or turn on an Analytics tab there."],
     ["2026-10-17", "Every status change and assignment is recorded. Admins see a History section in each task and a Status log in Settings."],
