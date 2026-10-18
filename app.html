@@ -1063,7 +1063,7 @@ table.a-grid td:first-child { min-width: 170px; }
       '<g class="bl-pos"><g class="bl-pose"><g class="ps-runner run"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + RUNNER_SVG.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "").replace(">USA<", ">SUU<") + '</svg></g>' +
       '<g class="bl-carry" transform="translate(20 -50) rotate(-20)">' + BL_BALL + '</g></g></g>' +
       '<g class="bl-kick">' + BL_BALL + '</g>' +
-      '<g class="bl-try"><text x="300" y="104" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="700" font-size="40" fill="#fff" stroke="#14161c" stroke-width="2">TRY!</text></g>' +
+      '<g class="bl-try"><text x="300" y="104" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="700" font-size="40" fill="#fff" stroke="#14161c" stroke-width="2">TRY!</text><text x="300" y="136" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="700" font-size="26" fill="#ffd166" stroke="#14161c" stroke-width="1.5">+5</text></g>' +
       '<g class="bl-plus"><text x="330" y="40" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="700" font-size="26" fill="#ffd166" stroke="#14161c" stroke-width="1.5">+2</text></g>' +
       '</svg><div class="bl-title">SUU Women\'s Rugby</div><div class="bl-sub' + (preview ? " still" : "") + '">' + (preview ? "This is the loading screen" : "Getting your team ready") + '</div>' +
       (preview ? '<div class="bl-skip">Tap to close</div>' : "") + "</div>";
@@ -2479,6 +2479,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "The loading screen shows +5 when she scores the try."],
     ["2026-10-18", "A loading screen: an SUU player runs in a try, loops round the field and kicks the conversion until the app is ready. Preview it under Effects on the Development tab (renamed from Celebrations)."],
     ["2026-10-18", "The update log now includes everything built before launch, as versions 0.1 to 0.49."],
     ["2026-10-18", "The Development tab now links to Developer docs (tech stack, how the app is built, the database and where the code lives) and to the Update log, which has its own page with a version number on every change."],
