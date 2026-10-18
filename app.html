@@ -475,33 +475,34 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .bl-scene { position: absolute; width: var(--w); height: auto; left: 50%; top: calc(var(--ground) - var(--w) * .375); transform: translateX(-50%); display: block; overflow: visible; }
 .boot-loader .ps-runner { position: static; filter: none; }
 .boot-loader .ps-runner svg { width: 76px; height: 95px; overflow: visible; }
-.bl-pos { animation: bl-pos 7s linear infinite; }
-.bl-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: bl-pose 7s linear infinite; }
-.bl-carry { animation: bl-carry 7s linear infinite; }
-.bl-grounded { animation: bl-grounded 7s linear infinite; }
-.bl-kick { transform-box: fill-box; transform-origin: center; animation: bl-kick 7s linear infinite; }
+.bl-pos { animation: bl-pos 9s linear infinite; }
+.bl-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: bl-pose 9s linear infinite; }
+.bl-carry { transform: translate(20px, -50px) rotate(-20deg); animation: bl-carry 9s ease-in-out infinite; }
+.bl-kick { transform-box: fill-box; transform-origin: center; animation: bl-kick 9s linear infinite; }
+.bl-run { animation: bl-run 9s linear infinite; }
+.bl-crouch { opacity: 0; animation: bl-crouch 9s linear infinite; }
+/* 9 second loop: run in (0-43%), crouch to score (43-54%), pick the ball up and loop back round (54-73%),
+   crouch to set it down (73-77%), step back (77-82%), run up and kick (82-88%), ball sails through the posts (88-97%). */
 @keyframes bl-pos {
   0% { transform: translate(-40px, 182px); opacity: 0; } 2% { opacity: 1; }
-  36% { transform: translate(282px, 182px); } 42% { transform: translate(316px, 182px); } 52% { transform: translate(316px, 182px); }
-  58% { transform: translate(345px, 160px); } 64% { transform: translate(260px, 150px); } 70% { transform: translate(160px, 165px); }
-  73% { transform: translate(165px, 182px); } 79% { transform: translate(206px, 182px); } 95% { transform: translate(210px, 182px); opacity: 1; }
-  98%, 100% { transform: translate(210px, 182px); opacity: 0; } }
+  34% { transform: translate(266px, 182px); } 38% { transform: translate(298px, 182px); } 41% { transform: translate(312px, 182px); } 43%, 54% { transform: translate(316px, 182px); }
+  59% { transform: translate(345px, 160px); } 64% { transform: translate(260px, 150px); } 69% { transform: translate(160px, 165px); }
+  72% { transform: translate(190px, 182px); } 74%, 77% { transform: translate(206px, 182px); } 80%, 82% { transform: translate(184px, 182px); }
+  86% { transform: translate(206px, 182px); } 95% { transform: translate(210px, 182px); opacity: 1; } 98%, 100% { transform: translate(210px, 182px); opacity: 0; } }
 @keyframes bl-pose {
-  0%, 54% { transform: none; }
-  59% { transform: none; } 60%, 72% { transform: scaleX(-1); } 73%, 78% { transform: none; }
-  80% { transform: rotate(-14deg); } 85%, 100% { transform: none; } }
-.bl-run { animation: bl-run 7s linear infinite; }
-.bl-crouch { opacity: 0; animation: bl-crouch 7s linear infinite; }
-@keyframes bl-run { 0%, 41.9% { opacity: 1; } 42%, 52% { opacity: 0; } 52.1%, 100% { opacity: 1; } }
-@keyframes bl-crouch { 0%, 41.9% { opacity: 0; } 42%, 52% { opacity: 1; } 52.1%, 100% { opacity: 0; } }
-@keyframes bl-carry { 0%, 41% { opacity: 1; } 42%, 100% { opacity: 0; } }
-@keyframes bl-grounded { 0%, 41% { opacity: 0; } 42%, 55% { opacity: 1; } 57%, 100% { opacity: 0; } }
+  0%, 59% { transform: none; } 60%, 70% { transform: scaleX(-1); } 71.5%, 85.5% { transform: none; }
+  87.5% { transform: rotate(-14deg); } 91%, 100% { transform: none; } }
+@keyframes bl-run { 0%, 38.5% { opacity: 1; } 42.5%, 51.5% { opacity: 0; } 55%, 72.5% { opacity: 1; } 74.5%, 76.5% { opacity: 0; } 78.5%, 100% { opacity: 1; } }
+@keyframes bl-crouch { 0%, 38.5% { opacity: 0; } 42.5%, 51.5% { opacity: 1; } 55%, 72.5% { opacity: 0; } 74.5%, 76.5% { opacity: 1; } 78.5%, 100% { opacity: 0; } }
+@keyframes bl-carry {
+  0%, 38% { transform: translate(20px, -50px) rotate(-20deg); opacity: 1; } 44%, 52% { transform: translate(20px, -2px) rotate(0deg); }
+  57%, 72.5% { transform: translate(20px, -50px) rotate(-20deg); } 76.9% { transform: translate(20px, -4px) rotate(-30deg); opacity: 1; }
+  77%, 100% { transform: translate(20px, -4px) rotate(-30deg); opacity: 0; } }
 @keyframes bl-kick {
-  0%, 57% { transform: translate(226px, 178px) rotate(-30deg); opacity: 0; } 60% { opacity: 1; }
-  79.5% { transform: translate(226px, 178px) rotate(-30deg); }
-  84% { transform: translate(278px, 96px) rotate(150deg) scale(.9); } 89% { transform: translate(324px, 56px) rotate(330deg) scale(.75); }
-  94% { transform: translate(362px, 50px) rotate(500deg) scale(.6); opacity: 1; } 97%, 100% { transform: translate(380px, 58px) rotate(560deg) scale(.55); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .bl-pos, .bl-pose, .bl-carry, .bl-grounded, .bl-kick, .boot-loader .ps-runner * { animation: none !important; } .bl-pos { transform: translate(150px, 182px); } .bl-kick, .bl-grounded { opacity: 0; } }
+  0%, 76.9% { transform: translate(226px, 178px) rotate(-30deg); opacity: 0; } 77% { opacity: 1; }
+  87% { transform: translate(226px, 178px) rotate(-30deg); } 90.5% { transform: translate(278px, 96px) rotate(150deg) scale(.9); } 93.5% { transform: translate(324px, 56px) rotate(330deg) scale(.75); }
+  96% { transform: translate(362px, 50px) rotate(500deg) scale(.6); opacity: 1; } 98%, 100% { transform: translate(380px, 58px) rotate(560deg) scale(.55); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bl-pos, .bl-pose, .bl-carry, .bl-kick, .bl-run, .bl-crouch, .boot-loader .ps-runner * { animation: none !important; } .bl-pos { transform: translate(150px, 182px); } .bl-kick { opacity: 0; } }
 .ps-skip { position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: .78rem; color: rgba(255, 255, 255, .55); }
 @keyframes ps-neon-on { 0% { opacity: 0; } 8% { opacity: 1; } 14% { opacity: .15; } 22% { opacity: 1; } 30% { opacity: .35; } 36%, 70% { opacity: 1; } 74% { opacity: .55; } 78%, 100% { opacity: 1; } }
 @keyframes np-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1052,10 +1053,9 @@ table.a-grid td:first-child { min-width: 170px; }
       // Goal posts in the in-goal area, drawn with a little perspective.
       '<g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M352 186 V36"/><path d="M380 172 V24"/><path d="M352 120 L380 108"/></g>' +
       '<path d="M352 186 l-4 4 M380 172 l-4 4" stroke="#c8102e" stroke-width="8"/>' +
-      '<g class="bl-grounded" transform="translate(336 180)">' + BL_BALL + '</g>' +
       '<g class="bl-pos"><g class="bl-pose"><g class="ps-runner run bl-run"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + RUNNER_SVG.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "").replace(">USA<", ">SUU<") + '</svg></g>' +
       '<g class="bl-crouch"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + crouchSvg() + '</svg></g>' +
-      '<g class="bl-carry" transform="translate(20 -50) rotate(-20)">' + BL_BALL + '</g></g></g>' +
+      '<g class="bl-carry">' + BL_BALL + '</g></g></g>' +
       '<g class="bl-kick">' + BL_BALL + '</g>' +
       '</svg>';
   }
@@ -2483,6 +2483,8 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "On the loading screen she picks the ball up after the try, sets it down for the conversion, steps back and kicks."],
+    ["2026-10-18", "On the loading screen she slows down, eases into the crouch and lowers the ball to the ground smoothly."],
     ["2026-10-18", "Every rugby ball in the app lost its football laces and now has a modern swoosh stripe."],
     ["2026-10-18", "On the loading screen she bends at the knees to touch the ball down instead of diving."],
     ["2026-10-18", "The loading screen's rugby ball is white and red."],
