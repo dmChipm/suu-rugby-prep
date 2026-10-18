@@ -242,3 +242,9 @@ create policy "owner updates" on public.projects for update using (public.is_pro
 --   and cron job "task-reminders" (15:00 UTC daily) posts {"type":"reminders"}. Admins send messages through the same function.
 -- Chat notifications (migration notify_messages): statement trigger notify_messages() on messages posts
 --   {"type":"message","ids":[...]} to the notify function, which tells everyone else in the conversation.
+
+-- Task timing and history (migrations task_completed_at, task_status_log, task_log_assignments):
+--   completed_at timestamptz on sheet_tasks / project_tasks, stamped by trigger stamp_completed_at() when a task becomes Complete.
+--   task_status_log(task_id, kind 'sheet'|'project', parent_id, task_text, event 'status'|'assigned', owner, from_status, to_status,
+--   changed_by, changed_at), written by trigger log_task_status() on status/owner changes; only admins can read it.
+--   The app's Analytics (admins) and Status log read it.

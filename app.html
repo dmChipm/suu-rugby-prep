@@ -658,6 +658,20 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
 .free-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .free-chip { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: inherit; font: inherit; text-align: left; max-width: 100%; }
 .free-chip b { font-size: .9rem; overflow-wrap: anywhere; } .free-chip:hover { background: var(--red-soft); }
+.done-log .dl-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.task-hist summary { cursor: pointer; font-weight: 700; }
+.task-hist .th-body { margin-top: 8px; }
+ul.hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+ul.hist li { display: flex; flex-direction: column; }
+.set-analytics { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.a-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.a-tile { padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.a-big { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.a-label { font-weight: 700; }
+table.grid.a-grid { min-width: 640px; }
+table.a-grid td { font-variant-numeric: tabular-nums; }
+table.a-grid td:first-child { min-width: 170px; }
+#dl-q { width: 100%; }
 .update-log { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
 .ul-date { font-weight: 800; font-size: .9rem; color: var(--red); text-transform: uppercase; letter-spacing: .04em; }
 .update-log ul { margin: 4px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
@@ -763,6 +777,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     <button id="tab-projects" role="tab" data-tab="projects" hidden>Projects</button>
     <button id="tab-people" role="tab" data-tab="people">People</button>
     <button id="tab-docs" role="tab" data-tab="docs">Documents</button>
+    <button id="tab-analytics" role="tab" data-tab="analytics" hidden>Analytics</button>
     <button id="tab-dev" role="tab" data-tab="dev" hidden>Development</button>
   </nav>
 </header>
@@ -1369,8 +1384,8 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   function setStatus(t, status, completed) {
     if (status === "Complete" && t.status !== "Complete") setTimeout(function () { celebrateTask(t); }, 0);
     t.status = status; t.done = status === "Complete";
-    if (t.done) { t.completed = completed || t.completed || todayIso(); if (!t.by) t.by = currentUser().name; }
-    else { t.completed = ""; delete t.by; }
+    if (t.done) { t.completed = completed || t.completed || todayIso(); if (!t.by) t.by = currentUser().name; if (!t.completedAt) t.completedAt = new Date().toISOString(); }
+    else { t.completed = ""; delete t.by; delete t.completedAt; }
   }
 
   function seed() {
@@ -1585,6 +1600,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   var view = { flagged: false, mine: false, expand: {}, tab: "dashboard", sheetId: null, masterId: null, projectId: null, convoId: null, drafts: {}, hideDone: false };
   function save(quiet) {
     if (ONLINE) { try { localStorage.setItem(KEY + "-layout", S.layout); } catch (e) {} push(quiet); return; }
+    demoTrack();
     try { localStorage.setItem(KEY, JSON.stringify(S)); if (!quiet) savedNotice(); }
     catch (e) { saveError("This browser isn't letting the app store your changes."); }
   }
@@ -1716,15 +1732,18 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     document.getElementById("tab-sheets").setAttribute("aria-selected", String(view.tab === "sheets"));
     if (view.tab === "masters" && !isAdmin()) { view.tab = "sheets"; view.masterId = null; }
     document.getElementById("tab-dev").hidden = !isDev();
+    document.getElementById("tab-analytics").hidden = !(isAdmin() && analyticsTabOn());
+    if (view.tab === "analytics" && !isAdmin()) view.tab = "dashboard";
     if (view.tab === "dev" && !isDev()) view.tab = "dashboard";
     var unread = unreadTotal(), badge = document.getElementById("msg-badge");
     badge.hidden = !unread; badge.textContent = unread > 99 ? "99+" : unread;
     // Templates and Projects live inside the "Game Prep & Projects" tab, so that tab stays highlighted there.
-    ["dashboard", "sheets", "projects", "people", "docs", "messages", "dev"].forEach(function (k) { document.getElementById("tab-" + k).setAttribute("aria-selected", String(view.tab === k || (k === "sheets" && (view.tab === "masters" || view.tab === "projects")))); });
+    ["dashboard", "sheets", "projects", "people", "docs", "messages", "analytics", "dev"].forEach(function (k) { document.getElementById("tab-" + k).setAttribute("aria-selected", String(view.tab === k || (k === "sheets" && (view.tab === "masters" || view.tab === "projects")))); });
   }
   document.getElementById("me-btn").addEventListener("click", function () { if (ONLINE) accountModal(); else switchUserModal(); });
   document.querySelector("nav.tabs").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.tab === "analytics") { view.aLog = null; view.aErr = false; }
     view.tab = b.dataset.tab; view.sheetId = null; view.masterId = null; view.projectId = null; view.convoId = null; lastMsgRoute = ""; render(); window.scrollTo(0, 0);
   });
 
@@ -1770,7 +1789,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
         label: s.label || "", example: !!s.example, rules: s.rules ? cleanRules(s.rules) : null, created_at: new Date(s.created || Date.now()).toISOString() };
       s.tasks.concat(s.archived || []).forEach(function (t, i) {
         r.sheet_tasks[t.id] = { archived_at: arcIso(t), archived_by: t.archivedBy || "", id: t.id, sheet_id: s.id, master_task_id: nul(t.mtId), text: t.text, owner: t.owner || "", details: t.details || "", links: t.links || "", notes: "",
-          due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), position: i, supporters: t.supporters || [], optional: !!t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], importance: imp(t) };
+          due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), position: i, supporters: t.supporters || [], optional: !!t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], importance: imp(t), completed_at: t.completedAt || null };
         (t.notesLog || []).forEach(function (n) {
           r.task_notes[n.id] = { id: n.id, sheet_task_id: t.id, author: n.by || "", body: n.text, created_at: new Date(n.at).toISOString() };
         });
@@ -1793,7 +1812,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     (st.projects || []).concat(st.archivedProjects || []).forEach(function (pj, pi) {
       r.projects[pj.id] = { archived_at: arcIso(pj), archived_by: pj.archivedBy || "", id: pj.id, name: pj.name, description: pj.description || "", lead: pj.lead || "", members: pj.members || [], due: nul(pj.due), position: pi, created_at: new Date(pj.created || Date.now()).toISOString() };
       pj.tasks.concat(pj.archived || []).forEach(function (t, i) {
-        r.project_tasks[t.id] = { archived_at: arcIso(t), archived_by: t.archivedBy || "", id: t.id, project_id: pj.id, text: t.text, owner: t.owner || "", due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), notes: t.notes || "", position: i, supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [], importance: imp(t) };
+        r.project_tasks[t.id] = { archived_at: arcIso(t), archived_by: t.archivedBy || "", id: t.id, project_id: pj.id, text: t.text, owner: t.owner || "", due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), notes: t.notes || "", position: i, supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [], importance: imp(t), completed_at: t.completedAt || null };
       });
     });
     (st.documents || []).forEach(function (d) {
@@ -1819,7 +1838,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     });
     var stx = {}; d.sheet_tasks.slice().sort(byPos).forEach(function (t) {
       (stx[t.sheet_id] = stx[t.sheet_id] || []).push({ id: t.id, mtId: t.master_task_id, text: t.text, owner: t.owner, details: t.details, links: t.links, notes: "",
-        due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, supporters: t.supporters || [], notesLog: notes[t.id] || [], optional: t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "", importance: t.importance || "" });
+        due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, supporters: t.supporters || [], notesLog: notes[t.id] || [], optional: t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "", importance: t.importance || "", completedAt: t.completed_at || "" });
     });
     st.sheets = d.sheets.map(function (s) {
       return { id: s.id, masterId: s.master_id, masterName: s.master_name, gameInfo: s.game_info, opponent: s.opponent, date: s.date || "", label: s.label,
@@ -1833,7 +1852,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     st.reacts = (d.message_reactions || []).map(function (x) { return { id: x.id, msgId: x.message_id, convoId: x.conversation_id, personId: x.person_id, emoji: x.emoji, at: Date.parse(x.created_at) }; });
     st.reads = {}; (d.conversation_reads || []).forEach(function (x) { st.reads[x.conversation_id] = Date.parse(x.last_read); });
     var ptx = {}; (d.project_tasks || []).slice().sort(byPos).forEach(function (t) {
-      (ptx[t.project_id] = ptx[t.project_id] || []).push({ id: t.id, text: t.text, owner: t.owner, due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, notes: t.notes || "", supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "", importance: t.importance || "" });
+      (ptx[t.project_id] = ptx[t.project_id] || []).push({ id: t.id, text: t.text, owner: t.owner, due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, notes: t.notes || "", supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "", importance: t.importance || "", completedAt: t.completed_at || "" });
     });
     st.projects = (d.projects || []).slice().sort(byPos).map(function (x) {
       var all = ptx[x.id] || [];
@@ -2198,10 +2217,12 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     document.body.classList.toggle("signed-out", ONLINE && auth.state !== "ready");
     if (ONLINE && auth.state !== "ready") { app.innerHTML = authScreen(); return; }
     renderChrome();
+    if (!ONLINE && !demoSeen) demoTrack();
     app.classList.remove("wide");
     if (view.tab !== "messages" || !view.convoId) { app.classList.remove("convo-mode"); document.documentElement.classList.remove("typing"); }
     if (view.tab === "dashboard") { app.innerHTML = todoView(); wirePushNudge(); }
     else if (view.tab === "people") app.innerHTML = peopleView();
+    else if (view.tab === "analytics") app.innerHTML = analyticsView();
     else if (view.tab === "docs") app.innerHTML = docsView();
     else if (view.tab === "messages") {
       var cv = view.convoId && byId(S.convos, view.convoId), wrap = app.querySelector(".convo-wrap");
@@ -2344,6 +2365,9 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-17", "Analytics for admins: who finishes what, how often and how fast, by person and by task. Open it from People ⋮ Settings, or turn on an Analytics tab there."],
+    ["2026-10-17", "Every status change and assignment is recorded. Admins see a History section in each task and a Status log in Settings."],
+    ["2026-10-17", "Tasks record the exact date and time they're completed (admins see it in the task pop-up)."],
     ["2026-10-17", "Added this update log to the Development tab."],
     ["2026-10-17", "Renamed the To Do tab to My Tasks."],
     ["2026-10-17", "Combined Game Prep and Projects into one \"Game Prep & Projects\" tab, with a switch that opens on Game Prep."],
@@ -2364,6 +2388,170 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       return '<div class="ul-day"><div class="ul-date">' + esc(fmtDate(d.date)) + '</div><ul>' + d.items.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>";
     }).join("") + "</div>";
   }
+  // "Marked done by Bryn"; admins also see exactly when (date and time).
+  function fmtStamp(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }) + " at " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); }
+  function doneLine(t) {
+    if (!isDone(t)) return "";
+    var when = isAdmin() ? (t.completedAt ? fmtStamp(t.completedAt) : t.completed ? fmtDate(t.completed) : "") : "";
+    if (!t.by && !when) return "";
+    return '<div class="muted small">Marked done' + (t.by ? " by " + esc(t.by) : "") + (when ? " · " + esc(when) : "") + "</div>";
+  }
+  // ---------- task history and analytics ----------
+  // Every status change and assignment. Online the server writes it (task_status_log, admins read it);
+  // in test mode this device keeps its own copy in S.statusLog.
+  var demoSeen = null;
+  function eachTask(fn) {
+    (S.sheets || []).forEach(function (s) { s.tasks.forEach(function (t) { fn(t, "sheet", s); }); });
+    (S.projects || []).forEach(function (pj) { pj.tasks.forEach(function (t) { fn(t, "project", pj); }); });
+  }
+  function demoTrack() {
+    var first = !demoSeen, now = new Date().toISOString(), me = currentUser().name, log = S.statusLog = S.statusLog || [];
+    demoSeen = demoSeen || {};
+    eachTask(function (t, kind, p) {
+      var was = demoSeen[t.id], base = { taskId: t.id, kind: kind, parentId: p.id, text: t.text, by: me, at: now };
+      if (!first) {
+        var own = (t.owner || "").trim();
+        if (own && (!was || own.toLowerCase() !== was.owner.toLowerCase())) log.unshift(Object.assign({ event: "assigned", owner: own, from: null, to: t.status }, base));
+        if (was ? was.status !== t.status : t.status !== "Not Started") log.unshift(Object.assign({ event: "status", owner: own, from: was ? was.status : null, to: t.status }, base));
+      }
+      demoSeen[t.id] = { owner: (t.owner || "").trim(), status: t.status };
+    });
+    if (log.length > 3000) log.length = 3000;
+  }
+  // Newest first. taskId limits it to one task.
+  function loadLog(taskId) {
+    if (!ONLINE) return Promise.resolve((S.statusLog || []).filter(function (x) { return !taskId || x.taskId === taskId; }));
+    var q = sb.from("task_status_log").select("*").order("changed_at", { ascending: false }).limit(taskId ? 200 : 10000);
+    if (taskId) q = q.eq("task_id", taskId);
+    return q.then(function (r) {
+      if (r.error) throw r.error;
+      return (r.data || []).map(function (x) { return { taskId: x.task_id, kind: x.kind, parentId: x.parent_id, text: x.task_text, event: x.event || "status", owner: x.owner || "", from: x.from_status, to: x.to_status, by: x.changed_by || "", at: x.changed_at }; });
+    });
+  }
+  function logLine(x) {
+    var who = x.by ? esc(x.by) : "Someone";
+    return x.event === "assigned" ? who + " assigned it to <b>" + esc(x.owner) + "</b>"
+      : who + " changed it " + (x.from ? "from " + esc(x.from) + " " : "") + "to <b>" + esc(x.to) + "</b>";
+  }
+  // The History section in a task pop-up (admins only).
+  function historyHtml() { return isAdmin() ? '<details class="task-hist"><summary>History</summary><div class="th-body muted small">Loading…</div></details>' : ""; }
+  function wireHistory(el, t) {
+    var d = el.querySelector(".task-hist"); if (!d) return;
+    d.addEventListener("toggle", function () {
+      if (!d.open || d.dataset.loaded) return; d.dataset.loaded = "1";
+      var body = d.querySelector(".th-body");
+      loadLog(t.id).then(function (rows) {
+        body.classList.remove("muted", "small");
+        body.innerHTML = rows.length ? '<ul class="hist">' + rows.map(function (x) { return '<li><span class="muted small">' + esc(fmtStamp(x.at)) + "</span><span>" + logLine(x) + "</span></li>"; }).join("") + "</ul>"
+          : '<p class="muted small" style="margin:0">No changes recorded yet. History is kept from Oct 17, 2026 on.</p>';
+      }).catch(function () { body.textContent = "Couldn't load the history just now."; });
+    });
+  }
+  function placeName(kind, id) {
+    if (kind === "sheet") { var s = byId(S.sheets || [], id) || byId(S.archivedSheets || [], id); return s ? sheetTitle(s) : "A game sheet"; }
+    var pj = byId(S.projects || [], id); return pj ? pj.name : "A project";
+  }
+  // Admins: every status change and assignment, newest first.
+  function statusLogModal() {
+    openModal('<h1>Status log</h1><p class="muted small" style="margin:0">Every status change and assignment on game sheets and projects, newest first. Recorded from Oct 17, 2026 on.</p>' +
+      '<input type="search" id="dl-q" placeholder="Search by task, person, status or place" aria-label="Search the status log">' +
+      '<div id="dl-list" class="muted small">Loading…</div><div class="row" style="justify-content:flex-end"><button class="btn" data-close>Close</button></div>',
+      function (el) {
+        var rows = [], box = el.querySelector("#dl-list");
+        function draw(q) {
+          q = (q || "").trim().toLowerCase();
+          var shown = rows.filter(function (x) { return !q || [x.text, x.by, x.owner, x.from, x.to, placeName(x.kind, x.parentId)].join(" ").toLowerCase().indexOf(q) >= 0; }).slice(0, 400);
+          box.classList.remove("muted", "small");
+          box.innerHTML = shown.length ? '<ul class="tasks done-log">' + shown.map(function (x) {
+            return '<li><div class="dl-row"><span class="txt"><b>' + esc(x.text) + '</b></span><span class="small">' + logLine(x) + '</span><span class="muted small">' + esc(fmtStamp(x.at)) + " · " + esc(placeName(x.kind, x.parentId)) + "</span></div></li>";
+          }).join("") + "</ul>" : '<p class="muted small" style="margin:0">' + (rows.length ? "Nothing matches that." : "No changes recorded yet.") + "</p>";
+        }
+        loadLog().then(function (r) { rows = r; draw(""); }).catch(function () { box.textContent = "Couldn't load the log just now."; });
+        el.querySelector("#dl-q").addEventListener("input", function (e) { draw(e.target.value); });
+      });
+  }
+
+  // Analytics (admins): who finishes what, how often and how fast, per person and per task.
+  function fmtDur(ms) {
+    if (ms == null || isNaN(ms)) return "–";
+    var h = ms / 36e5;
+    if (h < 1) return Math.max(1, Math.round(ms / 6e4)) + " min";
+    if (h < 48) return (h < 10 ? h.toFixed(1) : Math.round(h)) + " hours";
+    var d = h / 24; return (d < 10 ? d.toFixed(1) : Math.round(d)) + " days";
+  }
+  function avg(xs) { return xs.length ? xs.reduce(function (a, b) { return a + b; }, 0) / xs.length : null; }
+  function pct(a, b) { return b ? Math.round(a * 100 / b) + "%" : "–"; }
+  function fmtEarly(d) { if (d == null) return "–"; var r = Math.round(d * 10) / 10; return r === 0 ? "On the day" : Math.abs(r) + (Math.abs(r) === 1 ? " day " : " days ") + (r > 0 ? "early" : "late"); }
+  function analyticsData(range, log) {
+    var since = range === "all" ? "" : addDays(todayIso(), -Number(range));
+    // When each task was last assigned before it was finished, from the log.
+    var assigned = {}, finished = {};
+    log.slice().reverse().forEach(function (x) {
+      if (x.event === "assigned") assigned[x.taskId] = x.at;
+      if (x.event === "status" && x.to === "Complete" && assigned[x.taskId]) finished[x.taskId] = Date.parse(x.at) - Date.parse(assigned[x.taskId]);
+    });
+    var done = [], open = [];
+    eachTask(function (t, kind, p) {
+      if (t.optional) return;
+      var row = { t: t, kind: kind, p: p };
+      if (isDone(t)) {
+        var day = t.completedAt ? isoOf(new Date(t.completedAt)) : t.completed;
+        if (since && (!day || day < since)) return;
+        row.day = day; row.dur = finished.hasOwnProperty(t.id) ? finished[t.id] : null;
+        row.early = t.due && day ? daysBetween(day, t.due) : null; row.onTime = row.early == null ? null : row.early >= 0;
+        row.who = (t.by || t.owner || "").trim();
+        done.push(row);
+      } else open.push(row);
+    });
+    var weeks = range === "all" ? Math.max(1, (function () { var d0 = done.map(function (x) { return x.day; }).filter(Boolean).sort()[0]; return d0 ? daysBetween(d0, todayIso()) / 7 : 1; })()) : Number(range) / 7;
+    function stats(rows) {
+      var durs = rows.map(function (x) { return x.dur; }).filter(function (v) { return v != null; }), dated = rows.filter(function (x) { return x.onTime != null; });
+      return { n: rows.length, avgDur: avg(durs), min: durs.length ? Math.min.apply(null, durs) : null, max: durs.length ? Math.max.apply(null, durs) : null, timed: durs.length, onTime: dated.filter(function (x) { return x.onTime; }).length, dated: dated.length, early: avg(dated.map(function (x) { return x.early; })) };
+    }
+    var people = {}, tasks = {};
+    done.forEach(function (x) {
+      var k = x.who.toLowerCase() || "(no one)"; (people[k] = people[k] || { name: x.who || "No one recorded", rows: [] }).rows.push(x);
+      var tk = x.t.text.trim().toLowerCase(); (tasks[tk] = tasks[tk] || { name: x.t.text.trim(), rows: [], t: x.t }).rows.push(x);
+    });
+    S.people.filter(function (p) { return p.status !== "Inactive"; }).forEach(function (p) { var k = p.name.trim().toLowerCase(); people[k] = people[k] || { name: p.name, rows: [] }; });
+    var plist = Object.keys(people).map(function (k) {
+      var g = people[k], st = stats(g.rows), mine = open.filter(function (x) { return (x.t.owner || "").trim().toLowerCase() === k; });
+      return Object.assign(st, { name: g.name, perWeek: g.rows.length / weeks, openNow: mine.length, lateNow: mine.filter(function (x) { return isLate(x.t); }).length });
+    }).sort(function (a, b) { return b.n - a.n || a.name.localeCompare(b.name); });
+    var tlist = Object.keys(tasks).map(function (k) { return Object.assign(stats(tasks[k].rows), { name: tasks[k].name, t: tasks[k].t }); })
+      .sort(function (a, b) { return b.n - a.n || a.name.localeCompare(b.name); });
+    return { all: stats(done), people: plist, tasks: tlist, weeks: weeks, openCount: open.length };
+  }
+  function analyticsView() {
+    var range = view.aRange || "30";
+    if (!view.aLog) {
+      if (!view.aLoading) { view.aLoading = true; loadLog().then(function (r) { view.aLog = r; }).catch(function () { view.aLog = []; view.aErr = true; }).then(function () { view.aLoading = false; if (view.tab === "analytics") render(); }); }
+      return '' + (analyticsTabOn() ? "" : '<button class="btn ghost" data-act="back-settings">‹ Settings</button>') + '<h1>Analytics</h1><div class="card empty">Loading…</div>';
+    }
+    var d = analyticsData(range, view.aLog), a = d.all;
+    var h = '' + (analyticsTabOn() ? "" : '<button class="btn ghost" data-act="back-settings">‹ Settings</button>') + '' +
+      '<div class="row spread"><h1>Analytics</h1><div class="seg" role="group" aria-label="Time range">' + [["30", "30 days"], ["90", "90 days"], ["all", "All time"]].map(function (r) { return '<button data-act="a-range" data-range="' + r[0] + '" aria-pressed="' + (range === r[0]) + '">' + r[1] + "</button>"; }).join("") + "</div></div>";
+    if (view.aErr) h += '<div class="note">Couldn\'t load the task history, so times to finish are missing below.</div>';
+    h += '<div class="a-tiles">' +
+      tile(a.n, "tasks finished", (a.n / d.weeks).toFixed(1) + " a week") +
+      tile(fmtDur(a.avgDur), "average time to finish", a.timed ? "from assignment to done, " + a.timed + (a.timed === 1 ? " task" : " tasks") : "not enough history yet") +
+      tile(pct(a.onTime, a.dated), "finished by the due date", a.dated ? a.onTime + " of " + a.dated + " with due dates" : "no due dates yet") +
+      tile(fmtEarly(a.early), "average vs due date", d.openCount + " tasks still open") + "</div>";
+    h += '<h2>By person</h2><div class="card tablewrap"><table class="grid a-grid"><thead><tr><th>Person</th><th>Finished</th><th>Per week</th><th>Avg time to finish</th><th>On time</th><th>Avg vs due date</th><th>Open now</th><th>Overdue now</th></tr></thead><tbody>' +
+      d.people.map(function (p) {
+        return "<tr><td><b>" + esc(p.name) + "</b></td><td>" + p.n + "</td><td>" + p.perWeek.toFixed(1) + "</td><td>" + fmtDur(p.avgDur) + "</td><td>" + pct(p.onTime, p.dated) + "</td><td>" + fmtEarly(p.early) + "</td><td>" + p.openNow + '</td><td class="' + (p.lateNow ? "late" : "") + '">' + p.lateNow + "</td></tr>";
+      }).join("") + "</tbody></table></div>";
+    h += '<h2>By task</h2><p class="muted small" style="margin:0">Tasks with the same name (like a template task on every game sheet) are grouped together.</p>' +
+      '<div class="card tablewrap"><table class="grid a-grid"><thead><tr><th>Task</th><th>Times finished</th><th>Avg time to finish</th><th>Fastest</th><th>Slowest</th><th>On time</th><th>Avg vs due date</th></tr></thead><tbody>' +
+      (d.tasks.length ? d.tasks.map(function (t) {
+        return "<tr><td>" + ttl(t.name, t.t) + "</td><td>" + t.n + "</td><td>" + fmtDur(t.avgDur) + "</td><td>" + fmtDur(t.min) + "</td><td>" + fmtDur(t.max) + "</td><td>" + pct(t.onTime, t.dated) + "</td><td>" + fmtEarly(t.early) + "</td></tr>";
+      }).join("") : '<tr><td colspan="7" class="muted">No tasks finished in this time range.</td></tr>') + "</tbody></table></div>";
+    h += tip("How these numbers work", "<p><b>Time to finish</b> runs from when the task's owner was assigned it to when it was marked Complete. The app started recording this on Oct 17, 2026, so older tasks only count toward the due-date numbers.</p><p><b>On time</b> means it was finished on or before its due date. <b>Who</b> is the person who marked it done.</p><p>Optional tasks are left out.</p>");
+    return h;
+    function tile(big, label, sub) { return '<div class="card a-tile"><div class="a-big">' + esc(String(big)) + '</div><div class="a-label">' + esc(label) + '</div><div class="muted small">' + esc(sub) + "</div></div>"; }
+  }
+  function analyticsTabOn() { try { return localStorage.getItem(KEY + "-atab") === "on"; } catch (e) { return false; } }
+  function openAnalytics() { closeModal(); view.tab = "analytics"; view.aLog = null; view.aErr = false; render(); window.scrollTo(0, 0); }
   // The switch at the top of the "Game Prep & Projects" tab.
   function prepSwitch(on) {
     return '<div class="seg prep-switch" role="group" aria-label="Show"><button data-act="goto-tab" data-tab="sheets" aria-pressed="' + (on === "sheets") + '">Game Prep</button>' +
@@ -2819,7 +3007,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       (needsConfirm(t) ? fld("Confirmation <span class=\"muted small\" style=\"font-weight:400\">confirmation number, who confirmed, or other proof</span>", "tk-confirm", t.confirmation || "", true, "text") : "") +
       (admin ? '<label class="chk small"><input type="checkbox" id="tk-optional"' + (t.optional ? " checked" : "") + "> Optional on this sheet (doesn't count toward progress)</label>" : (t.optional ? '<div class="muted small">Optional task</div>' : "")) +
       (t.due && s.date ? '<div class="muted small" id="tk-rel">Due ' + esc(dueOffsetText(daysBetween(t.due, s.date), s)) + " (" + esc(fmtDate(s.date)) + ")</div>" : "") +
-      (t.by && isDone(t) ? '<div class="muted small">Marked done by ' + esc(t.by) + "</div>" : "") +
+      doneLine(t) + historyHtml() +
       howToBlock(how, false) +
       (editHow ? fld("Details <span class=\"muted small\" style=\"font-weight:400\">this task isn't on a template, so edit it here</span>", "tk-details", t.details, true, "area") +
         fld("Links <span class=\"muted small\" style=\"font-weight:400\">one per line</span>", "tk-links", t.links, true, "links", ' placeholder="https://"')
@@ -2851,7 +3039,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
           addNote(t, v); nn.value = ""; save(); drawNotes(); render();
         });
         var autosave = null;
-        wireWork(el, "tk", t, admin || isMine(t) || isSupporting(t));
+        wireWork(el, "tk", t, admin || isMine(t) || isSupporting(t)); wireHistory(el, t);
         if (canSup) attachSupporters(el, "tk-sup", sup, el.querySelector("#tk-owner"), function () { if (autosave) autosave(); });
         if (comp) st.addEventListener("change", function () { if (st.value === "Complete" && !comp.value) comp.value = todayIso(); if (st.value !== "Complete") comp.value = ""; });
         var ar = el.querySelector("#tk-archive"); if (ar) ar.addEventListener("click", function () { if (isAdmin()) archiveTask(s, t); });
@@ -3119,9 +3307,15 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   }
   function peopleSettingsModal() {
     openModal('<h1>Settings</h1><div id="role-settings" class="settings-body">' + roleSettingsHtml() + '</div>' +
+      (isAdmin() ? '<div class="settings-body"><h2>Analytics</h2><div class="card set-analytics"><p class="muted small" style="margin:0">Who finishes what, how often and how fast, plus a log of every status change.</p>' +
+        '<div class="row"><button type="button" class="btn" id="set-open-analytics">Open analytics</button><button type="button" class="btn" id="set-status-log">Status log</button></div>' +
+        '<label class="chk" for="set-atab"><input type="checkbox" id="set-atab"' + (analyticsTabOn() ? " checked" : "") + "> Show Analytics as a tab on this device</label></div></div>" : "") +
       '<div class="settings-body"><h2>This device</h2><div class="card"><ul class="tasks"><li style="align-items:center"><label class="chk" for="set-sound"><input type="checkbox" id="set-sound"' + (soundOn() ? " checked" : "") + '> Play sounds with celebrations</label></li></ul></div></div>' +
       '<div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-close>Done</button></div>', function (el) {
       el.querySelector("#set-sound").addEventListener("change", function (e) { setSound(e.target.checked); });
+      var oa = el.querySelector("#set-open-analytics"); if (oa) oa.addEventListener("click", openAnalytics);
+      var sl = el.querySelector("#set-status-log"); if (sl) sl.addEventListener("click", function () { closeModal(); statusLogModal(); });
+      var at = el.querySelector("#set-atab"); if (at) at.addEventListener("change", function (e) { try { localStorage.setItem(KEY + "-atab", e.target.checked ? "on" : "off"); } catch (x) {} renderChrome(); toast(e.target.checked ? "Analytics tab added" : "Analytics tab hidden"); });
       el.addEventListener("change", function (e) { if (roleSettingChange(e.target)) el.querySelector("#role-settings").innerHTML = roleSettingsHtml(); });
     });
   }
@@ -3836,7 +4030,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     var done = all.filter(function (x) { return isDone(x.t); }).length, total = all.length, op = total ? Math.round(done * 100 / total) : 0;
     var late = all.filter(function (x) { return isLate(x.t); }).length, blocked = all.filter(function (x) { return x.t.status === "Blocked"; }).length;
     var weekEnd = addDays(todayIso(), 7), soon = all.filter(function (x) { return !isDone(x.t) && x.t.due && x.t.due >= todayIso() && x.t.due <= weekEnd; }).length;
-    var h = prepSwitch("projects") + '<div class="row spread"><h1>Projects</h1>' + (mgr ? '<button class="btn" data-act="new-project">+ New project</button>' : "") + "</div>";
+    var h = prepSwitch("projects") + '<div class="row spread"><h1>Projects</h1><div class="row">' + (mgr ? '<button class="btn" data-act="new-project">+ New project</button>' : "") + "</div></div>";
     var arcP = archivedBox("Archived projects", S.archivedProjects || [], function (x) { return x.name; }, "data-restore-project", mgr);
     if (!list.length) return h + '<div class="card empty">No projects yet.' + (mgr ? " Tap <b>New project</b> to start one." : " The presidency will add them here.") + "</div>" + arcP;
     h += myDashboard("all");
@@ -4080,7 +4274,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       fld("Due Date", "pk-due", t.due, mgr, "date") + fld("Date Completed", "pk-completed", t.completed, true, "date") + "</div>" +
       importanceField("pk-imp", t, isAdmin()) +
       supportersField("pk-sup", t.supporters || [], mgr) +
-      (t.by && isDone(t) ? '<div class="muted small">Marked done by ' + esc(t.by) + "</div>" : "") +
+      doneLine(t) + historyHtml() +
       workBlock("pk", canWork) +
       fld("Notes", "pk-notes", t.notes || "", true, "area", ' placeholder="Updates, questions or links"') +
       '<div class="row spread"><div class="row">' + (isAdmin() ? '<button type="button" class="btn danger" id="pk-remove">Remove task</button>' : "") + (mgr ? '<button type="button" class="btn" id="pk-archive">Archive</button>' : "") + "</div>" +
@@ -4092,7 +4286,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
         var par = el.querySelector("#pk-archive"); if (par) par.addEventListener("click", function () { if (canManageProject(pj)) archiveTask(pj, t); });
         var rm = el.querySelector("#pk-remove");
         if (rm) rm.addEventListener("click", function () { if (!isAdmin()) return; taskFileRemove(allTaskFiles(t)); pj.tasks = pj.tasks.filter(function (x) { return x.id !== t.id; }); save(); closeModal(); render(); toast("Task removed"); });
-        wireWork(el, "pk", t, canWork, pool);
+        wireWork(el, "pk", t, canWork, pool); wireHistory(el, t);
         var autosave = null;
         if (mgr) attachSupporters(el, "pk-sup", psup, el.querySelector("#pk-owner"), function () { if (autosave) autosave(); }, pool);
         autosave = wireAutosave(el, function () {
@@ -4328,6 +4522,8 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       case "goto-tab": view.tab = t.dataset.tab; view.sheetId = null; view.projectId = null; view.masterId = null; render(); window.scrollTo(0, 0); break;
       case "people-settings": peopleSettingsModal(); break;
       case "send-notice": if (isAdmin()) sendNoticeModal(); break;
+      case "a-range": view.aRange = t.dataset.range; render(); break;
+      case "back-settings": view.tab = "people"; render(); peopleSettingsModal(); break;
       case "team-person": teamPersonModal(t.dataset.name); break;
       case "project-people": var ppj = byId(S.projects, view.projectId); if (ppj && canEditMembers(ppj)) projectPeopleModal(ppj); break;
       case "delete-project": if (isAdmin()) deleteProjectModal(byId(S.projects, view.projectId)); break;
