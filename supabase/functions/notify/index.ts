@@ -1,5 +1,6 @@
 // Sends push notifications to team members' devices.
 //   From the database (x-notify-key header): {type:"assigned"} when tasks get a new owner, {type:"reminders"} each morning.
+//   {type:"message", ids} when chat messages are sent (everyone else in the conversation hears about it).
 //   From an admin in the app (signed-in user): {type:"send", to:"team" | [personId...], title?, body}.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
@@ -89,6 +90,28 @@ async function assigned(body: { table: string; items: { id: string; owner: strin
   return { devices };
 }
 
+async function messages(body: { ids: string[] }) {
+  const { data: msgs } = await admin.from("messages").select("id,conversation_id,author_id,author,body,attachments,created_at").in("id", body.ids || []).order("created_at");
+  if (!msgs || !msgs.length) return { devices: 0 };
+  const convIds = [...new Set(msgs.map((m) => m.conversation_id))];
+  const { data: convs } = await admin.from("conversations").select("id,name,member_ids").in("id", convIds);
+  const people = await activePeople();
+  const nameOf = (id: string) => (people.find((p) => p.id === id) || { name: "" }).name;
+  let devices = 0;
+  for (const c of convs || []) {
+    const ms = msgs.filter((m) => m.conversation_id === c.id), last = ms[ms.length - 1];
+    const who = last.author || nameOf(last.author_id) || "Someone";
+    const files = Array.isArray(last.attachments) ? last.attachments.length : 0;
+    const text = String(last.body || "").trim() || (files ? (files === 1 ? "Sent a file" : "Sent " + files + " files") : "New message");
+    const members: string[] = c.member_ids || [];
+    const group = c.name || (members.length > 2 ? "Group chat" : "");
+    const to = members.filter((id) => !ms.every((m) => m.author_id === id) && people.some((p) => p.id === id));
+    const msg = { title: group ? who + " in " + group : who, body: (ms.length > 1 ? ms.length + " messages. " : "") + text.slice(0, 180), tag: "chat-" + c.id };
+    devices += (await deliver(to, msg)).devices;
+  }
+  return { devices };
+}
+
 function utahToday() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Denver", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
@@ -151,6 +174,7 @@ Deno.serve(async (req) => {
     if (req.headers.get("x-notify-key") !== k.notify_key) return reply(401, { error: "key" });
     if (body.type === "assigned") return reply(200, await assigned(body));
     if (body.type === "reminders") return reply(200, await reminders());
+    if (body.type === "message") return reply(200, await messages(body));
     return reply(400, { error: "type" });
   } catch (e) {
     console.error(e);

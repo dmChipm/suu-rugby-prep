@@ -240,3 +240,5 @@ create policy "owner updates" on public.projects for update using (public.is_pro
 --   Vault secrets vapid_public, vapid_private and notify_key; push_keys() hands them to the server only.
 --   Statement triggers notify_assigned() on sheet_tasks / project_tasks post new owners to the "notify" edge function,
 --   and cron job "task-reminders" (15:00 UTC daily) posts {"type":"reminders"}. Admins send messages through the same function.
+-- Chat notifications (migration notify_messages): statement trigger notify_messages() on messages posts
+--   {"type":"message","ids":[...]} to the notify function, which tells everyone else in the conversation.

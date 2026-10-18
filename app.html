@@ -1158,6 +1158,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       anim(run, [{ transform: "translate(" + n0 + "px," + nyTop + "px)" }, { transform: "translate(" + (nHit - nw * .35) + "px," + nyTop + "px)" }], { duration: 1200, delay: 2300, easing: "cubic-bezier(.4,0,.8,.8)", fill: "forwards" });
       // The dive: lean in low, arms out, and drive through.
       at(3500, function () {
+        grunt(.08, showOut);
         run.classList.add("dive");
         anim(body, [{ transform: "rotate(0)" }, { transform: "rotate(58deg)" }], { duration: 220, easing: "ease-out", fill: "forwards" });
         anim(run, [{ transform: "translate(" + (nHit - nw * .35) + "px," + nyTop + "px)" }, { transform: "translate(" + nHit + "px," + (nyTop + nh * .06) + "px)" }], { duration: 220, easing: "ease-in", fill: "forwards" });
@@ -1305,6 +1306,28 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       env.connect(bus); o.start(t); vib.start(t); o.stop(t + len + .02); vib.stop(t + len + .02);
       t += len;
     });
+  }
+  // Ilona's tackle grunt, synthesized: a short, gritty "hngh!" with a breathy start and a falling pitch.
+  function grunt(delay, out) {
+    out = out || sfxOut(); if (!out) return;
+    var ctx = out.context, t = ctx.currentTime + .02 + (delay || 0), len = .42, bus = ctx.createGain();
+    bus.gain.value = .55; bus.connect(out);
+    // Breath pushed out at the start.
+    var br = ctx.createBufferSource(), bf = ctx.createBiquadFilter(), bg = ctx.createGain();
+    br.buffer = noiseBuf(ctx, .2); bf.type = "bandpass"; bf.frequency.value = 1600; bf.Q.value = .8;
+    bg.gain.setValueAtTime(0, t); bg.gain.linearRampToValueAtTime(.35, t + .02); bg.gain.exponentialRampToValueAtTime(.001, t + .18);
+    br.connect(bf); bf.connect(bg); bg.connect(bus); br.start(t);
+    // The voice: a strained low note that drops, roughened by a fast flutter (vocal fry).
+    var v = t + .04, o = ctx.createOscillator(), env = ctx.createGain(), fry = ctx.createOscillator(), fg = ctx.createGain(), rough = ctx.createGain();
+    o.type = "sawtooth"; o.frequency.setValueAtTime(285, v); o.frequency.linearRampToValueAtTime(240, v + .08); o.frequency.exponentialRampToValueAtTime(165, v + len);
+    fry.type = "square"; fry.frequency.value = 38; fg.gain.value = .45; rough.gain.value = .6; fry.connect(fg); fg.connect(rough.gain);
+    env.gain.setValueAtTime(0, v); env.gain.linearRampToValueAtTime(1, v + .025); env.gain.setValueAtTime(1, v + len * .45); env.gain.exponentialRampToValueAtTime(.001, v + len);
+    o.connect(rough);
+    [[800, 6, 2.2], [1250, 7, 1.3], [2700, 9, .5]].forEach(function (f) { // "uh" vowel shape
+      var bp = ctx.createBiquadFilter(), g = ctx.createGain(); bp.type = "bandpass"; bp.frequency.value = f[0]; bp.Q.value = f[1]; g.gain.value = f[2];
+      rough.connect(bp); bp.connect(g); g.connect(env);
+    });
+    env.connect(bus); o.start(v); fry.start(v); o.stop(v + len + .02); fry.stop(v + len + .02);
   }
   // Electric crackle: random sharp clicks (level 0..1), denser and louder as Pikachu charges up.
   function crackle(dur, level, delay, out) {
@@ -2024,8 +2047,8 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     pushReg().then(function (reg) { return reg && reg.pushManager.getSubscription(); }).then(function (sub) { if (sub) return saveSub(sub); }).catch(function () {});
   }
   var PUSH_TEXT = {
-    on: "On. You'll hear about new tasks, tasks due soon and team announcements.",
-    off: "Get a notification when you're given a task, when something is due, and for team announcements.",
+    on: "On. You'll hear about messages, new tasks, tasks due soon and team announcements.",
+    off: "Get a notification for new messages, when you're given a task, when something is due, and for team announcements.",
     blocked: "Notifications are blocked for this site. Turn them on in your phone or browser settings, then come back.",
     install: "On iPhone, add this app to your Home Screen first (Share, then Add to Home Screen). Open it from there and turn notifications on.",
     unsupported: "This browser can't show notifications from the app."
