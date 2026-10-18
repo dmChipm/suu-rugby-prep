@@ -467,6 +467,45 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .ps-runner.dive .rn-armf, .ps-runner.dive .rn-armb { animation: none; transform: rotate(-100deg); }
 .ps-runner.dive .rn-legf { animation: none; transform: rotate(40deg); }
 .ps-runner.dive .rn-legb { animation: none; transform: rotate(10deg); }
+/* Loading screen: an SUU player runs in a try, loops back round the field and kicks the conversion, on repeat until the app is ready. */
+.boot-loader { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; padding: 16px; background: var(--bg); transition: opacity .4s; }
+.boot-loader.out { opacity: 0; pointer-events: none; }
+.bl-inner { width: min(520px, 100%); display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.bl-scene { width: 100%; height: auto; display: block; border-radius: 22px; border: 3px solid var(--ink); box-shadow: 5px 5px 0 rgba(0, 0, 0, .14); }
+.bl-title { font-family: Fredoka, Nunito, system-ui, sans-serif; font-weight: 700; font-size: 1.5rem; color: var(--red); letter-spacing: .02em; }
+.bl-sub { color: var(--muted); font-weight: 700; }
+.bl-sub::after { content: ""; animation: bl-dots 1.2s steps(4) infinite; }
+@keyframes bl-dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+.bl-skip { color: var(--muted); font-size: .78rem; }
+.boot-loader .ps-runner { position: static; filter: none; }
+.boot-loader .ps-runner svg { width: 76px; height: 95px; overflow: visible; }
+.bl-pos { animation: bl-pos 7s linear infinite; }
+.bl-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: bl-pose 7s linear infinite; }
+.bl-carry { animation: bl-carry 7s linear infinite; }
+.bl-grounded { animation: bl-grounded 7s linear infinite; }
+.bl-kick { transform-box: fill-box; transform-origin: center; animation: bl-kick 7s linear infinite; }
+.bl-try { transform-box: fill-box; transform-origin: center; animation: bl-try 7s ease-out infinite; }
+.bl-plus { transform-box: fill-box; transform-origin: center; animation: bl-plus 7s ease-out infinite; }
+@keyframes bl-pos {
+  0% { transform: translate(-40px, 182px); opacity: 0; } 2% { opacity: 1; }
+  36% { transform: translate(282px, 182px); } 42% { transform: translate(316px, 182px); } 52% { transform: translate(316px, 182px); }
+  58% { transform: translate(345px, 160px); } 64% { transform: translate(260px, 150px); } 70% { transform: translate(160px, 165px); }
+  73% { transform: translate(165px, 182px); } 79% { transform: translate(206px, 182px); } 95% { transform: translate(210px, 182px); opacity: 1; }
+  98%, 100% { transform: translate(210px, 182px); opacity: 0; } }
+@keyframes bl-pose {
+  0%, 37% { transform: none; } 42%, 50% { transform: rotate(78deg); } 54% { transform: none; }
+  59% { transform: none; } 60%, 72% { transform: scaleX(-1); } 73%, 78% { transform: none; }
+  80% { transform: rotate(-14deg); } 85%, 100% { transform: none; } }
+@keyframes bl-carry { 0%, 41% { opacity: 1; } 42%, 100% { opacity: 0; } }
+@keyframes bl-grounded { 0%, 41% { opacity: 0; } 42%, 55% { opacity: 1; } 57%, 100% { opacity: 0; } }
+@keyframes bl-kick {
+  0%, 57% { transform: translate(226px, 178px) rotate(-30deg); opacity: 0; } 60% { opacity: 1; }
+  79.5% { transform: translate(226px, 178px) rotate(-30deg); }
+  84% { transform: translate(278px, 96px) rotate(150deg) scale(.9); } 89% { transform: translate(324px, 56px) rotate(330deg) scale(.75); }
+  94% { transform: translate(362px, 50px) rotate(500deg) scale(.6); opacity: 1; } 97%, 100% { transform: translate(380px, 58px) rotate(560deg) scale(.55); opacity: 0; } }
+@keyframes bl-try { 0%, 42% { opacity: 0; transform: scale(.3); } 45% { opacity: 1; transform: scale(1.15); } 48%, 56% { opacity: 1; transform: scale(1); } 60%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes bl-plus { 0%, 88% { opacity: 0; transform: scale(.3); } 91% { opacity: 1; transform: scale(1.15); } 93%, 97% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bl-pos, .bl-pose, .bl-carry, .bl-grounded, .bl-kick, .bl-try, .bl-plus, .boot-loader .ps-runner * { animation: none !important; } .bl-pos { transform: translate(150px, 182px); } .bl-kick, .bl-grounded, .bl-try, .bl-plus { opacity: 0; } }
 .ps-skip { position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: .78rem; color: rgba(255, 255, 255, .55); }
 @keyframes ps-neon-on { 0% { opacity: 0; } 8% { opacity: 1; } 14% { opacity: .15; } 22% { opacity: 1; } 30% { opacity: .35; } 36%, 70% { opacity: 1; } 74% { opacity: .55; } 78%, 100% { opacity: 1; } }
 @keyframes np-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1006,6 +1045,41 @@ table.a-grid td:first-child { min-width: 170px; }
     '<circle cx="97" cy="42" r="2.6" fill="#14161c"/><path d="M93 37 l8 1" stroke="#3b2416" stroke-width="2.4" stroke-linecap="round"/>' +
     '<path d="M98 52 q4 2 7 -1" stroke="#d1132f" stroke-width="3.2" fill="none" stroke-linecap="round"/>' +
     '<g class="rn-armf">' + RN_ARM + '</g></g></g></svg>';
+  // ---------- loading screen ----------
+  // A rugby ball shape centered on (0,0), about 26 wide.
+  var BL_BALL = '<ellipse rx="13" ry="8" fill="#8a4a24" stroke="#2a1608" stroke-width="2"/><path d="M-6 0 H6 M-3 -2.5 V2.5 M0 -2.5 V2.5 M3 -2.5 V2.5" stroke="#fff" stroke-width="1.4"/>';
+  function loaderHtml(preview) {
+    var stripes = ""; for (var i = 0; i < 8; i++) stripes += '<rect x="' + (i * 52) + '" y="150" width="26" height="70" fill="#3f8f3a"/>';
+    return '<div class="bl-inner"><svg class="bl-scene" viewBox="0 0 400 220" role="img" aria-label="An SUU player scores a try and kicks the conversion">' +
+      '<defs><linearGradient id="bl-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d2b5c"/><stop offset=".75" stop-color="#c8102e"/><stop offset="1" stop-color="#f08a5d"/></linearGradient></defs>' +
+      '<rect width="400" height="220" fill="url(#bl-sky)"/><circle cx="70" cy="58" r="22" fill="#ffd166" opacity=".9"/>' +
+      '<rect y="150" width="400" height="70" fill="#4aa144"/>' + stripes +
+      '<path d="M0 150 H400" stroke="#2d6e2a" stroke-width="2"/><path d="M330 150 V220" stroke="#fff" stroke-width="4"/><path d="M200 150 V220" stroke="#fff" stroke-width="2" stroke-dasharray="6 6" opacity=".8"/>' +
+      // Goal posts in the in-goal area, drawn with a little perspective.
+      '<g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M352 186 V36"/><path d="M380 172 V24"/><path d="M352 120 L380 108"/></g>' +
+      '<path d="M352 186 l-4 4 M380 172 l-4 4" stroke="#c8102e" stroke-width="8"/>' +
+      '<g class="bl-grounded" transform="translate(336 180)">' + BL_BALL + '</g>' +
+      '<g class="bl-pos"><g class="bl-pose"><g class="ps-runner run"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + RUNNER_SVG.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "").replace(">USA<", ">SUU<") + '</svg></g>' +
+      '<g class="bl-carry" transform="translate(20 -50) rotate(-20)">' + BL_BALL + '</g></g></g>' +
+      '<g class="bl-kick">' + BL_BALL + '</g>' +
+      '<g class="bl-try"><text x="300" y="104" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="700" font-size="40" fill="#fff" stroke="#14161c" stroke-width="2">TRY!</text></g>' +
+      '<g class="bl-plus"><text x="330" y="40" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="700" font-size="26" fill="#ffd166" stroke="#14161c" stroke-width="1.5">+2</text></g>' +
+      '</svg><div class="bl-title">SUU Women\'s Rugby</div><div class="bl-sub">' + (preview ? "This is the loading screen" : "Getting your team ready") + '</div>' +
+      (preview ? '<div class="bl-skip">Tap to close</div>' : "") + "</div>";
+  }
+  var bootLoader = null, bootStart = Date.now();
+  function showLoader(preview) {
+    var el = document.createElement("div"); el.className = "boot-loader"; el.setAttribute("role", "status"); el.innerHTML = loaderHtml(preview);
+    document.body.appendChild(el);
+    if (preview) el.addEventListener("click", function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 420); });
+    return el;
+  }
+  // Fades the loading screen out once the app has something to show. A short minimum keeps it from flashing.
+  function hideBootLoader() {
+    if (!bootLoader) return; var el = bootLoader; bootLoader = null;
+    setTimeout(function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 420); }, Math.max(0, 900 - (Date.now() - bootStart)));
+  }
+  bootLoader = showLoader(false);
   var SHOWS = ["bird", "thor", "pika", "train", "ilona"];
   // The 100% show. Every version ends the same way: the piñata bursts and a red neon "Good Job!" sign lights up.
   // kind: "bird" (thunderbird lands, storm, lightning), "thor" (hammer smash), "pika" (Pikachu calls the lightning),
@@ -2245,6 +2319,7 @@ table.a-grid td:first-child { min-width: 170px; }
   function render() {
     var ae = document.activeElement, keepMsg = ae && ae.id === "msg-input" ? { a: ae.selectionStart, b: ae.selectionEnd } : null;
     renderInner();
+    if (!(ONLINE && auth.state === "loading")) hideBootLoader();
     if (keepMsg) { var mi = document.getElementById("msg-input"); if (mi) { mi.focus(); try { mi.setSelectionRange(keepMsg.a, keepMsg.b); } catch (e) {} } }
   }
   var lastMsgRoute = "";
@@ -2278,14 +2353,15 @@ table.a-grid td:first-child { min-width: 170px; }
         ["People", cnt(S.people)], ["Game sheets", cnt(S.sheets) + " (+" + cnt(S.archivedSheets) + " archived)"], ["Templates", cnt(S.masters)], ["Projects", cnt(S.projects) + " (+" + cnt(S.archivedProjects) + " archived)"],
         ["Documents", cnt(S.documents)], ["Conversations", cnt(S.convos)]];
       app.innerHTML = '<div><h1>Development</h1><div class="muted">Only people with the Developer role see this tab.</div></div>' +
-        '<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px"><strong>Celebrations</strong>' +
-        '<div class="row"><button class="btn primary" id="dev-big">🎉 Task complete (random show)</button></div>' +
+        '<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px"><strong>Effects</strong>' +
+        '<div class="row"><button class="btn primary" id="dev-big">🎉 Task complete (random show)</button><button class="btn" id="dev-loader">🏉 Loading screen</button></div>' +
         '<div class="row" style="flex-wrap:wrap;gap:8px"><span class="small muted">Or pick one:</span>' + [["bird", "Thunderbird"], ["thor", "Thor"], ["pika", "Pikachu"], ["train", "Train"], ["ilona", "Ilona Maher"]].map(function (x) { return '<button class="btn" data-show="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
         '<label class="row small" style="gap:8px"><input type="checkbox" id="dev-sound"' + (soundOn() ? " checked" : "") + '> Play sounds on this device</label>' +
         '<p class="muted small" style="margin:0">One of the five piñata shows plays at random whenever a task is checked off. Tap the screen to skip it.</p></div>' +
         '<h2>Documentation</h2><div class="dev-links">' + devLink("open-devdocs", "Developer docs", "Tech stack, how it's built and where everything lives") + devLink("open-updates", "Update log", "Version " + appVersion() + " · everything that has changed") + "</div>" +
         '<h2>App info</h2><div class="card"><ul class="tasks dev-info">' + info.map(function (x) { return '<li><span class="muted small">' + esc(x[0]) + '</span><span class="dev-v">' + esc(String(x[1])) + "</span></li>"; }).join("") + "</ul></div>";
       app.querySelector("#dev-big").addEventListener("click", function () { pinataShow("Done: Book the field"); });
+      app.querySelector("#dev-loader").addEventListener("click", function () { showLoader(true); });
       app.querySelectorAll("[data-show]").forEach(function (b) { b.addEventListener("click", function () { pinataShow("Home Game is 100% ready!", b.dataset.show); }); });
       app.querySelector("#dev-sound").addEventListener("change", function (e) { setSound(e.target.checked); });
     }
@@ -2402,6 +2478,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "A loading screen: an SUU player runs in a try, loops round the field and kicks the conversion until the app is ready. Preview it under Effects on the Development tab (renamed from Celebrations)."],
     ["2026-10-18", "The update log now includes everything built before launch, as versions 0.1 to 0.49."],
     ["2026-10-18", "The Development tab now links to Developer docs (tech stack, how the app is built, the database and where the code lives) and to the Update log, which has its own page with a version number on every change."],
     ["2026-10-17", "The app refreshes itself when you reopen it: it loads the newest version if one went live, and always pulls the latest data."],
