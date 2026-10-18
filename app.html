@@ -487,9 +487,13 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
   73% { transform: translate(165px, 182px); } 79% { transform: translate(206px, 182px); } 95% { transform: translate(210px, 182px); opacity: 1; }
   98%, 100% { transform: translate(210px, 182px); opacity: 0; } }
 @keyframes bl-pose {
-  0%, 37% { transform: none; } 42%, 50% { transform: rotate(78deg); } 54% { transform: none; }
+  0%, 54% { transform: none; }
   59% { transform: none; } 60%, 72% { transform: scaleX(-1); } 73%, 78% { transform: none; }
   80% { transform: rotate(-14deg); } 85%, 100% { transform: none; } }
+.bl-run { animation: bl-run 7s linear infinite; }
+.bl-crouch { opacity: 0; animation: bl-crouch 7s linear infinite; }
+@keyframes bl-run { 0%, 41.9% { opacity: 1; } 42%, 52% { opacity: 0; } 52.1%, 100% { opacity: 1; } }
+@keyframes bl-crouch { 0%, 41.9% { opacity: 0; } 42%, 52% { opacity: 1; } 52.1%, 100% { opacity: 0; } }
 @keyframes bl-carry { 0%, 41% { opacity: 1; } 42%, 100% { opacity: 0; } }
 @keyframes bl-grounded { 0%, 41% { opacity: 0; } 42%, 55% { opacity: 1; } 57%, 100% { opacity: 0; } }
 @keyframes bl-kick {
@@ -1049,10 +1053,24 @@ table.a-grid td:first-child { min-width: 170px; }
       '<g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M352 186 V36"/><path d="M380 172 V24"/><path d="M352 120 L380 108"/></g>' +
       '<path d="M352 186 l-4 4 M380 172 l-4 4" stroke="#c8102e" stroke-width="8"/>' +
       '<g class="bl-grounded" transform="translate(336 180)">' + BL_BALL + '</g>' +
-      '<g class="bl-pos"><g class="bl-pose"><g class="ps-runner run"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + RUNNER_SVG.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "").replace(">USA<", ">SUU<") + '</svg></g>' +
+      '<g class="bl-pos"><g class="bl-pose"><g class="ps-runner run bl-run"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + RUNNER_SVG.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "").replace(">USA<", ">SUU<") + '</svg></g>' +
+      '<g class="bl-crouch"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + crouchSvg() + '</svg></g>' +
       '<g class="bl-carry" transform="translate(20 -50) rotate(-20)">' + BL_BALL + '</g></g></g>' +
       '<g class="bl-kick">' + BL_BALL + '</g>' +
       '</svg>';
+  }
+  // The same player crouched at the knees, leaning in to press the ball down for the try.
+  function crouchSvg() {
+    var upper = RUNNER_SVG.replace(/^<svg[^>]*><g class="rn-bob"><g class="rn-body">/, "").replace(/<\/g><\/g><\/svg>$/, "")
+      .replace('<g class="rn-legb" opacity=".9">' + RN_LEG.replace(/#e9b48f/g, "#d29c78") + "</g>", "").replace('<g class="rn-legf">' + RN_LEG + "</g>", "").replace(">USA<", ">SUU<");
+    // A bent leg from the hip (80,140) through the knee to the foot, with the shorts covering the top of the thigh.
+    function leg(kx, ky, fx, fy, skin) {
+      return '<path d="M80 140 L' + kx + " " + ky + " L" + fx + " " + fy + '" stroke="' + skin + '" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M80 138 L' + (80 + (kx - 80) * .45) + " " + (138 + (ky - 138) * .45) + '" stroke="#1d2b5c" stroke-width="20" stroke-linecap="round"/>';
+    }
+    return '<g opacity=".9">' + leg(62, 160, 70, 186, "#d29c78") + '<path d="M66 176 L70 186" stroke="#fff" stroke-width="13" stroke-linecap="round"/><path d="M62 190 h20" stroke="#14161c" stroke-width="10" stroke-linecap="round"/></g>' +
+      '<g transform="translate(0 22) rotate(24 80 118)">' + upper + "</g>" +
+      leg(108, 156, 98, 186, "#e9b48f") + '<path d="M103 168 L98 184" stroke="#fff" stroke-width="13" stroke-linecap="round"/><path d="M92 190 h22" stroke="#14161c" stroke-width="10" stroke-linecap="round"/>';
   }
   var bootLoader = null, bootStart = Date.now();
   function showLoader(preview) {
@@ -2465,6 +2483,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "On the loading screen she bends at the knees to touch the ball down instead of diving."],
     ["2026-10-18", "The loading screen's rugby ball is white and red."],
     ["2026-10-18", "On the loading screen, the line where the field meets the sky sits behind the player."],
     ["2026-10-18", "The loading screen is just the animation now, with no words or numbers."],
