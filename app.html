@@ -658,6 +658,9 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
 .free-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .free-chip { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: inherit; font: inherit; text-align: left; max-width: 100%; }
 .free-chip b { font-size: .9rem; overflow-wrap: anywhere; } .free-chip:hover { background: var(--red-soft); }
+.update-log { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+.ul-date { font-weight: 800; font-size: .9rem; color: var(--red); text-transform: uppercase; letter-spacing: .04em; }
+.update-log ul { margin: 4px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 .dev-info li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 .dev-v { text-align: right; overflow-wrap: anywhere; min-width: 0; }
 .todo-sec { display: flex; flex-direction: column; gap: 10px; }
@@ -2222,6 +2225,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
         '<div class="row" style="flex-wrap:wrap;gap:8px"><span class="small muted">Or pick one:</span>' + [["bird", "Thunderbird"], ["thor", "Thor"], ["pika", "Pikachu"], ["train", "Train"], ["ilona", "Ilona Maher"]].map(function (x) { return '<button class="btn" data-show="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
         '<label class="row small" style="gap:8px"><input type="checkbox" id="dev-sound"' + (soundOn() ? " checked" : "") + '> Play sounds on this device</label>' +
         '<p class="muted small" style="margin:0">One of the five piñata shows plays at random whenever a task is checked off. Tap the screen to skip it.</p></div>' +
+        updateLogHtml() +
         '<h2>App info</h2><div class="card"><ul class="tasks dev-info">' + info.map(function (x) { return '<li><span class="muted small">' + esc(x[0]) + '</span><span class="dev-v">' + esc(String(x[1])) + "</span></li>"; }).join("") + "</ul></div>";
       app.querySelector("#dev-big").addEventListener("click", function () { pinataShow("Done: Book the field"); });
       app.querySelectorAll("[data-show]").forEach(function (b) { b.addEventListener("click", function () { pinataShow("Home Game is 100% ready!", b.dataset.show); }); });
@@ -2338,6 +2342,28 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     else if (b.dataset.act === "archive-project" && canManageProjects()) archiveTop("projects", byId(S.projects, view.projectId));
   }, true);
 
+  // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
+  var UPDATES = [
+    ["2026-10-17", "Added this update log to the Development tab."],
+    ["2026-10-17", "Renamed the To Do tab to My Tasks."],
+    ["2026-10-17", "Combined Game Prep and Projects into one \"Game Prep & Projects\" tab, with a switch that opens on Game Prep."],
+    ["2026-10-17", "Notifications are on by default: the first tap after signing in asks to allow them, once per device."],
+    ["2026-10-17", "Chat messages now send a notification to everyone else in the conversation."],
+    ["2026-10-17", "Ilona Maher grunts when she tackles the piñata."],
+    ["2026-10-16", "Push notifications: new tasks, a morning reminder for tasks overdue or due soon, and admin messages to one person or the whole team."],
+    ["2026-10-16", "Task importance (Normal, High, Crucial), set by admins. Crucial tasks show ! on both sides and pulse red when overdue, deeper each day."],
+    ["2026-10-16", "Resend invite button in an invited person's pop-up."],
+    ["2026-10-16", "The password section in the profile pop-up hides once you have a password."],
+    ["2026-10-15", "New teammates can create a password and sign in right away, with no confirmation email."],
+    ["2026-10-15", "Email and password sign-in, with Forgot password. Google sign-in removed."],
+    ["2026-10-15", "The app went live at dmchipm.github.io/suu-rugby-prep and can be added to a phone's Home Screen."]
+  ];
+  function updateLogHtml() {
+    var days = []; UPDATES.forEach(function (u) { var d = days[days.length - 1]; if (!d || d.date !== u[0]) days.push(d = { date: u[0], items: [] }); d.items.push(u[1]); });
+    return '<h2>Update log</h2><div class="card update-log">' + days.map(function (d) {
+      return '<div class="ul-day"><div class="ul-date">' + esc(fmtDate(d.date)) + '</div><ul>' + d.items.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>";
+    }).join("") + "</div>";
+  }
   // The switch at the top of the "Game Prep & Projects" tab.
   function prepSwitch(on) {
     return '<div class="seg prep-switch" role="group" aria-label="Show"><button data-act="goto-tab" data-tab="sheets" aria-pressed="' + (on === "sheets") + '">Game Prep</button>' +
