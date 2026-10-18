@@ -663,9 +663,12 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
 .task-hist .th-body { margin-top: 8px; }
 ul.hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 ul.hist li { display: flex; flex-direction: column; }
-.set-device { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
-.set-device .push-box { border-top: 0; padding-top: 0; }
-.settings-btn { align-self: flex-start; }
+.set-items { border-top: 1px dashed var(--line); }
+.set-items li { align-items: center; gap: 12px; }
+.set-items li.push-box { flex-direction: row; border-top: 0; padding-top: 10px; }
+.set-items .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.set-link { all: unset; cursor: pointer; flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.set-link:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
 .set-analytics { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
 .a-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .a-tile { padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -2007,10 +2010,10 @@ table.a-grid td:first-child { min-width: 170px; }
       '<form id="acct-pw" class="auth-email" hidden style="border-top:1px dashed var(--line);padding-top:12px"><strong>Create your password</strong><span class="muted small">Then you can sign in with your email and password on any device.</span>' +
       '<label class="field">New password<input type="password" id="acct-pw1" minlength="8" required autocomplete="new-password"></label><label class="field">Type it again<input type="password" id="acct-pw2" minlength="8" required autocomplete="new-password"></label>' +
       '<div id="acct-pw-msg" class="small" hidden></div><button class="btn">Save password</button></form>' +
-      '<button type="button" class="btn settings-btn" id="acct-settings">⚙ Settings</button>' +
+      settingsItemsHtml() +
       '<div class="row" style="justify-content:flex-end"><button class="btn" data-close>Close</button><button class="btn primary" id="acct-out">Sign out</button></div>',
       function (el) {
-        el.querySelector("#acct-settings").addEventListener("click", function () { closeModal(); appSettingsModal(); });
+        wireSettingsItems(el);
         // Signing out stops this device getting the person's notifications.
         el.querySelector("#acct-out").addEventListener("click", function () { closeModal(); disablePush().then(function () { sb.auth.signOut(); }); });
         // Only people without a password yet see the password form; a forgotten password is reset from the sign-in screen.
@@ -2077,7 +2080,7 @@ table.a-grid td:first-child { min-width: 170px; }
       function ask() {
         document.removeEventListener("click", ask, true);
         try { localStorage.setItem(KEY + "-pushasked", "1"); } catch (e) {}
-        enablePush().then(function () { knownPush = "on"; toast("Notifications are on. You can turn them off in ⚙ Settings."); render(); }).catch(function () {});
+        enablePush().then(function () { knownPush = "on"; toast("Notifications are on. You can turn them off in your profile."); render(); }).catch(function () {});
       }
       document.addEventListener("click", ask, true);
     });
@@ -2368,8 +2371,8 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
-    ["2026-10-17", "Settings that aren't about people (notifications, sounds, analytics) moved to ⚙ Settings in the profile menu at the top right."],
-    ["2026-10-17", "Analytics for admins: who finishes what, how often and how fast, by person and by task. Open it from Settings in the profile menu, or turn on an Analytics tab there."],
+    ["2026-10-17", "Settings that aren't about people (notifications, sounds, analytics) are now line items in your profile at the top right."],
+    ["2026-10-17", "Analytics for admins: who finishes what, how often and how fast, by person and by task. Open it from your profile at the top right, or turn on an Analytics tab there."],
     ["2026-10-17", "Every status change and assignment is recorded. Admins see a History section in each task and a Status log in Settings."],
     ["2026-10-17", "Tasks record the exact date and time they're completed (admins see it in the task pop-up)."],
     ["2026-10-17", "Added this update log to the Development tab."],
@@ -3312,28 +3315,28 @@ table.a-grid td:first-child { min-width: 170px; }
   // People ⋮ Settings: who has admin access and which documents each role sees.
   function peopleSettingsModal() {
     openModal('<h1>People settings</h1><div id="role-settings" class="settings-body">' + roleSettingsHtml() + '</div>' +
-      '<p class="muted small" style="margin:0">Notifications, sounds and analytics are in your profile menu at the top right.</p>' +
+      '<p class="muted small" style="margin:0">Notifications, sounds and analytics are in your profile at the top right.</p>' +
       '<div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-close>Done</button></div>', function (el) {
       el.addEventListener("change", function (e) { if (roleSettingChange(e.target)) el.querySelector("#role-settings").innerHTML = roleSettingsHtml(); });
     });
   }
-  // Profile menu ⚙ Settings: this device's notifications and sounds, plus analytics for admins.
-  function appSettingsModal() {
-    openModal('<h1>Settings</h1>' +
-      '<div class="settings-body"><h2>This device</h2><div class="card set-device">' +
-      (ONLINE ? '<div class="push-box" id="set-push"><strong>Notifications</strong>' + pushBoxHtml() + "</div>" : "") +
-      '<label class="chk" for="set-sound"><input type="checkbox" id="set-sound"' + (soundOn() ? " checked" : "") + "> Play sounds with celebrations</label></div></div>" +
-      (isAdmin() ? '<div class="settings-body"><h2>Analytics</h2><div class="card set-analytics"><p class="muted small" style="margin:0">Who finishes what, how often and how fast, plus a log of every status change.</p>' +
-        '<div class="row"><button type="button" class="btn" id="set-open-analytics">Open analytics</button><button type="button" class="btn" id="set-status-log">Status log</button></div>' +
-        '<label class="chk" for="set-atab"><input type="checkbox" id="set-atab"' + (analyticsTabOn() ? " checked" : "") + "> Show Analytics as a tab on this device</label></div></div>" : "") +
-      '<div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-close>Done</button></div>', function (el) {
-      var pb = el.querySelector("#set-push"); if (pb) wirePushBox(pb);
-      el.querySelector("#set-sound").addEventListener("change", function (e) { setSound(e.target.checked); });
-      var oa = el.querySelector("#set-open-analytics"); if (oa) oa.addEventListener("click", openAnalytics);
-      var sl = el.querySelector("#set-status-log"); if (sl) sl.addEventListener("click", function () { closeModal(); statusLogModal(); });
-      var at = el.querySelector("#set-atab"); if (at) at.addEventListener("change", function (e) { try { localStorage.setItem(KEY + "-atab", e.target.checked ? "on" : "off"); } catch (x) {} renderChrome(); toast(e.target.checked ? "Analytics tab added" : "Analytics tab hidden"); });
-    });
+  // Settings as line items in the profile pop-up: this device's notifications and sounds, plus analytics for admins.
+  function settingsItemsHtml() {
+    return '<ul class="tasks set-items">' +
+      (ONLINE ? '<li class="push-box" id="set-push"><div class="grow"><strong>Notifications</strong><div class="push-text muted small"></div></div><button type="button" class="btn push-btn" hidden>Turn on</button></li>' : "") +
+      '<li><label class="chk" for="set-sound"><input type="checkbox" id="set-sound"' + (soundOn() ? " checked" : "") + "> Celebration sounds</label></li>" +
+      (isAdmin() ? '<li><button type="button" class="set-link" id="set-open-analytics"><strong>Analytics</strong><span class="muted small">Who finishes what, how often and how fast</span></button><span aria-hidden="true">›</span></li>' +
+        '<li><button type="button" class="set-link" id="set-status-log"><strong>Status log</strong><span class="muted small">Every status change and assignment</span></button><span aria-hidden="true">›</span></li>' +
+        '<li><label class="chk" for="set-atab"><input type="checkbox" id="set-atab"' + (analyticsTabOn() ? " checked" : "") + "> Show Analytics as a tab</label></li>" : "") + "</ul>";
   }
+  function wireSettingsItems(el) {
+    var pb = el.querySelector("#set-push"); if (pb) wirePushBox(pb);
+    el.querySelector("#set-sound").addEventListener("change", function (e) { setSound(e.target.checked); toast(e.target.checked ? "Sounds on" : "Sounds off"); });
+    var oa = el.querySelector("#set-open-analytics"); if (oa) oa.addEventListener("click", openAnalytics);
+    var sl = el.querySelector("#set-status-log"); if (sl) sl.addEventListener("click", function () { closeModal(); statusLogModal(); });
+    var at = el.querySelector("#set-atab"); if (at) at.addEventListener("change", function (e) { try { localStorage.setItem(KEY + "-atab", e.target.checked ? "on" : "off"); } catch (x) {} renderChrome(); toast(e.target.checked ? "Analytics tab added" : "Analytics tab hidden"); });
+  }
+  function profileMenu() { if (ONLINE) accountModal(); else switchUserModal(); }
   function roleSettingChange(t) {
     if (t.dataset.docTier && isAdmin()) {
       S.docTier[t.dataset.docTier] = Number(t.value) || 3; save(); toast(t.dataset.docTier + " now sees tier " + t.value + " documents and below"); return true;
@@ -3450,9 +3453,9 @@ table.a-grid td:first-child { min-width: 170px; }
       S.people.filter(function (p) { return p.status !== "Inactive"; }).map(function (p) {
         return '<button class="item" data-switch="' + p.id + '"><div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + '</div><div class="grow"><div class="title">' + esc(p.name) + '</div><div class="muted small">' + esc(p.role) +
           (S.roleAccess[p.role] ? " · Admin access" : "") + "</div></div>" + (p.id === S.currentUserId ? '<span class="pill st-done">Current</span>' : "") + "</button>";
-      }).join("") + '</div><div class="row spread"><button type="button" class="btn" id="sw-settings">⚙ Settings</button><button class="btn" data-close>Cancel</button></div>',
+      }).join("") + '</div>' + settingsItemsHtml() + '<div class="row" style="justify-content:flex-end"><button class="btn" data-close>Close</button></div>',
       function (el) {
-        el.querySelector("#sw-settings").addEventListener("click", function () { closeModal(); appSettingsModal(); });
+        wireSettingsItems(el);
         el.addEventListener("click", function (e) {
           var b = e.target.closest("[data-switch]"); if (!b) return;
           var p = byId(S.people, b.dataset.switch); S.currentUserId = p.id; if (p.status === "Invited") p.status = "Active"; p.joined = true;
@@ -4539,7 +4542,7 @@ table.a-grid td:first-child { min-width: 170px; }
       case "people-settings": peopleSettingsModal(); break;
       case "send-notice": if (isAdmin()) sendNoticeModal(); break;
       case "a-range": view.aRange = t.dataset.range; render(); break;
-      case "back-settings": view.tab = "dashboard"; render(); appSettingsModal(); break;
+      case "back-settings": view.tab = "dashboard"; render(); profileMenu(); break;
       case "team-person": teamPersonModal(t.dataset.name); break;
       case "project-people": var ppj = byId(S.projects, view.projectId); if (ppj && canEditMembers(ppj)) projectPeopleModal(ppj); break;
       case "delete-project": if (isAdmin()) deleteProjectModal(byId(S.projects, view.projectId)); break;
