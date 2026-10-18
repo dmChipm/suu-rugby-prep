@@ -470,7 +470,7 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 /* Loading screen: an SUU player runs in a try, loops back round the field and kicks the conversion, on repeat until the app is ready. */
 .boot-loader { --w: min(100vw, 760px); --ground: 58%; position: fixed; inset: 0; z-index: 400; overflow: hidden; transition: opacity .4s;
   background: linear-gradient(#1d2b5c, #c8102e 80%, #f08a5d) top / 100% var(--ground) no-repeat, repeating-linear-gradient(90deg, #4aa144 0 calc(var(--w) / 15.4), #3f8f3a 0 calc(var(--w) / 7.7)); }
-.boot-loader::after { content: ""; position: absolute; left: 0; right: 0; top: var(--ground); border-top: 2px solid #2d6e2a; }
+.boot-loader::before { content: ""; position: absolute; left: 0; right: 0; top: var(--ground); border-top: 2px solid #2d6e2a; }
 .boot-loader.out { opacity: 0; pointer-events: none; }
 .bl-scene { position: absolute; width: var(--w); height: auto; left: 50%; top: calc(var(--ground) - var(--w) * .375); transform: translateX(-50%); display: block; overflow: visible; }
 .boot-loader .ps-runner { position: static; filter: none; }
@@ -2465,6 +2465,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "On the loading screen, the line where the field meets the sky sits behind the player."],
     ["2026-10-18", "The loading screen is just the animation now, with no words or numbers."],
     ["2026-10-18", "The loading screen's field and sky now fill the whole screen, with no box around it."],
     ["2026-10-18", "The loading screen shows +5 when she scores the try."],
