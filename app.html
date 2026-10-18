@@ -1068,7 +1068,7 @@ table.a-grid td:first-child { min-width: 170px; }
       '<g class="bl-kick">' + BL_BALL + '</g>' +
       '</svg>';
   }
-  // The loading screen player: an all-red SUU kit with short socks, olive skin and pink hair with a white headband.
+  // The loading screen player is Ilona Maher (dark bun, pink headband, red lipstick) in an all-red SUU kit with short socks.
   function suuKit(svg) {
     // A stockier build: a wider torso and shorts, and thicker limbs and neck.
     svg = svg.replace("M68 70 Q84 60 98 70 L100 120 Q82 128 64 120 Z", "M63 70 Q84 58 103 70 L106 120 Q82 131 58 120 Z")
@@ -1080,8 +1080,6 @@ table.a-grid td:first-child { min-width: 170px; }
       .replace('r="17" fill="#e9b48f"', 'r="18" fill="#e9b48f"');
     return svg.replace(">USA<", ">SUU<").replace(/#1d2b5c/g, "#a80d26").replace(/stroke="#fff" stroke-width="13"/g, 'stroke="#c8102e" stroke-width="13"')
       .replace('<path d="M65 92 L104 88" stroke="#fff"', '<path d="M65 92 L104 88" stroke="#e8455c"')
-      .replace(/#e9b48f/g, "#c19a6b").replace(/#d29c78/g, "#a5814f").replace(/#5a3a22/g, "#5c4526")
-      .replace(/#3b2416/g, "#ff6fae").replace('stroke="#ff2bd6"', 'stroke="#fff"')
       .replace(/M81 158 L77 182/g, "M78 175 L77 182").replace(/<path d="M81 162 h-1 M80 170 h-1"[^>]*\/>/g, "");
   }
   var bootLoader = null, bootStart = Date.now();
@@ -2578,6 +2576,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "The loading screen player is Ilona Maher in an all-red SUU kit."],
     ["2026-10-18", "A new small celebration for each finished task: a cannon fires a rugby ball that lands mid-screen and bursts into Good Job! The piñata shows now play when a whole game sheet or project is finished."],
     ["2026-10-18", "The loading screen player has a stockier build."],
     ["2026-10-18", "The loading screen has a blue daytime sky."],
