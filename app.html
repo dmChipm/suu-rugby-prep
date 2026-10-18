@@ -468,7 +468,7 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .ps-runner.dive .rn-legf { animation: none; transform: rotate(40deg); }
 .ps-runner.dive .rn-legb { animation: none; transform: rotate(10deg); }
 /* Loading screen: an SUU player runs in a try, loops back round the field and kicks the conversion, on repeat until the app is ready. */
-.boot-loader { --w: min(100vw, 760px); --ground: 58%; position: fixed; inset: 0; z-index: 400; overflow: hidden; transition: opacity .4s;
+.boot-loader { --w: 100vw; --ground: 58%; position: fixed; inset: 0; z-index: 400; overflow: hidden; transition: opacity .4s;
   background: linear-gradient(#1d2b5c, #c8102e 80%, #f08a5d) top / 100% var(--ground) no-repeat, repeating-linear-gradient(90deg, #4aa144 0 calc(var(--w) / 15.4), #3f8f3a 0 calc(var(--w) / 7.7)); }
 .boot-loader::before { content: ""; position: absolute; left: 0; right: 0; top: var(--ground); border-top: 2px solid #2d6e2a; }
 .boot-loader.out { opacity: 0; pointer-events: none; }
@@ -481,30 +481,27 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .bl-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: bl-pose 4s linear infinite; }
 .bl-carry { transform: translate(20px, -50px) rotate(-20deg); animation: bl-carry 4s ease-in-out infinite; }
 .bl-kick { transform-box: fill-box; transform-origin: center; animation: bl-kick 4s linear infinite; }
-.bl-run { animation: bl-run 4s linear infinite; }
-.bl-crouch { opacity: 0; animation: bl-crouch 4s linear infinite; }
-/* 4 second loop: run in (0-43%), crouch to score (43-54%), pick the ball up and loop back round (54-73%),
-   crouch to set it down (73-77%), step back (77-82%), run up and kick (82-88%), ball sails through the posts (88-97%). */
+/* One continuous 4 second loop with no fades: she runs in from the left (0-43%), bends to score (43-54%), carries the ball
+   back round (54-73%), bends to set it down (73-77%), steps back (77-82%), kicks (82-88%) and runs off to the right while the
+   ball sails through the posts, so the next loop picks up as she runs in again. */
 @keyframes bl-pos {
-  0% { transform: translate(-40px, 182px); opacity: 0; } 2% { opacity: 1; }
-  34% { transform: translate(266px, 182px); } 38% { transform: translate(298px, 182px); } 41% { transform: translate(312px, 182px); } 43%, 54% { transform: translate(316px, 182px); }
+  0% { transform: translate(-40px, 182px); } 34% { transform: translate(266px, 182px); } 38% { transform: translate(298px, 182px); } 41% { transform: translate(312px, 182px); } 43%, 54% { transform: translate(316px, 182px); }
   59% { transform: translate(345px, 160px); } 64% { transform: translate(260px, 150px); } 69% { transform: translate(160px, 165px); }
   72% { transform: translate(190px, 182px); } 74%, 77% { transform: translate(206px, 182px); } 80%, 82% { transform: translate(184px, 182px); }
-  86% { transform: translate(206px, 182px); } 95% { transform: translate(210px, 182px); opacity: 1; } 98%, 100% { transform: translate(210px, 182px); opacity: 0; } }
+  86% { transform: translate(206px, 182px); } 89% { transform: translate(214px, 182px); } 100% { transform: translate(440px, 182px); } }
 @keyframes bl-pose {
-  0%, 59% { transform: none; } 60%, 70% { transform: scaleX(-1); } 71.5%, 85.5% { transform: none; }
-  87.5% { transform: rotate(-14deg); } 91%, 100% { transform: none; } }
-@keyframes bl-run { 0%, 38.5% { opacity: 1; } 42.5%, 51.5% { opacity: 0; } 55%, 72.5% { opacity: 1; } 74.5%, 76.5% { opacity: 0; } 78.5%, 100% { opacity: 1; } }
-@keyframes bl-crouch { 0%, 38.5% { opacity: 0; } 42.5%, 51.5% { opacity: 1; } 55%, 72.5% { opacity: 0; } 74.5%, 76.5% { opacity: 1; } 78.5%, 100% { opacity: 0; } }
+  0%, 39% { transform: none; } 43%, 52% { transform: rotate(22deg) scaleY(.9); } 56%, 59% { transform: none; } 60%, 70% { transform: scaleX(-1); }
+  71.5%, 73% { transform: none; } 74.5%, 76.5% { transform: rotate(22deg) scaleY(.9); } 78.5%, 85.5% { transform: none; }
+  87.5% { transform: rotate(-14deg); } 90%, 100% { transform: none; } }
 @keyframes bl-carry {
-  0%, 38% { transform: translate(20px, -50px) rotate(-20deg); opacity: 1; } 44%, 52% { transform: translate(20px, -2px) rotate(0deg); }
+  0%, 38% { transform: translate(20px, -50px) rotate(-20deg); opacity: 1; } 44%, 52% { transform: translate(24px, -6px) rotate(0deg); }
   57%, 72.5% { transform: translate(20px, -50px) rotate(-20deg); } 76.9% { transform: translate(20px, -4px) rotate(-30deg); opacity: 1; }
   77%, 100% { transform: translate(20px, -4px) rotate(-30deg); opacity: 0; } }
 @keyframes bl-kick {
-  0%, 76.9% { transform: translate(226px, 178px) rotate(-30deg); opacity: 0; } 77% { opacity: 1; }
-  87% { transform: translate(226px, 178px) rotate(-30deg); } 90.5% { transform: translate(278px, 96px) rotate(150deg) scale(.9); } 93.5% { transform: translate(324px, 56px) rotate(330deg) scale(.75); }
-  96% { transform: translate(362px, 50px) rotate(500deg) scale(.6); opacity: 1; } 98%, 100% { transform: translate(380px, 58px) rotate(560deg) scale(.55); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .bl-pos, .bl-pose, .bl-carry, .bl-kick, .bl-run, .bl-crouch, .boot-loader .ps-runner * { animation: none !important; } .bl-pos { transform: translate(150px, 182px); } .bl-kick { opacity: 0; } }
+  0%, 76.9% { transform: translate(226px, 178px) rotate(-30deg); opacity: 0; } 77%, 87% { transform: translate(226px, 178px) rotate(-30deg); opacity: 1; }
+  90.5% { transform: translate(278px, 96px) rotate(150deg) scale(.9); } 93.5% { transform: translate(324px, 56px) rotate(330deg) scale(.7); }
+  97% { transform: translate(366px, 44px) rotate(520deg) scale(.35); opacity: 1; } 99%, 100% { transform: translate(376px, 42px) rotate(560deg) scale(0); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bl-pos, .bl-pose, .bl-carry, .bl-kick, .boot-loader .ps-runner * { animation: none !important; } .bl-pos { transform: translate(150px, 182px); } .bl-kick { opacity: 0; } }
 .ps-skip { position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: .78rem; color: rgba(255, 255, 255, .55); }
 @keyframes ps-neon-on { 0% { opacity: 0; } 8% { opacity: 1; } 14% { opacity: .15; } 22% { opacity: 1; } 30% { opacity: .35; } 36%, 70% { opacity: 1; } 74% { opacity: .55; } 78%, 100% { opacity: 1; } }
 @keyframes np-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1055,24 +1052,10 @@ table.a-grid td:first-child { min-width: 170px; }
       // Goal posts in the in-goal area, drawn with a little perspective.
       '<g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M352 186 V36"/><path d="M380 172 V24"/><path d="M352 120 L380 108"/></g>' +
       '<path d="M352 186 l-4 4 M380 172 l-4 4" stroke="#c8102e" stroke-width="8"/>' +
-      '<g class="bl-pos"><g class="bl-pose"><g class="ps-runner run bl-run"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + RUNNER_SVG.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "").replace(">USA<", ">SUU<") + '</svg></g>' +
-      '<g class="bl-crouch"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + crouchSvg() + '</svg></g>' +
+      '<g class="bl-pos"><g class="bl-pose"><g class="ps-runner run"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + RUNNER_SVG.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "").replace(">USA<", ">SUU<") + '</svg></g>' +
       '<g class="bl-carry">' + BL_BALL + '</g></g></g>' +
       '<g class="bl-kick">' + BL_BALL + '</g>' +
       '</svg>';
-  }
-  // The same player crouched at the knees, leaning in to press the ball down for the try.
-  function crouchSvg() {
-    var upper = RUNNER_SVG.replace(/^<svg[^>]*><g class="rn-bob"><g class="rn-body">/, "").replace(/<\/g><\/g><\/svg>$/, "")
-      .replace('<g class="rn-legb" opacity=".9">' + RN_LEG.replace(/#e9b48f/g, "#d29c78") + "</g>", "").replace('<g class="rn-legf">' + RN_LEG + "</g>", "").replace(">USA<", ">SUU<");
-    // A bent leg from the hip (80,140) through the knee to the foot, with the shorts covering the top of the thigh.
-    function leg(kx, ky, fx, fy, skin) {
-      return '<path d="M80 140 L' + kx + " " + ky + " L" + fx + " " + fy + '" stroke="' + skin + '" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
-        '<path d="M80 138 L' + (80 + (kx - 80) * .45) + " " + (138 + (ky - 138) * .45) + '" stroke="#1d2b5c" stroke-width="20" stroke-linecap="round"/>';
-    }
-    return '<g opacity=".9">' + leg(62, 160, 70, 186, "#d29c78") + '<path d="M66 176 L70 186" stroke="#fff" stroke-width="13" stroke-linecap="round"/><path d="M62 190 h20" stroke="#14161c" stroke-width="10" stroke-linecap="round"/></g>' +
-      '<g transform="translate(0 22) rotate(24 80 118)">' + upper + "</g>" +
-      leg(108, 156, 98, 186, "#e9b48f") + '<path d="M103 168 L98 184" stroke="#fff" stroke-width="13" stroke-linecap="round"/><path d="M92 190 h22" stroke="#14161c" stroke-width="10" stroke-linecap="round"/>';
   }
   var bootLoader = null, bootStart = Date.now();
   function showLoader(preview) {
@@ -2485,7 +2468,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
-    ["2026-10-18", "The loading screen animation runs in 4 seconds."],
+    ["2026-10-18", "The loading screen runs as one smooth, continuous loop in 4 seconds, with no fades."],
     ["2026-10-18", "On the loading screen she picks the ball up after the try, sets it down for the conversion, steps back and kicks."],
     ["2026-10-18", "On the loading screen she slows down, eases into the crouch and lowers the ball to the ground smoothly."],
     ["2026-10-18", "Every rugby ball in the app lost its football laces and now has a modern swoosh stripe."],
