@@ -386,6 +386,8 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .save-note.ok { border-width: 2px; }
 .seg { border: 2px solid var(--pop); border-radius: 999px; }
 .seg button[aria-pressed="true"] { background: var(--red); color: #fff; }
+.prep-switch { display: flex; width: 100%; max-width: 420px; }
+.prep-switch button { flex: 1; padding: 9px 12px; font-size: 1rem; }
 .tasks li { border-top: 2px dotted var(--line); }
 .neon-party { position: fixed; inset: 0; z-index: 70; pointer-events: none; overflow: hidden; }
 .np-bit { position: absolute; width: 10px; height: 14px; border-radius: 2px; will-change: transform; }
@@ -753,9 +755,9 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   </div>
   <nav class="tabs" role="tablist">
     <button id="tab-messages" role="tab" data-tab="messages">Messages<span class="badge" id="msg-badge" hidden></span></button>
-    <button id="tab-dashboard" role="tab" data-tab="dashboard">To Do</button>
-    <button id="tab-sheets" role="tab" data-tab="sheets">Game Prep</button>
-    <button id="tab-projects" role="tab" data-tab="projects">Projects</button>
+    <button id="tab-dashboard" role="tab" data-tab="dashboard">My Tasks</button>
+    <button id="tab-sheets" role="tab" data-tab="sheets">Game Prep &amp; Projects</button>
+    <button id="tab-projects" role="tab" data-tab="projects" hidden>Projects</button>
     <button id="tab-people" role="tab" data-tab="people">People</button>
     <button id="tab-docs" role="tab" data-tab="docs">Documents</button>
     <button id="tab-dev" role="tab" data-tab="dev" hidden>Development</button>
@@ -1714,8 +1716,8 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     if (view.tab === "dev" && !isDev()) view.tab = "dashboard";
     var unread = unreadTotal(), badge = document.getElementById("msg-badge");
     badge.hidden = !unread; badge.textContent = unread > 99 ? "99+" : unread;
-    // Master lists live inside Game Prep, so that tab stays highlighted there.
-    ["dashboard", "sheets", "projects", "people", "docs", "messages", "dev"].forEach(function (k) { document.getElementById("tab-" + k).setAttribute("aria-selected", String(view.tab === k || (k === "sheets" && view.tab === "masters"))); });
+    // Templates and Projects live inside the "Game Prep & Projects" tab, so that tab stays highlighted there.
+    ["dashboard", "sheets", "projects", "people", "docs", "messages", "dev"].forEach(function (k) { document.getElementById("tab-" + k).setAttribute("aria-selected", String(view.tab === k || (k === "sheets" && (view.tab === "masters" || view.tab === "projects")))); });
   }
   document.getElementById("me-btn").addEventListener("click", function () { if (ONLINE) accountModal(); else switchUserModal(); });
   document.querySelector("nav.tabs").addEventListener("click", function (e) {
@@ -2074,7 +2076,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     if (m === "dismissed") return "Notifications weren't allowed. Tap Turn on again and choose Allow.";
     return "Couldn't turn on notifications just now. Try again in a minute.";
   }
-  // Fills a notifications box (profile pop-up or To Do card) with the current state and a button.
+  // Fills a notifications box (profile pop-up or My Tasks card) with the current state and a button.
   function wirePushBox(box, onChange) {
     function draw(st) {
       knownPush = st; box.querySelector(".push-text").textContent = PUSH_TEXT[st];
@@ -2088,10 +2090,10 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     });
     pushState().then(draw);
   }
-  var knownPush = null; // last state seen, so the To Do card doesn't blink on every redraw
+  var knownPush = null; // last state seen, so the My Tasks card doesn't blink on every redraw
   function pushBoxHtml() { return '<div class="push-text muted small"></div><button type="button" class="btn push-btn" hidden>Turn on</button>'; }
   function pushNudgeOff() { try { return localStorage.getItem(KEY + "-pushnudge") === "off"; } catch (e) { return false; } }
-  // A card on To Do inviting people to turn notifications on, until they do or dismiss it.
+  // A card on My Tasks inviting people to turn notifications on, until they do or dismiss it.
   function wirePushNudge() {
     var card = document.getElementById("push-nudge"); if (!card || card.dataset.wired) return; card.dataset.wired = "1";
     card.querySelector("[data-push-dismiss]").addEventListener("click", function () { try { localStorage.setItem(KEY + "-pushnudge", "off"); } catch (e) {} card.remove(); });
@@ -2336,10 +2338,15 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     else if (b.dataset.act === "archive-project" && canManageProjects()) archiveTop("projects", byId(S.projects, view.projectId));
   }, true);
 
+  // The switch at the top of the "Game Prep & Projects" tab.
+  function prepSwitch(on) {
+    return '<div class="seg prep-switch" role="group" aria-label="Show"><button data-act="goto-tab" data-tab="sheets" aria-pressed="' + (on === "sheets") + '">Game Prep</button>' +
+      '<button data-act="goto-tab" data-tab="projects" aria-pressed="' + (on === "projects") + '">Projects</button></div>';
+  }
   function sheetList() {
     var up = S.sheets.filter(function (s) { return !isPast(s.date); }).sort(sortSheets);
     var past = S.sheets.filter(function (s) { return isPast(s.date); }).sort(sortSheets).reverse();
-    var h = '<div class="row spread"><h1>Game Prep</h1>' +
+    var h = prepSwitch("sheets") + '<div class="row spread"><h1>Game Prep</h1>' +
       (isAdmin() ? '<div class="row"><button class="btn" data-act="new-sheet">+ New sheet</button><button class="btn" data-act="open-masters">Templates</button></div>' : "") + "</div>";
     var arcS = archivedBox("Archived sheets", S.archivedSheets || [], sheetTitle, "data-restore-sheet", isAdmin());
     if (!S.sheets.length) {
@@ -3231,7 +3238,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   function isMine(t) { var me = currentUser().name.trim().toLowerCase(); return !!t.owner && t.owner.trim().toLowerCase() === me; }
   function daysToGo(iso) { if (!iso) return ""; var n = daysBetween(todayIso(), iso); return n === 0 ? "Game day" : n === 1 ? "Tomorrow" : n < 0 ? -n + " days ago" : n + " days to go"; }
 
-  // To Do: just the signed-in person's open tasks, game prep first, then projects.
+  // My Tasks: just the signed-in person's open tasks, game prep first, then projects.
   // Your open tasks under one heading per sheet or project (with its progress), soonest due first.
   function taskGroups(groups) {
     return '<div class="card">' + groups.map(function (g) {
@@ -3248,7 +3255,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
   function mineOf(tasks) { return tasks.filter(function (t) { return isMine(t) || isSupporting(t); }); }
   function todoView() {
     var up = S.sheets.filter(function (s) { return !isPast(s.date); }).sort(sortSheets), me = currentUser();
-    var h = '<div><h1>To Do</h1><div class="muted">Hey ' + esc(me.name.split(" ")[0]) + "! Here's what you're in charge of.</div></div>" + pushNudgeHtml();
+    var h = '<div><h1>My Tasks</h1><div class="muted">Hey ' + esc(me.name.split(" ")[0]) + "! Here's what you're in charge of.</div></div>" + pushNudgeHtml();
     // Only work this person owns: tasks where they're the owner, plus subtasks assigned to them.
     function owned(tasks) {
       var mine = tasks.filter(isMine), subs = [];
@@ -3803,7 +3810,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
     var done = all.filter(function (x) { return isDone(x.t); }).length, total = all.length, op = total ? Math.round(done * 100 / total) : 0;
     var late = all.filter(function (x) { return isLate(x.t); }).length, blocked = all.filter(function (x) { return x.t.status === "Blocked"; }).length;
     var weekEnd = addDays(todayIso(), 7), soon = all.filter(function (x) { return !isDone(x.t) && x.t.due && x.t.due >= todayIso() && x.t.due <= weekEnd; }).length;
-    var h = '<div class="row spread"><h1>Projects</h1>' + (mgr ? '<button class="btn" data-act="new-project">+ New project</button>' : "") + "</div>";
+    var h = prepSwitch("projects") + '<div class="row spread"><h1>Projects</h1>' + (mgr ? '<button class="btn" data-act="new-project">+ New project</button>' : "") + "</div>";
     var arcP = archivedBox("Archived projects", S.archivedProjects || [], function (x) { return x.name; }, "data-restore-project", mgr);
     if (!list.length) return h + '<div class="card empty">No projects yet.' + (mgr ? " Tap <b>New project</b> to start one." : " The presidency will add them here.") + "</div>" + arcP;
     h += myDashboard("all");
