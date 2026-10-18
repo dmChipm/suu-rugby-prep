@@ -1038,8 +1038,8 @@ table.a-grid td:first-child { min-width: 170px; }
     '<path d="M98 52 q4 2 7 -1" stroke="#d1132f" stroke-width="3.2" fill="none" stroke-linecap="round"/>' +
     '<g class="rn-armf">' + RN_ARM + '</g></g></g></svg>';
   // ---------- loading screen ----------
-  // A rugby ball shape centered on (0,0), about 26 wide.
-  var BL_BALL = '<ellipse rx="13" ry="8" fill="#8a4a24" stroke="#2a1608" stroke-width="2"/><path d="M-6 0 H6 M-3 -2.5 V2.5 M0 -2.5 V2.5 M3 -2.5 V2.5" stroke="#fff" stroke-width="1.4"/>';
+  // A white and red rugby ball centered on (0,0), about 26 wide.
+  var BL_BALL = '<ellipse rx="13" ry="8" fill="#fff" stroke="#14161c" stroke-width="2"/><path d="M-7 -6.2 Q-9.5 0 -7 6.2 M7 -6.2 Q9.5 0 7 6.2" stroke="#c8102e" stroke-width="3" fill="none"/><path d="M-3 0 H3" stroke="#c8102e" stroke-width="1.6"/>';
   function loaderHtml(preview) {
     return '<svg class="bl-scene" viewBox="0 0 400 220" role="img" aria-label="An SUU player scores a try and kicks the conversion">' +
       // The sky and field are the loading screen's own background, so lines run on past the drawing to the bottom of the screen.
@@ -2465,6 +2465,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "The loading screen's rugby ball is white and red."],
     ["2026-10-18", "On the loading screen, the line where the field meets the sky sits behind the player."],
     ["2026-10-18", "The loading screen is just the animation now, with no words or numbers."],
     ["2026-10-18", "The loading screen's field and sky now fill the whole screen, with no box around it."],
