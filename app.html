@@ -726,6 +726,7 @@ ul.hist li { display: flex; flex-direction: column; }
 .a-chart h3 { margin: 0; font-size: 1rem; }
 .a-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .a-chart svg text { fill: var(--muted); font-size: 11px; font-family: var(--body); font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) { .a-chart svg.a-line text { font-size: 20px; } }
 .a-pie { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .a-pie svg { width: 128px; flex: none; }
 .a-pie svg text.a-mid { fill: var(--ink); font-size: 22px; font-weight: 800; }
@@ -733,11 +734,26 @@ ul.hist li { display: flex; flex-direction: column; }
 .a-legend li { display: flex; align-items: center; gap: 8px; }
 .a-legend i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
 .a-legend b { margin-left: auto; padding-left: 12px; font-variant-numeric: tabular-nums; }
-.a-bars { display: grid; grid-template-columns: minmax(0, max-content) 1fr auto; gap: 6px 10px; align-items: center; font-size: .9rem; }
+.a-bars { display: grid; grid-template-columns: fit-content(42%) minmax(40px, 1fr) auto; gap: 6px 10px; align-items: center; font-size: .9rem; }
 .a-bars span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .a-bars .a-track { height: 14px; border-radius: 4px; background: var(--red-soft); overflow: hidden; }
 .a-bars .a-fill { height: 100%; border-radius: 4px; background: var(--red); }
 .a-bars b { font-variant-numeric: tabular-nums; text-align: right; }
+.a-game { display: flex; flex-direction: column; gap: 6px; }
+.a-game + .a-game { border-top: 1px solid var(--line); padding-top: 10px; }
+.a-game-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; min-width: 0; }
+.a-game-top span { flex: none; white-space: nowrap; }
+.a-game-bar { display: flex; align-items: center; gap: 10px; }
+.a-game-bar .a-track { flex: 1; height: 14px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.a-game-bar .a-fill { height: 100%; border-radius: 4px; }
+.a-game-bar b { font-variant-numeric: tabular-nums; }
+.a-game .a-sub { align-self: flex-start; font-size: .75rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+.a-link { border: 0; background: none; padding: 0; font: inherit; color: var(--ink); text-align: left; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.a-bars .a-stack { display: flex; background: var(--line); }
+.a-bars .a-stack .a-fill { border-radius: 0; }
+.a-bars .a-stack .a-open { background: var(--warn); }
+.a-bars .a-none { color: var(--red); font-weight: 700; }
+.a-keys { flex-direction: row; flex-wrap: wrap; gap: 4px 16px; font-size: .8rem; color: var(--muted); }
 table.grid.a-grid { min-width: 640px; }
 table.a-grid td { font-variant-numeric: tabular-nums; }
 table.a-grid td:first-child { min-width: 170px; }
@@ -2586,6 +2602,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "More on Analytics: game readiness for each upcoming game, overdue tasks each week, open tasks by person (including tasks with no owner), last-minute work by game, problem tasks, and time stuck Blocked or On Hold. Fixed game sheet cards showing –% instead of their percent done."],
     ["2026-10-18", "Analytics has charts: a line chart of tasks finished per week, pie charts of where every task stands and how many were finished by the due date, and a bar chart of tasks finished by person."],
     ["2026-10-18", "The loading screen player is back to her original, slimmer build."],
     ["2026-10-18", "The loading screen player is Ilona Maher in an all-red SUU kit."],
@@ -2857,7 +2874,7 @@ table.a-grid td:first-child { min-width: 170px; }
     var d = h / 24; return (d < 10 ? d.toFixed(1) : Math.round(d)) + " days";
   }
   function avg(xs) { return xs.length ? xs.reduce(function (a, b) { return a + b; }, 0) / xs.length : null; }
-  function pct(a, b) { return b ? Math.round(a * 100 / b) + "%" : "–"; }
+  function pctOf(a, b) { return b ? Math.round(a * 100 / b) + "%" : "–"; }
   function fmtEarly(d) { if (d == null) return "–"; var r = Math.round(d * 10) / 10; return r === 0 ? "On the day" : Math.abs(r) + (Math.abs(r) === 1 ? " day " : " days ") + (r > 0 ? "early" : "late"); }
   function analyticsData(range, log) {
     var since = range === "all" ? "" : addDays(todayIso(), -Number(range));
@@ -2912,50 +2929,105 @@ table.a-grid td:first-child { min-width: 170px; }
     h += '<div class="a-tiles">' +
       tile(a.n, "tasks finished", (a.n / d.weeks).toFixed(1) + " a week") +
       tile(fmtDur(a.avgDur), "average time to finish", a.timed ? "from assignment to done, " + a.timed + (a.timed === 1 ? " task" : " tasks") : "not enough history yet") +
-      tile(pct(a.onTime, a.dated), "finished by the due date", a.dated ? a.onTime + " of " + a.dated + " with due dates" : "no due dates yet") +
+      tile(pctOf(a.onTime, a.dated), "finished by the due date", a.dated ? a.onTime + " of " + a.dated + " with due dates" : "no due dates yet") +
       tile(fmtEarly(a.early), "average vs due date", d.openCount + " tasks still open") + "</div>";
-    h += analyticsCharts(range, d);
+    h += analyticsCharts(range, d, view.aLog || []);
     h += '<h2>By person</h2><div class="card tablewrap"><table class="grid a-grid"><thead><tr><th>Person</th><th>Finished</th><th>Per week</th><th>Avg time to finish</th><th>On time</th><th>Avg vs due date</th><th>Open now</th><th>Overdue now</th></tr></thead><tbody>' +
       d.people.map(function (p) {
-        return "<tr><td><b>" + esc(p.name) + "</b></td><td>" + p.n + "</td><td>" + p.perWeek.toFixed(1) + "</td><td>" + fmtDur(p.avgDur) + "</td><td>" + pct(p.onTime, p.dated) + "</td><td>" + fmtEarly(p.early) + "</td><td>" + p.openNow + '</td><td class="' + (p.lateNow ? "late" : "") + '">' + p.lateNow + "</td></tr>";
+        return "<tr><td><b>" + esc(p.name) + "</b></td><td>" + p.n + "</td><td>" + p.perWeek.toFixed(1) + "</td><td>" + fmtDur(p.avgDur) + "</td><td>" + pctOf(p.onTime, p.dated) + "</td><td>" + fmtEarly(p.early) + "</td><td>" + p.openNow + '</td><td class="' + (p.lateNow ? "late" : "") + '">' + p.lateNow + "</td></tr>";
       }).join("") + "</tbody></table></div>";
     h += '<h2>By task</h2><p class="muted small" style="margin:0">Tasks with the same name (like a template task on every game sheet) are grouped together.</p>' +
       '<div class="card tablewrap"><table class="grid a-grid"><thead><tr><th>Task</th><th>Times finished</th><th>Avg time to finish</th><th>Fastest</th><th>Slowest</th><th>On time</th><th>Avg vs due date</th></tr></thead><tbody>' +
       (d.tasks.length ? d.tasks.map(function (t) {
-        return "<tr><td>" + ttl(t.name, t.t) + "</td><td>" + t.n + "</td><td>" + fmtDur(t.avgDur) + "</td><td>" + fmtDur(t.min) + "</td><td>" + fmtDur(t.max) + "</td><td>" + pct(t.onTime, t.dated) + "</td><td>" + fmtEarly(t.early) + "</td></tr>";
+        return "<tr><td>" + ttl(t.name, t.t) + "</td><td>" + t.n + "</td><td>" + fmtDur(t.avgDur) + "</td><td>" + fmtDur(t.min) + "</td><td>" + fmtDur(t.max) + "</td><td>" + pctOf(t.onTime, t.dated) + "</td><td>" + fmtEarly(t.early) + "</td></tr>";
       }).join("") : '<tr><td colspan="7" class="muted">No tasks finished in this time range.</td></tr>') + "</tbody></table></div>";
     h += tip("How these numbers work", "<p><b>Time to finish</b> runs from when the task's owner was assigned it to when it was marked Complete. The app started recording this on Oct 17, 2026, so older tasks only count toward the due-date numbers.</p><p><b>On time</b> means it was finished on or before its due date. <b>Who</b> is the person who marked it done.</p><p>Optional tasks are left out.</p>");
     return h;
     function tile(big, label, sub) { return '<div class="card a-tile"><div class="a-big">' + esc(String(big)) + '</div><div class="a-label">' + esc(label) + '</div><div class="muted small">' + esc(sub) + "</div></div>"; }
   }
-  // Charts for the Analytics page: finished per week (line), status now and on-time share (pies), finished by person (bars).
-  function analyticsCharts(range, d) {
-    var today = todayIso(), done = [];
-    eachTask(function (t) {
-      if (t.optional || !isDone(t)) return;
-      var day = t.completedAt ? isoOf(new Date(t.completedAt)) : t.completed; if (day) done.push(day);
+  // Charts for the Analytics page: game readiness, weekly finished and overdue trends, status and on-time pies,
+  // workload and output by person, last-minute work by game, problem tasks and time stuck Blocked or On Hold.
+  function analyticsCharts(range, d, log) {
+    var today = todayIso(), since = range === "all" ? "" : addDays(today, -Number(range)), done = [], all = [];
+    eachTask(function (t, kind, p) {
+      if (t.optional) return;
+      var day = isDone(t) ? (t.completedAt ? isoOf(new Date(t.completedAt)) : t.completed) || "" : "";
+      all.push({ t: t, kind: kind, p: p, day: day }); if (day) done.push(day);
     });
-    // Weekly buckets ending today; "All time" starts at the first finished task (at most a year back).
-    var nWeeks = range === "all" ? Math.min(52, Math.max(4, Math.ceil(d.weeks))) : Math.ceil(Number(range) / 7), weeks = [];
+    var h = '<div class="a-charts">';
+    // 1. Game readiness: every upcoming game's % done next to how many days are left.
+    var games = S.sheets.filter(function (s) { return s.date && !isPast(s.date); }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    var rdColor = { "Ready": "var(--done)", "Behind": "var(--red)", "At risk": "var(--warn)", "On track": "var(--hold)" };
+    h += '<div class="card a-chart wide"><h3>Game readiness</h3>' + (games.length ? games.map(function (s) {
+      var r = readiness(s), p = pct(s), extra = [r.late ? r.late + " overdue" : "", r.blocked ? r.blocked + " blocked" : ""].filter(Boolean).join(", ");
+      return '<div class="a-game"><div class="a-game-top"><button type="button" class="a-link" data-open-sheet="' + s.id + '">' + esc(sheetTitle(s)) + '</button><span class="muted small">' + esc(daysToGo(s.date)) + "</span></div>" +
+        '<div class="a-game-bar"><div class="a-track"><div class="a-fill" style="width:' + p + "%;background:" + rdColor[r.label] + '"></div></div><b>' + p + "%</b></div>" +
+        '<span class="a-sub ' + r.cls + '">' + esc(r.label) + (extra ? " · " + esc(extra) : "") + "</span></div>";
+    }).join("") : '<div class="muted small">No upcoming games.</div>') + "</div>";
+    // 2. Weekly trends: tasks finished, and tasks overdue at the end of each week. Weeks end today; "All time" starts at the first finished task (at most a year back).
+    var nWeeks = range === "all" ? Math.min(52, Math.max(4, Math.ceil(d.weeks))) : Math.ceil(Number(range) / 7), weeks = [], late = [];
     for (var i = nWeeks - 1; i >= 0; i--) {
       var end = addDays(today, -7 * i), start = addDays(end, -6);
       weeks.push({ label: shortDay(start), v: done.filter(function (x) { return x >= start && x <= end; }).length });
+      late.push({ label: shortDay(start), v: all.filter(function (x) { return x.t.due && x.t.due < end && (!x.day || x.day > end); }).length });
     }
-    var h = '<div class="a-charts"><div class="card a-chart wide"><h3>Tasks finished per week</h3>' + lineChart(weeks) + "</div>";
-    // Every task right now, by status (not limited to the time range).
+    h += '<div class="card a-chart wide"><h3>Tasks finished per week</h3>' + lineChart(weeks, "Tasks finished per week", "var(--done)") + "</div>";
+    h += '<div class="card a-chart wide"><h3>Overdue tasks at the end of each week</h3>' + lineChart(late, "Overdue tasks at the end of each week", "var(--red)") + "</div>";
+    // 3. Every task right now, by status (not limited to the time range), and the on-time share.
     var counts = {}; STATUSES.forEach(function (st) { counts[st] = 0; });
-    eachTask(function (t) { if (t.optional) return; var st = isDone(t) ? "Complete" : (t.status || "Not Started"); counts[st] = (counts[st] || 0) + 1; });
+    all.forEach(function (x) { var st = isDone(x.t) ? "Complete" : (x.t.status || "Not Started"); counts[st] = (counts[st] || 0) + 1; });
     var stColor = { "Not Started": "var(--muted)", "In Progress": "var(--warn)", "Blocked": "var(--red)", "On Hold": "var(--hold)", "Complete": "var(--done)" };
     h += '<div class="card a-chart"><h3>Where every task stands now</h3>' + pieChart(STATUSES.map(function (st) { return { label: st, v: counts[st] || 0, color: stColor[st] }; })) + "</div>";
     var a = d.all;
     h += '<div class="card a-chart"><h3>Finished by the due date</h3>' + pieChart([
       { label: "On time", v: a.onTime, color: "var(--done)" }, { label: "Late", v: a.dated - a.onTime, color: "var(--red)" }, { label: "No due date", v: a.n - a.dated, color: "var(--muted)" }]) + "</div>";
+    // 4. Workload: open tasks per person right now, overdue first, plus the tasks nobody owns.
+    var load = d.people.filter(function (p) { return p.openNow; }).sort(function (x, y) { return y.openNow - x.openNow || y.lateNow - x.lateNow; }).slice(0, 12)
+      .map(function (p) { return { label: p.name, a: p.lateNow, b: p.openNow - p.lateNow }; });
+    var unowned = all.filter(function (x) { return !isDone(x.t) && !(x.t.owner || "").trim(); });
+    if (unowned.length) load.push({ label: "No owner", a: unowned.filter(function (x) { return isLate(x.t); }).length, b: unowned.filter(function (x) { return !isLate(x.t); }).length, none: true });
+    h += '<div class="card a-chart wide"><h3>Open tasks by person</h3>' + (load.length ? stackChart(load) + '<ul class="a-legend a-keys"><li><i style="background:var(--red)"></i>Overdue</li><li><i style="background:var(--warn)"></i>Open, not overdue</li></ul>' : '<div class="muted small">No open tasks.</div>') + "</div>";
     var who = d.people.filter(function (p) { return p.n; }).slice(0, 10);
     h += '<div class="card a-chart wide"><h3>Tasks finished by person</h3>' + (who.length ? barChart(who.map(function (p) { return { label: p.name, v: p.n }; })) : '<div class="muted small">No tasks finished in this time range.</div>') + "</div>";
+    // 5. Last-minute work: of each past game's finished tasks, how many were finished in the 48 hours before kickoff (or later).
+    var lastMin = S.sheets.filter(function (s) { return s.date && s.date <= today && (!since || s.date >= since); }).sort(function (a, b) { return a.date < b.date ? 1 : -1; }).map(function (s) {
+      var fin = all.filter(function (x) { return x.p === s && x.day; }), cut = addDays(s.date, -1);
+      return { label: sheetTitle(s), v: fin.filter(function (x) { return x.day >= cut; }).length, of: fin.length };
+    }).filter(function (r) { return r.of; });
+    h += '<div class="card a-chart wide"><h3>Last-minute work</h3><p class="muted small" style="margin:0">Tasks finished the day before the game or later, out of everything finished for that game.</p>' +
+      (lastMin.length ? barChart(lastMin.map(function (r) { return { label: r.label, v: r.v, max: r.of, show: r.v + " of " + r.of + " · " + Math.round(r.v * 100 / r.of) + "%" }; })) : '<div class="muted small">No games played in this time range.</div>') + "</div>";
+    // 6. Problem tasks: by task name, how often it was finished late, plus how many are overdue or blocked now.
+    var prob = {};
+    function pk(x) { var k = x.t.text.trim().toLowerCase(); return prob[k] = prob[k] || { label: x.t.text.trim(), late: 0, over: 0, blocked: 0 }; }
+    all.forEach(function (x) {
+      if (x.day) { if (x.t.due && x.day > x.t.due && (!since || x.day >= since)) pk(x).late++; return; }
+      if (isLate(x.t)) pk(x).over++;
+      if (x.t.status === "Blocked") pk(x).blocked++;
+    });
+    var plist = Object.keys(prob).map(function (k) { var r = prob[k]; r.v = r.late + r.over + r.blocked; return r; }).filter(function (r) { return r.v; })
+      .sort(function (x, y) { return y.v - x.v || x.label.localeCompare(y.label); }).slice(0, 10);
+    h += '<div class="card a-chart wide"><h3>Problem tasks</h3><p class="muted small" style="margin:0">Tasks finished late in this time range, plus ones overdue or blocked right now. Same-name tasks are grouped.</p>' +
+      (plist.length ? barChart(plist.map(function (r) { return { label: r.label, v: r.v, show: [r.late ? r.late + " late" : "", r.over ? r.over + " overdue" : "", r.blocked ? r.blocked + " blocked" : ""].filter(Boolean).join(", ") }; })) : '<div class="muted small">No late or blocked tasks. Nice.</div>') + "</div>";
+    // 7. Stuck time: how long tasks sat Blocked or On Hold, from the status history.
+    var stuck = {}, now = Date.now(), spells = [];
+    log.slice().reverse().forEach(function (x) {
+      if (x.event !== "status") return;
+      var at = Date.parse(x.at), cur = stuck[x.taskId];
+      if (cur && x.to !== cur.status) { spells.push({ ms: at - cur.from, start: cur.from }); delete stuck[x.taskId]; }
+      if ((x.to === "Blocked" || x.to === "On Hold") && !stuck[x.taskId]) stuck[x.taskId] = { status: x.to, from: at };
+    });
+    var sinceMs = since ? Date.parse(since + "T00:00:00") : 0, ended = spells.filter(function (sp) { return sp.start >= sinceMs; });
+    var nowStuck = all.filter(function (x) { return !isDone(x.t) && (x.t.status === "Blocked" || x.t.status === "On Hold"); }).map(function (x) {
+      var sp = stuck[x.t.id]; return { label: x.t.text, status: x.t.status, ms: sp ? now - sp.from : null };
+    }).sort(function (x, y) { return (y.ms || 0) - (x.ms || 0); });
+    h += '<div class="card a-chart wide"><h3>Time stuck Blocked or On Hold</h3><p class="muted small" style="margin:0">' +
+      (ended.length ? "Tasks that got unstuck in this time range were stuck for " + fmtDur(avg(ended.map(function (sp) { return sp.ms; }))) + " on average (" + ended.length + (ended.length === 1 ? " time" : " times") + ")." : "No task has come off Blocked or On Hold in this time range.") +
+      " Recorded from Oct 17, 2026 on.</p>" +
+      (nowStuck.length ? barChart(nowStuck.slice(0, 10).map(function (r) { return { label: r.label + " (" + r.status + ")", v: r.ms || 0, show: r.ms == null ? "since before Oct 17" : fmtDur(r.ms) }; })) : '<div class="muted small">Nothing is Blocked or On Hold right now.</div>') + "</div>";
     return h + "</div>";
   }
   function shortDay(iso) { return new Date(iso + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
-  function lineChart(pts) {
+  function lineChart(pts, label, color) {
     var W = 600, H = 190, L = 28, R = 10, T = 12, B = 26, max = Math.max(1, Math.max.apply(null, pts.map(function (p) { return p.v; })));
     var step = Math.max(1, Math.ceil(max / 4)), top = step * Math.ceil(max / step), n = pts.length;
     var x = function (i) { return L + (n > 1 ? i * (W - L - R) / (n - 1) : (W - L - R) / 2); }, y = function (v) { return T + (H - T - B) * (1 - v / top); };
@@ -2963,10 +3035,10 @@ table.a-grid td:first-child { min-width: 170px; }
     for (var v = 0; v <= top; v += step) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--line)"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + v + "</text>";
     var every = Math.ceil(n / 7), line = pts.map(function (p, i) { return x(i).toFixed(1) + "," + y(p.v).toFixed(1); }).join(" ");
     pts.forEach(function (p, i) { if ((n - 1 - i) % every === 0) g += '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="middle">' + esc(p.label) + "</text>"; });
-    g += '<polygon points="' + x(0) + "," + y(0) + " " + line + " " + x(n - 1) + "," + y(0) + '" fill="var(--red)" opacity=".12"/>';
-    g += '<polyline points="' + line + '" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
-    g += pts.map(function (p, i) { return '<circle cx="' + x(i) + '" cy="' + y(p.v) + '" r="4" fill="var(--surface)" stroke="var(--red)" stroke-width="2"><title>Week of ' + esc(p.label) + ": " + p.v + "</title></circle>"; }).join("");
-    return '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Tasks finished per week">' + g + "</svg>";
+    g += '<polygon points="' + x(0) + "," + y(0) + " " + line + " " + x(n - 1) + "," + y(0) + '" fill="' + color + '" opacity=".12"/>';
+    g += '<polyline points="' + line + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    g += pts.map(function (p, i) { return '<circle cx="' + x(i) + '" cy="' + y(p.v) + '" r="4" fill="var(--surface)" stroke="' + color + '" stroke-width="2"><title>Week of ' + esc(p.label) + ": " + p.v + "</title></circle>"; }).join("");
+    return '<svg class="a-line" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(label) + '">' + g + "</svg>";
   }
   function pieChart(segs) {
     var total = segs.reduce(function (s, x) { return s + x.v; }, 0), r = 46, c = 2 * Math.PI * r, off = 0, g = "";
@@ -2981,9 +3053,18 @@ table.a-grid td:first-child { min-width: 170px; }
     return '<div class="a-pie"><svg viewBox="0 0 128 128" role="img" aria-label="' + esc(segs.map(function (sg) { return sg.label + " " + sg.v; }).join(", ")) + '">' + g + '</svg><ul class="a-legend">' +
       segs.map(function (sg) { return '<li><i style="background:' + sg.color + '"></i>' + esc(sg.label) + "<b>" + sg.v + " · " + Math.round(sg.v * 100 / total) + "%</b></li>"; }).join("") + "</ul></div>";
   }
+  // Horizontal bars. Each row: label, v, optional max (its own 100%) and show (the text instead of v).
   function barChart(rows) {
     var max = Math.max.apply(null, rows.map(function (r) { return r.v; })) || 1;
-    return '<div class="a-bars">' + rows.map(function (r) { return "<span>" + esc(r.label) + '</span><div class="a-track"><div class="a-fill" style="width:' + (r.v * 100 / max).toFixed(1) + '%"></div></div><b>' + r.v + "</b>"; }).join("") + "</div>";
+    return '<div class="a-bars">' + rows.map(function (r) { return "<span>" + esc(r.label) + '</span><div class="a-track"><div class="a-fill" style="width:' + (r.v * 100 / (r.max || max)).toFixed(1) + '%"></div></div><b>' + esc(r.show != null ? r.show : String(r.v)) + "</b>"; }).join("") + "</div>";
+  }
+  // Stacked bars: a (overdue, red) then b (open, amber) per row.
+  function stackChart(rows) {
+    var max = Math.max.apply(null, rows.map(function (r) { return r.a + r.b; })) || 1;
+    return '<div class="a-bars">' + rows.map(function (r) {
+      return "<span" + (r.none ? ' class="a-none"' : "") + ">" + esc(r.label) + '</span><div class="a-track a-stack"><div class="a-fill" style="width:' + (r.a * 100 / max).toFixed(1) + '%"></div><div class="a-fill a-open" style="width:' + (r.b * 100 / max).toFixed(1) + '%"></div></div><b>' +
+        (r.a + r.b) + (r.a ? ' <span class="muted small">· ' + r.a + " overdue</span>" : "") + "</b>";
+    }).join("") + "</div>";
   }
   function analyticsTabOn() { try { return localStorage.getItem(KEY + "-atab") === "on"; } catch (e) { return false; } }
   function openAnalytics() { closeModal(); view.tab = "analytics"; view.aLog = null; view.aErr = false; render(); window.scrollTo(0, 0); }
