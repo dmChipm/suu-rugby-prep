@@ -358,7 +358,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--red); outline: n
 .flag.bad { animation: nudge 2.4s ease-in-out infinite; }
 /* Tasks with no owner: the tag slowly glows red and fades back, over and over. */
 .no-owner { animation: no-owner 3.2s ease-in-out infinite; border-radius: 999px; }
-span.muted.no-owner { padding: 0 6px; }
+.no-owner { display: inline-flex; align-items: center; font-size: .74rem; font-weight: 700; padding: 1px 8px; white-space: nowrap; background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn); }
 @keyframes no-owner { 0%, 100% { } 50% { color: #fff; background: var(--red); border-color: var(--red); box-shadow: 0 0 10px rgba(200, 16, 46, .55); } }
 @keyframes nudge { 0%, 88%, 100% { transform: none; } 92% { transform: rotate(-4deg); } 96% { transform: rotate(4deg); } }
 
@@ -1767,7 +1767,9 @@ table.a-grid td:first-child { min-width: 170px; }
     return '<label class="field">Importance<select id="' + id + '">' + IMPORTANCE.map(function (o) { return '<option value="' + o[0] + '"' + (imp(t) === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select></label>";
   }
   function flagLevel(t) { var f = flagsOf(t); return f.some(function (x) { return x.lv === "bad"; }) ? "bad" : f.length ? "warn" : ""; }
-  function flagChips(t) { return flagsOf(t).filter(function (x) { return x.k !== "blocked"; }).map(function (x) { return '<span class="flag ' + x.lv + (x.k === "owner" ? " no-owner" : "") + '">⚑ ' + esc(x.tx) + "</span>"; }).join(""); }
+  // "No owner" is shown once, as its own tag (noOwnerTag), so it isn't repeated here as a flag.
+  function flagChips(t) { return flagsOf(t).filter(function (x) { return x.k !== "blocked" && x.k !== "owner"; }).map(function (x) { return '<span class="flag ' + x.lv + '">⚑ ' + esc(x.tx) + "</span>"; }).join(""); }
+  function noOwnerTag() { return '<span class="no-owner">No owner</span>'; }
   function flaggedCount(s) { return s.tasks.filter(function (t) { return flagsOf(t).length; }).length; }
   function statusPill(t) { var c = { "Not Started": "st-ns", "In Progress": "st-ip", "Blocked": "st-blocked", "On Hold": "st-hold", "Complete": "st-done" }[t.status] || "st-ns"; return '<span class="pill ' + c + '">' + esc(t.status) + "</span>"; }
   function linkList(str) {
@@ -2472,6 +2474,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "A task with no owner shows one \"No owner\" tag; the extra flag version is gone."],
     ["2026-10-18", "Adding a task to a game sheet opens a full form: what needs to be done, owner, helpers, due date with game-day shortcuts, importance, links and optional."],
     ["2026-10-18", "A task with no owner has a \"No owner\" tag that slowly glows red and fades back."],
     ["2026-10-18", "The loading screen runs as one smooth, continuous loop in 4 seconds, with no fades."],
@@ -2851,7 +2854,7 @@ table.a-grid td:first-child { min-width: 170px; }
       h += '<div class="tablewrap"><table class="grid"><thead><tr><th>Date Completed</th><th>Task</th><th>Status</th><th>Owner</th><th>Helpers</th><th>Due Date</th><th>Details</th><th>Links</th><th>Confirmation</th><th>Other Notes</th></tr></thead><tbody>';
       shown.forEach(function (t) {
         h += '<tr data-open-task="' + t.id + '" tabindex="0" class="' + (isDone(t) ? "is-done" : "") + rowFlags(t) + '"><td class="nowrap">' + esc(fmtShort(t.completed)) + '</td><td class="tname">' + ttl(t.text, t) + (t.optional ? ' <span class="tag">Optional</span>' : "") + (flagsOf(t).length ? '<div class="meta" style="margin-top:4px">' + flagChips(t) + "</div>" : "") + "</td><td>" + statusPill(t) +
-          "</td><td>" + esc(t.owner) + "</td><td>" + esc((t.supporters || []).join(", ")) + '</td><td class="nowrap' + (isLate(t) ? " late" : "") + '">' + esc(fmtShort(t.due)) + '</td><td class="clip">' + esc(howTo(s, t)) +
+          "</td><td>" + (t.owner || isDone(t) ? esc(t.owner) : noOwnerTag()) + "</td><td>" + esc((t.supporters || []).join(", ")) + '</td><td class="nowrap' + (isLate(t) ? " late" : "") + '">' + esc(fmtShort(t.due)) + '</td><td class="clip">' + esc(howTo(s, t)) +
           '</td><td class="clip">' + linkList(linksOf(s, t)).join("<br>") + '</td><td class="clip">' + (needsConfirm(t) ? esc(t.confirmation || "") || '<span class="muted">Needed</span>' : "") + '</td><td class="clip">' + (t.notesLog && t.notesLog.length ? esc(t.notesLog[t.notesLog.length - 1].text) + (t.notesLog.length > 1 ? ' <span class="muted">(+' + (t.notesLog.length - 1) + " more)</span>" : "") : "") + "</td></tr>";
       });
       if (!shown.length) h += '<tr><td colspan="10" class="muted">' + emptyMsg + "</td></tr>";
@@ -2861,7 +2864,7 @@ table.a-grid td:first-child { min-width: 170px; }
       var row = function (t) {
         var meta = [statusPill(t), flagChips(t)];
         if (t.optional) meta.push('<span class="tag">Optional</span>');
-        if (t.owner) meta.push("<span>" + esc(t.owner) + "</span>");
+        if (t.owner) meta.push("<span>" + esc(t.owner) + "</span>"); else if (!isDone(t)) meta.push(noOwnerTag());
         if (t.due && !isDone(t)) meta.push('<span class="' + (isLate(t) ? "late" : "") + '">Due ' + esc(fmtShort(t.due)) + "</span>");
         if (isDone(t) && t.completed) meta.push("<span>" + esc(fmtShort(t.completed)) + "</span>");
         return '<li class="' + (isDone(t) ? "is-done" : "") + rowFlags(t) + '"><label class="check" title="Mark done"><input type="checkbox" id="t-' + t.id + '" data-toggle="' + t.id + '" aria-label="Done: ' + esc(t.text) + '" ' + (isDone(t) ? "checked" : "") + "></label>" +
@@ -3858,7 +3861,7 @@ table.a-grid td:first-child { min-width: 170px; }
       h += '<div class="card" id="grp-' + g[0] + '"><div class="grp-head"><strong>' + g[1] + '</strong><span class="muted small">' + allItems.length + (allItems.length === 1 ? " task" : " tasks") + '</span></div><ul class="tasks">' + items.map(function (x) {
         return '<li class="' + rowFlags(x.t) + '"><button class="tmain" data-open-sheet="' + x.s.id + '" data-focus-task="' + x.t.id + '"><span class="txt">' + ttl(x.t.text, x.t) + '</span><span class="meta">' + statusPill(x.t) + flagChips(x.t) +
           "<span>" + esc(sheetTitle(x.s)) + "</span>" + (x.t.due ? '<span class="' + (isLate(x.t) ? "late" : "") + '">Due ' + esc(fmtShort(x.t.due)) + "</span>" : "") +
-          (x.t.owner ? "<span>" + esc(x.t.owner) + "</span>" : '<span class="muted no-owner">No owner</span>') + '</span></button><span class="chev" aria-hidden="true">›</span></li>';
+          (x.t.owner ? "<span>" + esc(x.t.owner) + "</span>" : noOwnerTag()) + '</span></button><span class="chev" aria-hidden="true">›</span></li>';
       }).join("") + "</ul>" + (allItems.length > 5 ? '<button class="btn ghost more" data-expand="' + g[0] + '">' + (open ? "Show fewer" : "Show all " + allItems.length) + "</button>" : "") + "</div>";
     });
     h += tip("What the flags and labels mean", "<p><b>Red</b> flags mean overdue or blocked. <b>Amber</b> is an early warning: due within 2 days and not started, on hold close to its due date, no owner within a week of the due date, or an owner who has been deactivated.</p>" +
@@ -4348,7 +4351,7 @@ table.a-grid td:first-child { min-width: 170px; }
       h += '<div class="card" id="psf-list"><div class="grp-head"><strong>' + esc(sfLabel(view.psf)) + '</strong><span class="row" style="gap:8px"><span class="muted small">' + hits.length + (hits.length === 1 ? " task" : " tasks") + '</span><button type="button" class="btn ghost" data-sf-clear>Close</button></span></div><ul class="tasks">' +
         (hits.length ? hits.map(function (x) {
           return '<li class="' + rowFlags(x.t) + '"><button class="tmain" data-open-project="' + x.p.id + '" data-focus-ptask="' + x.t.id + '"><span class="txt">' + ttl(x.t.text, x.t) + '</span><span class="meta">' + statusPill(x.t) + flagChips(x.t) +
-            "<span>" + esc(x.p.name) + "</span>" + (x.t.due ? '<span class="' + (isLate(x.t) ? "late" : "") + '">Due ' + esc(fmtShort(x.t.due)) + "</span>" : "") + (x.t.owner ? "<span>" + esc(x.t.owner) + "</span>" : '<span class="muted no-owner">No owner</span>') + '</span></button><span class="chev" aria-hidden="true">›</span></li>';
+            "<span>" + esc(x.p.name) + "</span>" + (x.t.due ? '<span class="' + (isLate(x.t) ? "late" : "") + '">Due ' + esc(fmtShort(x.t.due)) + "</span>" : "") + (x.t.owner ? "<span>" + esc(x.t.owner) + "</span>" : noOwnerTag()) + '</span></button><span class="chev" aria-hidden="true">›</span></li>';
         }).join("") : '<li class="muted">None right now.</li>') + "</ul></div>";
     }
     if (mgr) h += teamProjectProgress();
@@ -4537,7 +4540,7 @@ table.a-grid td:first-child { min-width: 170px; }
     h += sfBanner(view.sf, pshown.length);
     h += '<div class="card"><ul class="tasks">' + (pshown.length ? pshown.map(function (t) {
       return '<li class="' + (isDone(t) ? "is-done" : "") + rowFlags(t) + '"><label class="check" title="Mark done"><input type="checkbox" id="pt-' + t.id + '" data-ptoggle="' + t.id + '" aria-label="Done: ' + esc(t.text) + '" ' + (isDone(t) ? "checked" : "") + "></label>" +
-        '<button class="tmain" data-open-ptask="' + t.id + '"><span class="txt">' + ttl(t.text, t) + '</span><span class="meta">' + statusPill(t) + flagChips(t) + (t.owner ? "<span>" + esc(t.owner) + ((t.supporters || []).length ? " +" + t.supporters.length : "") + "</span>" : '<span class="muted no-owner">No owner</span>') + (workTags(t).length ? '<span class="tag">' + workTags(t).join(" · ") + "</span>" : "") +
+        '<button class="tmain" data-open-ptask="' + t.id + '"><span class="txt">' + ttl(t.text, t) + '</span><span class="meta">' + statusPill(t) + flagChips(t) + (t.owner ? "<span>" + esc(t.owner) + ((t.supporters || []).length ? " +" + t.supporters.length : "") + "</span>" : noOwnerTag()) + (workTags(t).length ? '<span class="tag">' + workTags(t).join(" · ") + "</span>" : "") +
         (t.due ? '<span class="' + (isLate(t) ? "late" : "") + '">Due ' + esc(fmtShort(t.due)) + "</span>" : "") + "</span></button></li>";
     }).join("") : '<li class="muted">No tasks yet.</li>') + "</ul>" +
       (mgr ? '<form class="add" id="f-add-ptask"><input type="text" id="new-ptask" placeholder="Add a task" aria-label="New task" autocomplete="off"><button class="btn primary">Add</button></form>' : "") + "</div>";
