@@ -475,6 +475,7 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .bl-title { font-family: Fredoka, Nunito, system-ui, sans-serif; font-weight: 700; font-size: 1.5rem; color: var(--red); letter-spacing: .02em; }
 .bl-sub { color: var(--muted); font-weight: 700; }
 .bl-sub::after { content: ""; animation: bl-dots 1.2s steps(4) infinite; }
+.bl-sub.still::after { content: none; animation: none; }
 @keyframes bl-dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
 .bl-skip { color: var(--muted); font-size: .78rem; }
 .boot-loader .ps-runner { position: static; filter: none; }
@@ -1064,7 +1065,7 @@ table.a-grid td:first-child { min-width: 170px; }
       '<g class="bl-kick">' + BL_BALL + '</g>' +
       '<g class="bl-try"><text x="300" y="104" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="700" font-size="40" fill="#fff" stroke="#14161c" stroke-width="2">TRY!</text></g>' +
       '<g class="bl-plus"><text x="330" y="40" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="700" font-size="26" fill="#ffd166" stroke="#14161c" stroke-width="1.5">+2</text></g>' +
-      '</svg><div class="bl-title">SUU Women\'s Rugby</div><div class="bl-sub">' + (preview ? "This is the loading screen" : "Getting your team ready") + '</div>' +
+      '</svg><div class="bl-title">SUU Women\'s Rugby</div><div class="bl-sub' + (preview ? " still" : "") + '">' + (preview ? "This is the loading screen" : "Getting your team ready") + '</div>' +
       (preview ? '<div class="bl-skip">Tap to close</div>' : "") + "</div>";
   }
   var bootLoader = null, bootStart = Date.now();
