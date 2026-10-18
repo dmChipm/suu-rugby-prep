@@ -2472,6 +2472,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "Adding a task to a game sheet opens a full form: what needs to be done, owner, helpers, due date with game-day shortcuts, importance, links and optional."],
     ["2026-10-18", "A task with no owner has a \"No owner\" tag that slowly glows red and fades back."],
     ["2026-10-18", "The loading screen runs as one smooth, continuous loop in 4 seconds, with no fades."],
     ["2026-10-18", "On the loading screen she picks the ball up after the try, sets it down for the conversion, steps back and kicks."],
@@ -2872,7 +2873,7 @@ table.a-grid td:first-child { min-width: 170px; }
       h += "</ul>";
       if (doneT.length) h += '<details class="done-sec" data-done-sec' + (view.doneOpen ? " open" : "") + '><summary>Done (' + doneT.length + ')</summary><ul class="tasks">' + doneT.map(row).join("") + "</ul></details>";
     }
-    if (admin) h += '<form class="add" data-form="add-sheet-task"><input type="text" id="new-sheet-task" placeholder="Add a task to this sheet only" aria-label="New task"><button class="btn primary">Add</button></form>';
+    if (admin) h += '<form class="add" data-form="add-sheet-task"><input type="text" id="new-sheet-task" placeholder="New task for this game, e.g. Book the referee" aria-label="New task"><button class="btn primary">+ Add task</button></form>';
     h += "</div>";
     h += tip("About this sheet", "<p>Tap a task to see its details, notes, subtasks and files.</p>" + (admin ? "<p>Changes here affect only this sheet. To change future sheets, edit the template.</p>" : ""));
     h += archivedBox("Archived tasks", s.archived || [], function (t) { return t.text; }, "data-restore-stask", isAdmin());
@@ -3247,6 +3248,43 @@ table.a-grid td:first-child { min-width: 170px; }
     drawSubs(); drawFiles();
   }
 
+  // Adding a task to one game sheet: everything the owner needs in one form, with due-date shortcuts counted back from game day.
+  function newSheetTaskModal(s, name) {
+    var what = s.gameInfo ? "game" : "event", sup = [];
+    var picks = s.date ? [[0, what === "game" ? "Game day" : "Event day"], [1, "1 day before"], [3, "3 days before"], [7, "1 week before"], [14, "2 weeks before"]] : [];
+    openModal('<h1 style="font-size:1.3rem">New task</h1><p class="muted small" style="margin:-4px 0 0">For ' + esc(sheetTitle(s)) + (s.date ? " · " + esc(fmtDate(s.date)) : "") +
+      ". Only this sheet gets it. To add it to every future " + what + ", add it to the template instead.</p>" +
+      '<form id="nt-form" style="display:flex;flex-direction:column;gap:12px">' +
+      fld("Task", "nt-text", name || "", true, "text", ' placeholder="e.g. Book the referee" required') +
+      fld("What needs to be done <span class=\"muted small\" style=\"font-weight:400\">steps, contacts, anything the owner should know</span>", "nt-details", "", true, "area", ' rows="3" placeholder="Call the referee society, confirm kickoff time and send directions to the field."') +
+      '<div class="grid2">' + ownerCombo("nt-owner", "") +
+      '<label class="field">Due Date<input type="date" id="nt-due"' + (s.date ? ' max="' + esc(s.date) + '"' : "") + "></label></div>" +
+      (picks.length ? '<div class="chips nt-picks">' + picks.map(function (x) { return '<button type="button" class="chip-btn" data-off="' + x[0] + '">' + x[1] + "</button>"; }).join("") + '</div><div class="muted small" id="nt-rel"></div>' : "") +
+      importanceField("nt-imp", {}, true) +
+      supportersField("nt-sup", [], true) +
+      fld("Helpful links <span class=\"muted small\" style=\"font-weight:400\">one per line</span>", "nt-links", "", true, "links", ' rows="2" placeholder="https://"') +
+      '<label class="chk small"><input type="checkbox" id="nt-optional"> Optional (doesn\'t count toward this sheet\'s progress)</label>' +
+      '<div id="nt-msg" class="small" style="color:var(--red)" hidden></div>' +
+      '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary">Add task</button></div></form>',
+      function (el) {
+        attachCombo(el, "nt-owner");
+        attachSupporters(el, "nt-sup", sup, el.querySelector("#nt-owner"), function () {});
+        var due = el.querySelector("#nt-due"), rel = el.querySelector("#nt-rel");
+        function showRel() { if (rel) rel.textContent = due.value && s.date ? "Due " + dueOffsetText(daysBetween(due.value, s.date), s) + "." : ""; }
+        due.addEventListener("input", showRel);
+        el.querySelectorAll("[data-off]").forEach(function (b) { b.addEventListener("click", function () { due.value = addDays(s.date, -Number(b.dataset.off)); showRel(); }); });
+        var txt = el.querySelector("#nt-text"); setTimeout(function () { (txt.value ? el.querySelector("#nt-details") : txt).focus(); }, 50);
+        el.querySelector("#nt-form").addEventListener("submit", function (e) {
+          e.preventDefault(); e.stopPropagation();
+          var text = txt.value.trim(), msg = el.querySelector("#nt-msg");
+          if (!text) { msg.hidden = false; msg.textContent = "Give the task a name first."; txt.focus(); return; }
+          s.tasks.push({ id: uid(), text: text, supporters: sup.slice(), owner: el.querySelector("#nt-owner").value.trim(), details: el.querySelector("#nt-details").value.trim(),
+            links: el.querySelector("#nt-links").value.trim(), notes: "", due: due.value, status: "Not Started", done: false, completed: "",
+            importance: el.querySelector("#nt-imp").value, optional: el.querySelector("#nt-optional").checked });
+          save(); closeModal(); render(); toast("Task added");
+        });
+      });
+  }
   function sheetTaskModal(s, t) {
     var admin = isAdmin();
     var statusSel = '<label class="field">Status<select id="tk-status">' + STATUSES.map(function (x) { return "<option" + (x === t.status ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></label>";
@@ -4858,8 +4896,8 @@ table.a-grid td:first-child { min-width: 170px; }
     }
     if (!isAdmin()) return;
     var f = e.target, input = f.querySelector("input"), v = input.value.trim();
+    if (f.dataset.form === "add-sheet-task") { newSheetTaskModal(byId(S.sheets, view.sheetId), v); input.value = ""; return; }
     if (!v) return;
-    if (f.dataset.form === "add-sheet-task") byId(S.sheets, view.sheetId).tasks.push({ id: uid(), text: v, supporters: [], owner: "", details: "", links: "", notes: "", due: "", status: "Not Started", done: false, completed: "" });
     if (f.dataset.form === "add-master-task") byId(S.masters, view.masterId).tasks.push(mkTask(v));
     save(); render();
     var again = app.querySelector("#" + input.id); if (again) again.focus();
