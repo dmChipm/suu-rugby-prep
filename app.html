@@ -2041,8 +2041,23 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
       return sb.from("push_subscriptions").delete().eq("endpoint", sub.endpoint).then(function () { return sub.unsubscribe(); });
     }).catch(function () {});
   }
+  // Notifications are on by default: phones only allow asking from a tap, so the first tap after signing in
+  // (anywhere in the app) asks once. People can turn them off in their profile.
+  function autoAskPush() {
+    try { if (localStorage.getItem(KEY + "-pushasked")) return; } catch (e) { return; }
+    pushState().then(function (st) {
+      if (st !== "off") return;
+      function ask() {
+        document.removeEventListener("click", ask, true);
+        try { localStorage.setItem(KEY + "-pushasked", "1"); } catch (e) {}
+        enablePush().then(function () { knownPush = "on"; toast("Notifications are on. You can turn them off in your profile."); render(); }).catch(function () {});
+      }
+      document.addEventListener("click", ask, true);
+    });
+  }
   // Keeps this device linked to whoever is signed in on it.
   function refreshPush() {
+    autoAskPush();
     if (!pushSupported() || Notification.permission !== "granted") return;
     pushReg().then(function (reg) { return reg && reg.pushManager.getSubscription(); }).then(function (sub) { if (sub) return saveSub(sub); }).catch(function () {});
   }
