@@ -681,6 +681,7 @@ table.a-grid td:first-child { min-width: 170px; }
 .update-log { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
 .ul-date { font-weight: 800; font-size: .9rem; color: var(--red); text-transform: uppercase; letter-spacing: .04em; }
 .update-log ul { margin: 4px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.ul-era { font-weight: 800; padding-top: 12px; border-top: 2px dashed var(--line); }
 .ul-ver { display: inline-block; font-size: .75rem; font-weight: 800; color: var(--red); background: var(--red-soft); border-radius: 999px; padding: 1px 8px; margin-right: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dev-links { display: flex; flex-direction: column; gap: 8px; }
 .dev-link { display: flex; align-items: center; gap: 12px; padding: 14px 16px; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
@@ -2401,6 +2402,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "The update log now includes everything built before launch, as versions 0.1 to 0.49."],
     ["2026-10-18", "The Development tab now links to Developer docs (tech stack, how the app is built, the database and where the code lives) and to the Update log, which has its own page with a version number on every change."],
     ["2026-10-17", "The app refreshes itself when you reopen it: it loads the newest version if one went live, and always pulls the latest data."],
     ["2026-10-17", "Settings that aren't about people (notifications, sounds, analytics) are now line items in your profile at the top right."],
@@ -2419,20 +2421,71 @@ table.a-grid td:first-child { min-width: 170px; }
     ["2026-10-16", "The password section in the profile pop-up hides once you have a password."],
     ["2026-10-15", "New teammates can create a password and sign in right away, with no confirmation email."],
     ["2026-10-15", "Email and password sign-in, with Forgot password. Google sign-in removed."],
-    ["2026-10-15", "The app went live at dmchipm.github.io/suu-rugby-prep and can be added to a phone's Home Screen."]
+    ["2026-10-15", "The app went live at dmchipm.github.io/suu-rugby-prep and can be added to a phone's Home Screen.", "launch"],
+    ["2026-10-14", "A Development tab, visible only to the Developer role, with buttons to preview the celebrations. It replaced the temporary Test tab."],
+    ["2026-10-14", "The Messages tab moved to the far left, and \"Game & Event Prep\" was renamed \"Game Prep\"."],
+    ["2026-10-14", "Team progress lists active teammates who have nothing assigned."],
+    ["2026-10-14", "To Do shows only the tasks you're in charge of, split into Game Prep and Projects, with a note when nothing is assigned."],
+    ["2026-10-14", "People is one A to Z list, with a By position option that groups people by role."],
+    ["2026-10-14", "My progress added to Game Prep. On Projects your personal section sits on top, and My work merged into My progress."],
+    ["2026-10-14", "Invite, New sheet, New project and Upload buttons turned white. Copy invite link moved into the Invite pop-up."],
+    ["2026-10-14", "A Settings menu on the People tab holds Roles with admin access and Document access by role."],
+    ["2026-10-14", "My progress dashboard: work done, this week, overdue, your next 3 tasks, and a Finished per week chart that starts collapsed."],
+    ["2026-10-14", "Tap a person in Team progress to see their tasks."],
+    ["2026-10-14", "Projects have their own people. Owners, helpers and subtask owners are picked from them, and a project's owner can manage its tasks."],
+    ["2026-10-14", "Simpler screens from the usability review: a Done section, All, Mine and Flagged chips, ⋮ menus, ⓘ tips, and the same words everywhere."],
+    ["2026-10-14", "The piñata became a lightning bolt piñata."],
+    ["2026-10-14", "A fifth celebration: Ilona Maher tackles the piñata."],
+    ["2026-10-14", "Sounds for Pikachu, the train and thunder."],
+    ["2026-10-14", "Documents can be archived and restored."],
+    ["2026-10-14", "Every completed task plays one of the piñata shows at random."],
+    ["2026-10-14", "Piñata celebrations: the Thunderbird, Thor, Pikachu and a train smash the piñata."],
+    ["2026-10-14", "A neon confetti celebration when a task is finished (later replaced by the piñata)."],
+    ["2026-10-14", "Status counts are tappable and show just those tasks."],
+    ["2026-10-14", "A usability review of every screen at phone size."],
+    ["2026-10-14", "Tasks, sheets and projects can be archived and restored. Document access by role fits on phones."],
+    ["2026-10-14", "Example teammates and filled-in example tasks for trying the app."],
+    ["2026-10-14", "My progress and Team progress on the Projects tab."],
+    ["2026-10-14", "Template tasks can have subtasks, and new sheets copy them."],
+    ["2026-10-14", "Subtasks with their own person, files attached to tasks, and one owner plus helpers on every task."],
+    ["2026-10-14", "Only admins can remove tasks or add new sheets."],
+    ["2026-10-13", "Reactions and replies on chat messages."],
+    ["2026-10-13", "Smoother messaging: chats slide in, new messages appear without flicker, and the header tucks away while you type."],
+    ["2026-10-13", "A photo and video button, plus a file button for documents, spreadsheets and other common files."],
+    ["2026-10-13", "Messages tab: one-on-one and group chats with photos, videos, files, links and unread counts."],
+    ["2026-10-13", "The old Dashboard became To Do (your tasks), and the prep dashboard moved to the top of Game & Event Prep."],
+    ["2026-10-13", "Master lists became Templates, an admin-only button inside Game & Event Prep."],
+    ["2026-10-13", "\"Game Sheets\" renamed \"Game & Event Prep\"."],
+    ["2026-10-13", "Projects tab: projects with owners, due dates, tasks and a dashboard."],
+    ["2026-10-12", "Tapping a dashboard status scrolls to that section below the header, then flashes it."],
+    ["2026-10-12", "Admins can adjust the Behind and At risk rules on each template and on each sheet."],
+    ["2026-10-11", "Compact task rows, each with a slim green progress bar for its sheet."],
+    ["2026-10-11", "Easier-to-read headings, with squiggle underlines that match the words."],
+    ["2026-10-11", "The whimsical SUU look: red and white, bold cards with light hard shadows and a flowing wave under the header."],
+    ["2026-10-11", "Documents tab: admins upload files, everyone can search, and access is set by role in four tiers."],
+    ["2026-10-11", "A Developer role."],
+    ["2026-10-11", "Invites by email or text, or a copied invite link. People already on the team can't be invited again."],
+    ["2026-10-11", "Changes save automatically, with a green Saved note and a warning if a save fails."],
+    ["2026-10-11", "Template tasks can be optional and can have a confirmation box."],
+    ["2026-10-11", "Warning flags for tasks that are behind schedule, blocked or have no owner."],
+    ["2026-10-11", "Tasks with status, owner (type to search), helpers, expandable details, links, notes and due dates set from game day."],
+    ["2026-10-11", "People with roles (Coach, President, Treasurer, Presidency Member, Team Member, Volunteer), invites, and activate or deactivate."],
+    ["2026-10-11", "First version: a dashboard of overall readiness, admin-only master lists (deleting one needs a typed confirmation) and game sheets made from them."]
   ];
-  // Update log entries count up from Version 1.0 (the launch), so the newest entry is the current version.
-  function verOf(i) { return "1." + (UPDATES.length - 1 - i); }
+  // Versions count up from the oldest entry: work before launch is 0.1, 0.2 …, the launch is 1.0, and each change after it is 1.1, 1.2 …
+  var LAUNCH_AT = UPDATES.findIndex(function (u) { return u[2] === "launch"; });
+  function verOf(i) { return i <= LAUNCH_AT ? "1." + (LAUNCH_AT - i) : "0." + (UPDATES.length - i); }
   function appVersion() { return verOf(0); }
   function backToDev() { return '<button class="btn ghost" data-act="goto-tab" data-tab="dev">‹ Development</button>'; }
   function devLink(act, title, sub) {
     return '<button type="button" class="card dev-link" data-act="' + act + '"><span class="grow"><strong>' + esc(title) + '</strong><span class="muted small">' + esc(sub) + '</span></span><span class="dev-chev" aria-hidden="true">›</span></button>';
   }
   function updatesView() {
-    var days = []; UPDATES.forEach(function (u, i) { var d = days[days.length - 1]; if (!d || d.date !== u[0]) days.push(d = { date: u[0], items: [] }); d.items.push([verOf(i), u[1]]); });
+    var days = []; UPDATES.forEach(function (u, i) { var pre = i > LAUNCH_AT, d = days[days.length - 1]; if (!d || d.date !== u[0] || d.pre !== pre) days.push(d = { date: u[0], pre: pre, items: [] }); d.items.push([verOf(i), u[1]]); });
     return backToDev() + '<div><h1>Update log</h1><div class="muted">Everything that has changed in the app, newest first. The app is on Version ' + appVersion() + '.</div></div>' +
-      '<div class="card update-log">' + days.map(function (d) {
-        return '<div class="ul-day"><div class="ul-date">' + esc(fmtDate(d.date)) + '</div><ul>' + d.items.map(function (x) { return '<li><span class="ul-ver">Version ' + x[0] + "</span> " + esc(x[1]) + "</li>"; }).join("") + "</ul></div>";
+      '<div class="card update-log">' + days.map(function (d, k) {
+        var first = d.pre && (k === 0 || !days[k - 1].pre);
+        return (first ? '<div class="ul-era">Before launch: built and tested in a preview</div>' : "") + '<div class="ul-day"><div class="ul-date">' + esc(fmtDate(d.date)) + '</div><ul>' + d.items.map(function (x) { return '<li><span class="ul-ver">Version ' + x[0] + "</span> " + esc(x[1]) + "</li>"; }).join("") + "</ul></div>";
       }).join("") + "</div>";
   }
   // Developer documentation: what the app is built with and how the pieces fit, for anyone picking up the code.
