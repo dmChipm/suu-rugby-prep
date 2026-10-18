@@ -468,16 +468,18 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .ps-runner.dive .rn-legf { animation: none; transform: rotate(40deg); }
 .ps-runner.dive .rn-legb { animation: none; transform: rotate(10deg); }
 /* Loading screen: an SUU player runs in a try, loops back round the field and kicks the conversion, on repeat until the app is ready. */
-.boot-loader { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; padding: 16px; background: var(--bg); transition: opacity .4s; }
+.boot-loader { --w: min(100vw, 760px); --ground: 58%; position: fixed; inset: 0; z-index: 400; overflow: hidden; transition: opacity .4s;
+  background: linear-gradient(#1d2b5c, #c8102e 80%, #f08a5d) top / 100% var(--ground) no-repeat, repeating-linear-gradient(90deg, #4aa144 0 calc(var(--w) / 15.4), #3f8f3a 0 calc(var(--w) / 7.7)); }
+.boot-loader::after { content: ""; position: absolute; left: 0; right: 0; top: var(--ground); border-top: 2px solid #2d6e2a; }
 .boot-loader.out { opacity: 0; pointer-events: none; }
-.bl-inner { width: min(520px, 100%); display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
-.bl-scene { width: 100%; height: auto; display: block; border-radius: 22px; border: 3px solid var(--ink); box-shadow: 5px 5px 0 rgba(0, 0, 0, .14); }
-.bl-title { font-family: Fredoka, Nunito, system-ui, sans-serif; font-weight: 700; font-size: 1.5rem; color: var(--red); letter-spacing: .02em; }
-.bl-sub { color: var(--muted); font-weight: 700; }
+.bl-scene { position: absolute; width: var(--w); height: auto; left: 50%; top: calc(var(--ground) - var(--w) * .375); transform: translateX(-50%); display: block; overflow: visible; }
+.bl-text { position: absolute; left: 16px; right: 16px; top: calc(env(safe-area-inset-top, 0px) + 9%); display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; color: #fff; text-shadow: 0 2px 8px rgba(0, 0, 0, .35); }
+.bl-title { font-family: Fredoka, Nunito, system-ui, sans-serif; font-weight: 700; font-size: 1.7rem; letter-spacing: .02em; }
+.bl-sub { font-weight: 700; opacity: .9; }
 .bl-sub::after { content: ""; animation: bl-dots 1.2s steps(4) infinite; }
 .bl-sub.still::after { content: none; animation: none; }
 @keyframes bl-dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
-.bl-skip { color: var(--muted); font-size: .78rem; }
+.bl-skip { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); text-align: center; color: rgba(255, 255, 255, .8); font-size: .8rem; font-weight: 700; }
 .boot-loader .ps-runner { position: static; filter: none; }
 .boot-loader .ps-runner svg { width: 76px; height: 95px; overflow: visible; }
 .bl-pos { animation: bl-pos 7s linear infinite; }
@@ -1050,12 +1052,10 @@ table.a-grid td:first-child { min-width: 170px; }
   // A rugby ball shape centered on (0,0), about 26 wide.
   var BL_BALL = '<ellipse rx="13" ry="8" fill="#8a4a24" stroke="#2a1608" stroke-width="2"/><path d="M-6 0 H6 M-3 -2.5 V2.5 M0 -2.5 V2.5 M3 -2.5 V2.5" stroke="#fff" stroke-width="1.4"/>';
   function loaderHtml(preview) {
-    var stripes = ""; for (var i = 0; i < 8; i++) stripes += '<rect x="' + (i * 52) + '" y="150" width="26" height="70" fill="#3f8f3a"/>';
-    return '<div class="bl-inner"><svg class="bl-scene" viewBox="0 0 400 220" role="img" aria-label="An SUU player scores a try and kicks the conversion">' +
-      '<defs><linearGradient id="bl-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d2b5c"/><stop offset=".75" stop-color="#c8102e"/><stop offset="1" stop-color="#f08a5d"/></linearGradient></defs>' +
-      '<rect width="400" height="220" fill="url(#bl-sky)"/><circle cx="70" cy="58" r="22" fill="#ffd166" opacity=".9"/>' +
-      '<rect y="150" width="400" height="70" fill="#4aa144"/>' + stripes +
-      '<path d="M0 150 H400" stroke="#2d6e2a" stroke-width="2"/><path d="M330 150 V220" stroke="#fff" stroke-width="4"/><path d="M200 150 V220" stroke="#fff" stroke-width="2" stroke-dasharray="6 6" opacity=".8"/>' +
+    return '<svg class="bl-scene" viewBox="0 0 400 220" role="img" aria-label="An SUU player scores a try and kicks the conversion">' +
+      // The sky and field are the loading screen's own background, so lines run on past the drawing to the bottom of the screen.
+      '<circle cx="70" cy="40" r="22" fill="#ffd166" opacity=".9"/>' +
+      '<path d="M330 151 V2000" stroke="#fff" stroke-width="4"/><path d="M200 151 V2000" stroke="#fff" stroke-width="2" stroke-dasharray="6 6" opacity=".8"/>' +
       // Goal posts in the in-goal area, drawn with a little perspective.
       '<g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M352 186 V36"/><path d="M380 172 V24"/><path d="M352 120 L380 108"/></g>' +
       '<path d="M352 186 l-4 4 M380 172 l-4 4" stroke="#c8102e" stroke-width="8"/>' +
@@ -1065,8 +1065,8 @@ table.a-grid td:first-child { min-width: 170px; }
       '<g class="bl-kick">' + BL_BALL + '</g>' +
       '<g class="bl-try"><text x="300" y="104" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="700" font-size="40" fill="#fff" stroke="#14161c" stroke-width="2">TRY!</text><text x="300" y="136" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="700" font-size="26" fill="#ffd166" stroke="#14161c" stroke-width="1.5">+5</text></g>' +
       '<g class="bl-plus"><text x="330" y="40" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="700" font-size="26" fill="#ffd166" stroke="#14161c" stroke-width="1.5">+2</text></g>' +
-      '</svg><div class="bl-title">SUU Women\'s Rugby</div><div class="bl-sub' + (preview ? " still" : "") + '">' + (preview ? "This is the loading screen" : "Getting your team ready") + '</div>' +
-      (preview ? '<div class="bl-skip">Tap to close</div>' : "") + "</div>";
+      '</svg><div class="bl-text"><div class="bl-title">SUU Women\'s Rugby</div><div class="bl-sub' + (preview ? " still" : "") + '">' + (preview ? "This is the loading screen" : "Getting your team ready") + '</div></div>' +
+      (preview ? '<div class="bl-skip">Tap to close</div>' : "");
   }
   var bootLoader = null, bootStart = Date.now();
   function showLoader(preview) {
@@ -2479,6 +2479,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "The loading screen's field and sky now fill the whole screen, with no box around it."],
     ["2026-10-18", "The loading screen shows +5 when she scores the try."],
     ["2026-10-18", "A loading screen: an SUU player runs in a try, loops round the field and kicks the conversion until the app is ready. Preview it under Effects on the Development tab (renamed from Celebrations)."],
     ["2026-10-18", "The update log now includes everything built before launch, as versions 0.1 to 0.49."],
