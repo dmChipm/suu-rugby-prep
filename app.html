@@ -1056,10 +1056,15 @@ table.a-grid td:first-child { min-width: 170px; }
       // Goal posts in the in-goal area, drawn with a little perspective.
       '<g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M352 186 V36"/><path d="M380 172 V24"/><path d="M352 120 L380 108"/></g>' +
       '<path d="M352 186 l-4 4 M380 172 l-4 4" stroke="#c8102e" stroke-width="8"/>' +
-      '<g class="bl-pos"><g class="bl-pose"><g class="ps-runner run"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + RUNNER_SVG.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "").replace(">USA<", ">SUU<") + '</svg></g>' +
+      '<g class="bl-pos"><g class="bl-pose"><g class="ps-runner run"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + suuKit(RUNNER_SVG.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")) + '</svg></g>' +
       '<g class="bl-carry">' + BL_BALL + '</g></g></g>' +
       '<g class="bl-kick">' + BL_BALL + '</g>' +
       '</svg>';
+  }
+  // The loading screen player wears an all-red SUU kit: red shorts and socks instead of the USA navy and white.
+  function suuKit(svg) {
+    return svg.replace(">USA<", ">SUU<").replace(/#1d2b5c/g, "#a80d26").replace(/stroke="#fff" stroke-width="13"/g, 'stroke="#c8102e" stroke-width="13"')
+      .replace('<path d="M70 92 L99 88" stroke="#fff"', '<path d="M70 92 L99 88" stroke="#e8455c"');
   }
   var bootLoader = null, bootStart = Date.now();
   function showLoader(preview) {
@@ -2474,6 +2479,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "The loading screen player wears a fully red kit."],
     ["2026-10-18", "A task with no owner shows one \"No owner\" tag; the extra flag version is gone."],
     ["2026-10-18", "Adding a task to a game sheet opens a full form: what needs to be done, owner, helpers, due date with game-day shortcuts, importance, links and optional."],
     ["2026-10-18", "A task with no owner has a \"No owner\" tag that slowly glows red and fades back."],
