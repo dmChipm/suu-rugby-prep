@@ -1061,14 +1061,13 @@ table.a-grid td:first-child { min-width: 170px; }
       '<g class="bl-kick">' + BL_BALL + '</g>' +
       '</svg>';
   }
-  // The loading screen player: a white SUU kit with red trim, and a darker skin tone than the Ilona drawing it's based on.
+  // The loading screen player: an all-red SUU kit with short socks, olive skin and pink hair with a white headband.
   function suuKit(svg) {
-    return svg.replace('font-size="11" fill="#fff">USA<', 'font-size="11" fill="#c8102e">SUU<')
-      .replace('fill="#c8102e" stroke="#14161c" stroke-width="3" stroke-linejoin="round"', 'fill="#fff" stroke="#14161c" stroke-width="3" stroke-linejoin="round"')
-      .replace('<path d="M70 92 L99 88" stroke="#fff"', '<path d="M70 92 L99 88" stroke="#c8102e"')
-      .replace(/fill="#1d2b5c"/g, 'fill="#fff"').replace(/stroke="#1d2b5c" stroke-width="20"/g, 'stroke="#f4f4f6" stroke-width="20"').replace(/stroke="#1d2b5c"/g, 'stroke="#c8102e"')
-      .replace(/L81 88" stroke="#c8102e"/g, 'L81 88" stroke="#fff"').replace(/L81 88" stroke="#a80d26"/g, 'L81 88" stroke="#e4e4e8"')
-      .replace(/#e9b48f/g, "#8a5a3c").replace(/#d29c78/g, "#74482e").replace(/#5a3a22/g, "#3a2214");
+    return svg.replace(">USA<", ">SUU<").replace(/#1d2b5c/g, "#a80d26").replace(/stroke="#fff" stroke-width="13"/g, 'stroke="#c8102e" stroke-width="13"')
+      .replace('<path d="M70 92 L99 88" stroke="#fff"', '<path d="M70 92 L99 88" stroke="#e8455c"')
+      .replace(/#e9b48f/g, "#c19a6b").replace(/#d29c78/g, "#a5814f").replace(/#5a3a22/g, "#5c4526")
+      .replace(/#3b2416/g, "#ff6fae").replace('stroke="#ff2bd6"', 'stroke="#fff"')
+      .replace(/M81 158 L77 182/g, "M78 175 L77 182").replace(/<path d="M81 162 h-1 M80 170 h-1"[^>]*\/>/g, "");
   }
   var bootLoader = null, bootStart = Date.now();
   function showLoader(preview) {
@@ -2484,7 +2483,7 @@ table.a-grid td:first-child { min-width: 170px; }
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
     ["2026-10-18", "The loading screen has a blue daytime sky."],
-    ["2026-10-18", "The loading screen player wears a white SUU kit with red trim and has a darker skin tone."],
+    ["2026-10-18", "The loading screen player wears an all-red SUU kit with short socks and has olive skin and pink hair."],
     ["2026-10-18", "A task with no owner shows one \"No owner\" tag; the extra flag version is gone."],
     ["2026-10-18", "Adding a task to a game sheet opens a full form: what needs to be done, owner, helpers, due date with game-day shortcuts, importance, links and optional."],
     ["2026-10-18", "A task with no owner has a \"No owner\" tag that slowly glows red and fades back."],
