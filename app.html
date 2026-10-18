@@ -720,6 +720,24 @@ ul.hist li { display: flex; flex-direction: column; }
 .a-tile { padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .a-big { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .a-label { font-weight: 700; }
+.a-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.a-chart { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.a-chart.wide { grid-column: 1 / -1; }
+.a-chart h3 { margin: 0; font-size: 1rem; }
+.a-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.a-chart svg text { fill: var(--muted); font-size: 11px; font-family: var(--body); font-variant-numeric: tabular-nums; }
+.a-pie { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.a-pie svg { width: 128px; flex: none; }
+.a-pie svg text.a-mid { fill: var(--ink); font-size: 22px; font-weight: 800; }
+.a-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: .9rem; }
+.a-legend li { display: flex; align-items: center; gap: 8px; }
+.a-legend i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.a-legend b { margin-left: auto; padding-left: 12px; font-variant-numeric: tabular-nums; }
+.a-bars { display: grid; grid-template-columns: minmax(0, max-content) 1fr auto; gap: 6px 10px; align-items: center; font-size: .9rem; }
+.a-bars span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a-bars .a-track { height: 14px; border-radius: 4px; background: var(--red-soft); overflow: hidden; }
+.a-bars .a-fill { height: 100%; border-radius: 4px; background: var(--red); }
+.a-bars b { font-variant-numeric: tabular-nums; text-align: right; }
 table.grid.a-grid { min-width: 640px; }
 table.a-grid td { font-variant-numeric: tabular-nums; }
 table.a-grid td:first-child { min-width: 170px; }
@@ -2568,6 +2586,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "Analytics has charts: a line chart of tasks finished per week, pie charts of where every task stands and how many were finished by the due date, and a bar chart of tasks finished by person."],
     ["2026-10-18", "The loading screen player is back to her original, slimmer build."],
     ["2026-10-18", "The loading screen player is Ilona Maher in an all-red SUU kit."],
     ["2026-10-18", "A new small celebration for each finished task: a cannon fires a rugby ball that lands mid-screen and bursts into Good Job! The piñata shows now play when a whole game sheet or project is finished."],
@@ -2895,6 +2914,7 @@ table.a-grid td:first-child { min-width: 170px; }
       tile(fmtDur(a.avgDur), "average time to finish", a.timed ? "from assignment to done, " + a.timed + (a.timed === 1 ? " task" : " tasks") : "not enough history yet") +
       tile(pct(a.onTime, a.dated), "finished by the due date", a.dated ? a.onTime + " of " + a.dated + " with due dates" : "no due dates yet") +
       tile(fmtEarly(a.early), "average vs due date", d.openCount + " tasks still open") + "</div>";
+    h += analyticsCharts(range, d);
     h += '<h2>By person</h2><div class="card tablewrap"><table class="grid a-grid"><thead><tr><th>Person</th><th>Finished</th><th>Per week</th><th>Avg time to finish</th><th>On time</th><th>Avg vs due date</th><th>Open now</th><th>Overdue now</th></tr></thead><tbody>' +
       d.people.map(function (p) {
         return "<tr><td><b>" + esc(p.name) + "</b></td><td>" + p.n + "</td><td>" + p.perWeek.toFixed(1) + "</td><td>" + fmtDur(p.avgDur) + "</td><td>" + pct(p.onTime, p.dated) + "</td><td>" + fmtEarly(p.early) + "</td><td>" + p.openNow + '</td><td class="' + (p.lateNow ? "late" : "") + '">' + p.lateNow + "</td></tr>";
@@ -2907,6 +2927,63 @@ table.a-grid td:first-child { min-width: 170px; }
     h += tip("How these numbers work", "<p><b>Time to finish</b> runs from when the task's owner was assigned it to when it was marked Complete. The app started recording this on Oct 17, 2026, so older tasks only count toward the due-date numbers.</p><p><b>On time</b> means it was finished on or before its due date. <b>Who</b> is the person who marked it done.</p><p>Optional tasks are left out.</p>");
     return h;
     function tile(big, label, sub) { return '<div class="card a-tile"><div class="a-big">' + esc(String(big)) + '</div><div class="a-label">' + esc(label) + '</div><div class="muted small">' + esc(sub) + "</div></div>"; }
+  }
+  // Charts for the Analytics page: finished per week (line), status now and on-time share (pies), finished by person (bars).
+  function analyticsCharts(range, d) {
+    var today = todayIso(), done = [];
+    eachTask(function (t) {
+      if (t.optional || !isDone(t)) return;
+      var day = t.completedAt ? isoOf(new Date(t.completedAt)) : t.completed; if (day) done.push(day);
+    });
+    // Weekly buckets ending today; "All time" starts at the first finished task (at most a year back).
+    var nWeeks = range === "all" ? Math.min(52, Math.max(4, Math.ceil(d.weeks))) : Math.ceil(Number(range) / 7), weeks = [];
+    for (var i = nWeeks - 1; i >= 0; i--) {
+      var end = addDays(today, -7 * i), start = addDays(end, -6);
+      weeks.push({ label: shortDay(start), v: done.filter(function (x) { return x >= start && x <= end; }).length });
+    }
+    var h = '<div class="a-charts"><div class="card a-chart wide"><h3>Tasks finished per week</h3>' + lineChart(weeks) + "</div>";
+    // Every task right now, by status (not limited to the time range).
+    var counts = {}; STATUSES.forEach(function (st) { counts[st] = 0; });
+    eachTask(function (t) { if (t.optional) return; var st = isDone(t) ? "Complete" : (t.status || "Not Started"); counts[st] = (counts[st] || 0) + 1; });
+    var stColor = { "Not Started": "var(--muted)", "In Progress": "var(--warn)", "Blocked": "var(--red)", "On Hold": "var(--hold)", "Complete": "var(--done)" };
+    h += '<div class="card a-chart"><h3>Where every task stands now</h3>' + pieChart(STATUSES.map(function (st) { return { label: st, v: counts[st] || 0, color: stColor[st] }; })) + "</div>";
+    var a = d.all;
+    h += '<div class="card a-chart"><h3>Finished by the due date</h3>' + pieChart([
+      { label: "On time", v: a.onTime, color: "var(--done)" }, { label: "Late", v: a.dated - a.onTime, color: "var(--red)" }, { label: "No due date", v: a.n - a.dated, color: "var(--muted)" }]) + "</div>";
+    var who = d.people.filter(function (p) { return p.n; }).slice(0, 10);
+    h += '<div class="card a-chart wide"><h3>Tasks finished by person</h3>' + (who.length ? barChart(who.map(function (p) { return { label: p.name, v: p.n }; })) : '<div class="muted small">No tasks finished in this time range.</div>') + "</div>";
+    return h + "</div>";
+  }
+  function shortDay(iso) { return new Date(iso + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
+  function lineChart(pts) {
+    var W = 600, H = 190, L = 28, R = 10, T = 12, B = 26, max = Math.max(1, Math.max.apply(null, pts.map(function (p) { return p.v; })));
+    var step = Math.max(1, Math.ceil(max / 4)), top = step * Math.ceil(max / step), n = pts.length;
+    var x = function (i) { return L + (n > 1 ? i * (W - L - R) / (n - 1) : (W - L - R) / 2); }, y = function (v) { return T + (H - T - B) * (1 - v / top); };
+    var g = "";
+    for (var v = 0; v <= top; v += step) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--line)"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + v + "</text>";
+    var every = Math.ceil(n / 7), line = pts.map(function (p, i) { return x(i).toFixed(1) + "," + y(p.v).toFixed(1); }).join(" ");
+    pts.forEach(function (p, i) { if ((n - 1 - i) % every === 0) g += '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="middle">' + esc(p.label) + "</text>"; });
+    g += '<polygon points="' + x(0) + "," + y(0) + " " + line + " " + x(n - 1) + "," + y(0) + '" fill="var(--red)" opacity=".12"/>';
+    g += '<polyline points="' + line + '" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    g += pts.map(function (p, i) { return '<circle cx="' + x(i) + '" cy="' + y(p.v) + '" r="4" fill="var(--surface)" stroke="var(--red)" stroke-width="2"><title>Week of ' + esc(p.label) + ": " + p.v + "</title></circle>"; }).join("");
+    return '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Tasks finished per week">' + g + "</svg>";
+  }
+  function pieChart(segs) {
+    var total = segs.reduce(function (s, x) { return s + x.v; }, 0), r = 46, c = 2 * Math.PI * r, off = 0, g = "";
+    if (!total) return '<div class="muted small">Nothing to show yet.</div>';
+    g += '<circle cx="64" cy="64" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="20"/>';
+    segs.forEach(function (sg) {
+      if (!sg.v) return; var len = c * sg.v / total;
+      g += '<circle cx="64" cy="64" r="' + r + '" fill="none" stroke="' + sg.color + '" stroke-width="20" stroke-dasharray="' + len.toFixed(2) + " " + (c - len).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" transform="rotate(-90 64 64)"><title>' + esc(sg.label) + ": " + sg.v + "</title></circle>";
+      off += len;
+    });
+    g += '<text class="a-mid" x="64" y="72" text-anchor="middle">' + total + "</text>";
+    return '<div class="a-pie"><svg viewBox="0 0 128 128" role="img" aria-label="' + esc(segs.map(function (sg) { return sg.label + " " + sg.v; }).join(", ")) + '">' + g + '</svg><ul class="a-legend">' +
+      segs.map(function (sg) { return '<li><i style="background:' + sg.color + '"></i>' + esc(sg.label) + "<b>" + sg.v + " · " + Math.round(sg.v * 100 / total) + "%</b></li>"; }).join("") + "</ul></div>";
+  }
+  function barChart(rows) {
+    var max = Math.max.apply(null, rows.map(function (r) { return r.v; })) || 1;
+    return '<div class="a-bars">' + rows.map(function (r) { return "<span>" + esc(r.label) + '</span><div class="a-track"><div class="a-fill" style="width:' + (r.v * 100 / max).toFixed(1) + '%"></div></div><b>' + r.v + "</b>"; }).join("") + "</div>";
   }
   function analyticsTabOn() { try { return localStorage.getItem(KEY + "-atab") === "on"; } catch (e) { return false; } }
   function openAnalytics() { closeModal(); view.tab = "analytics"; view.aLog = null; view.aErr = false; render(); window.scrollTo(0, 0); }
