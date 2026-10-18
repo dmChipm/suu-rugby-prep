@@ -680,7 +680,17 @@ table.a-grid td:first-child { min-width: 170px; }
 #dl-q { width: 100%; }
 .update-log { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
 .ul-date { font-weight: 800; font-size: .9rem; color: var(--red); text-transform: uppercase; letter-spacing: .04em; }
-.update-log ul { margin: 4px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.update-log ul { margin: 4px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.ul-ver { display: inline-block; font-size: .75rem; font-weight: 800; color: var(--red); background: var(--red-soft); border-radius: 999px; padding: 1px 8px; margin-right: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dev-links { display: flex; flex-direction: column; gap: 8px; }
+.dev-link { display: flex; align-items: center; gap: 12px; padding: 14px 16px; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.dev-link .grow { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dev-chev { font-size: 1.4rem; color: var(--muted); }
+.dev-doc { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.dev-doc p { margin: 0; line-height: 1.5; }
+.dev-rows { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.dev-rows dt { font-weight: 800; overflow-wrap: anywhere; }
+.dev-rows dd { margin: 2px 0 0; line-height: 1.45; }
 .dev-info li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 .dev-v { text-align: right; overflow-wrap: anywhere; min-width: 0; }
 .todo-sec { display: flex; flex-direction: column; gap: 10px; }
@@ -1740,11 +1750,11 @@ table.a-grid td:first-child { min-width: 170px; }
     document.getElementById("tab-dev").hidden = !isDev();
     document.getElementById("tab-analytics").hidden = !(isAdmin() && analyticsTabOn());
     if (view.tab === "analytics" && !isAdmin()) view.tab = "dashboard";
-    if (view.tab === "dev" && !isDev()) view.tab = "dashboard";
+    if ((view.tab === "dev" || view.tab === "updates" || view.tab === "devdocs") && !isDev()) view.tab = "dashboard";
     var unread = unreadTotal(), badge = document.getElementById("msg-badge");
     badge.hidden = !unread; badge.textContent = unread > 99 ? "99+" : unread;
     // Templates and Projects live inside the "Game Prep & Projects" tab, so that tab stays highlighted there.
-    ["dashboard", "sheets", "projects", "people", "docs", "messages", "analytics", "dev"].forEach(function (k) { document.getElementById("tab-" + k).setAttribute("aria-selected", String(view.tab === k || (k === "sheets" && (view.tab === "masters" || view.tab === "projects")))); });
+    ["dashboard", "sheets", "projects", "people", "docs", "messages", "analytics", "dev"].forEach(function (k) { document.getElementById("tab-" + k).setAttribute("aria-selected", String(view.tab === k || (k === "sheets" && (view.tab === "masters" || view.tab === "projects")) || (k === "dev" && (view.tab === "updates" || view.tab === "devdocs")))); });
   }
   document.getElementById("me-btn").addEventListener("click", function () { if (ONLINE) accountModal(); else switchUserModal(); });
   document.querySelector("nav.tabs").addEventListener("click", function (e) {
@@ -2258,10 +2268,12 @@ table.a-grid td:first-child { min-width: 170px; }
       if (cv) afterConvoRender(cv);
       return;
     }
+    else if (view.tab === "updates") app.innerHTML = updatesView();
+    else if (view.tab === "devdocs") app.innerHTML = devDocsView();
     else if (view.tab === "dev") {
       // Only people with the Developer role see this tab: tools for testing the app.
       var me = currentUser(), cnt = function (a) { return (a || []).length; };
-      var info = [["Mode", ONLINE ? "Online (shared database)" : "Test mode (this device only)"], ["Signed in as", me.name + " · " + me.role], ["App link", APP_LINK],
+      var info = [["Version", appVersion() + (ONLINE && CFG.build ? " (build " + CFG.build + ")" : "")], ["Mode", ONLINE ? "Online (shared database)" : "Test mode (this device only)"], ["Signed in as", me.name + " · " + me.role], ["App link", APP_LINK],
         ["People", cnt(S.people)], ["Game sheets", cnt(S.sheets) + " (+" + cnt(S.archivedSheets) + " archived)"], ["Templates", cnt(S.masters)], ["Projects", cnt(S.projects) + " (+" + cnt(S.archivedProjects) + " archived)"],
         ["Documents", cnt(S.documents)], ["Conversations", cnt(S.convos)]];
       app.innerHTML = '<div><h1>Development</h1><div class="muted">Only people with the Developer role see this tab.</div></div>' +
@@ -2270,7 +2282,7 @@ table.a-grid td:first-child { min-width: 170px; }
         '<div class="row" style="flex-wrap:wrap;gap:8px"><span class="small muted">Or pick one:</span>' + [["bird", "Thunderbird"], ["thor", "Thor"], ["pika", "Pikachu"], ["train", "Train"], ["ilona", "Ilona Maher"]].map(function (x) { return '<button class="btn" data-show="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
         '<label class="row small" style="gap:8px"><input type="checkbox" id="dev-sound"' + (soundOn() ? " checked" : "") + '> Play sounds on this device</label>' +
         '<p class="muted small" style="margin:0">One of the five piñata shows plays at random whenever a task is checked off. Tap the screen to skip it.</p></div>' +
-        updateLogHtml() +
+        '<h2>Documentation</h2><div class="dev-links">' + devLink("open-devdocs", "Developer docs", "Tech stack, how it's built and where everything lives") + devLink("open-updates", "Update log", "Version " + appVersion() + " · everything that has changed") + "</div>" +
         '<h2>App info</h2><div class="card"><ul class="tasks dev-info">' + info.map(function (x) { return '<li><span class="muted small">' + esc(x[0]) + '</span><span class="dev-v">' + esc(String(x[1])) + "</span></li>"; }).join("") + "</ul></div>";
       app.querySelector("#dev-big").addEventListener("click", function () { pinataShow("Done: Book the field"); });
       app.querySelectorAll("[data-show]").forEach(function (b) { b.addEventListener("click", function () { pinataShow("Home Game is 100% ready!", b.dataset.show); }); });
@@ -2389,6 +2401,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-18", "The Development tab now links to Developer docs (tech stack, how the app is built, the database and where the code lives) and to the Update log, which has its own page with a version number on every change."],
     ["2026-10-17", "The app refreshes itself when you reopen it: it loads the newest version if one went live, and always pulls the latest data."],
     ["2026-10-17", "Settings that aren't about people (notifications, sounds, analytics) are now line items in your profile at the top right."],
     ["2026-10-17", "Analytics for admins: who finishes what, how often and how fast, by person and by task. Open it from your profile at the top right, or turn on an Analytics tab there."],
@@ -2408,11 +2421,91 @@ table.a-grid td:first-child { min-width: 170px; }
     ["2026-10-15", "Email and password sign-in, with Forgot password. Google sign-in removed."],
     ["2026-10-15", "The app went live at dmchipm.github.io/suu-rugby-prep and can be added to a phone's Home Screen."]
   ];
-  function updateLogHtml() {
-    var days = []; UPDATES.forEach(function (u) { var d = days[days.length - 1]; if (!d || d.date !== u[0]) days.push(d = { date: u[0], items: [] }); d.items.push(u[1]); });
-    return '<h2>Update log</h2><div class="card update-log">' + days.map(function (d) {
-      return '<div class="ul-day"><div class="ul-date">' + esc(fmtDate(d.date)) + '</div><ul>' + d.items.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>";
-    }).join("") + "</div>";
+  // Update log entries count up from Version 1.0 (the launch), so the newest entry is the current version.
+  function verOf(i) { return "1." + (UPDATES.length - 1 - i); }
+  function appVersion() { return verOf(0); }
+  function backToDev() { return '<button class="btn ghost" data-act="goto-tab" data-tab="dev">‹ Development</button>'; }
+  function devLink(act, title, sub) {
+    return '<button type="button" class="card dev-link" data-act="' + act + '"><span class="grow"><strong>' + esc(title) + '</strong><span class="muted small">' + esc(sub) + '</span></span><span class="dev-chev" aria-hidden="true">›</span></button>';
+  }
+  function updatesView() {
+    var days = []; UPDATES.forEach(function (u, i) { var d = days[days.length - 1]; if (!d || d.date !== u[0]) days.push(d = { date: u[0], items: [] }); d.items.push([verOf(i), u[1]]); });
+    return backToDev() + '<div><h1>Update log</h1><div class="muted">Everything that has changed in the app, newest first. The app is on Version ' + appVersion() + '.</div></div>' +
+      '<div class="card update-log">' + days.map(function (d) {
+        return '<div class="ul-day"><div class="ul-date">' + esc(fmtDate(d.date)) + '</div><ul>' + d.items.map(function (x) { return '<li><span class="ul-ver">Version ' + x[0] + "</span> " + esc(x[1]) + "</li>"; }).join("") + "</ul></div>";
+      }).join("") + "</div>";
+  }
+  // Developer documentation: what the app is built with and how the pieces fit, for anyone picking up the code.
+  var DEV_DOCS = [
+    { h: "Overview", p: ["The SUU Women's Rugby app is an installable web app (PWA) for planning game prep, projects, documents and team chat. The whole front end is one file, app.html: plain HTML, CSS and JavaScript with no framework and no build step beyond wrapping it in a page.",
+      "It runs in two modes. Online mode (the live app) keeps everything in a shared Supabase database and requires sign-in. Test mode runs when app.html is opened on its own: it uses made-up sample data saved only in that browser, so it's safe to experiment in."] },
+    { h: "Tech stack", rows: [
+      ["HTML, CSS, vanilla JavaScript", "The entire app interface and logic, in app.html. No framework."],
+      ["Google Fonts (Fredoka, Nunito)", "Headings and body text."],
+      ["supabase-js 2.45.4", "Browser library, loaded from jsDelivr, that the app uses for the database, sign-in, file storage and live updates."],
+      ["Supabase Postgres", "The shared database. Row level security rules decide who can read or change each row, so access is enforced on the server, not just in the app."],
+      ["Supabase Auth", "Email and password sign-in, Forgot password, and invite-based accounts."],
+      ["Supabase Realtime", "One \"team\" channel. Any database change tells every open app to re-pull the latest data."],
+      ["Supabase Storage", "File uploads in three buckets: task-files (task attachments), chat (chat attachments) and documents (the Documents tab)."],
+      ["Supabase Edge Functions (Deno, TypeScript)", "Server code: create-account (sets up a new teammate's password without a confirmation email) and notify (sends push notifications)."],
+      ["web-push 3.6.7", "Library inside the notify function that signs and sends push messages using the app's VAPID keys."],
+      ["pg_net", "Lets database triggers call the notify function over HTTP when tasks are assigned or messages are sent."],
+      ["pg_cron", "Runs the daily task reminder at 15:00 UTC (9 AM Utah time in summer, 8 AM in winter)."],
+      ["Supabase Vault", "Stores secrets: the VAPID private key and the key the database uses to call notify."],
+      ["Web Push API and service worker (sw.js)", "Shows notifications on phones and computers, and caches the app so it opens fast."],
+      ["Web App Manifest and icons", "Lets people add the app to their Home Screen like a native app."],
+      ["Web Audio API", "Synthesizes the celebration sounds (no audio files)."],
+      ["localStorage", "Test mode data, plus per-device settings like sounds and the Analytics tab."],
+      ["GitHub (dmChipm/suu-rugby-prep)", "Source code and history."],
+      ["GitHub Actions", "Builds and publishes the app on every push to main (.github/workflows/pages.yml)."],
+      ["GitHub Pages", "Hosts the live app at dmchipm.github.io/suu-rugby-prep."]] },
+    { h: "How a release works", p: ["Pushing to main runs the Publish app workflow. build.sh wraps app.html into index.html, adding the Supabase address and publishable key, the supabase-js script and the service worker registration. It also writes version.txt with the git commit id.",
+      "The workflow publishes index.html, version.txt, sw.js, the manifest and icons to GitHub Pages. When someone reopens the app it fetches version.txt; if the id changed it reloads into the new version, otherwise it just pulls fresh data."] },
+    { h: "Code map (app.html)", rows: [
+      ["S", "All app data in memory: people, sheets, templates, projects, documents, conversations."],
+      ["view", "What's on screen: the current tab and which sheet, project or chat is open. Not saved."],
+      ["render() and renderChrome()", "Redraw the current tab and the header and tabs. Every change ends in render()."],
+      ["save() and push()", "save() records a change. Online, push() compares S with the last copy from the server and sends only the differences."],
+      ["pull() and schedulePull()", "Load everything from the database. Realtime changes and reopening the app call schedulePull()."],
+      ["data-act click handler", "One click listener reads data-act on buttons and runs the matching action."],
+      ["openModal() and closeModal()", "Every pop-up in the app."],
+      ["UPDATES", "The update log. Add a line at the top for every change you ship; its version number is assigned automatically."]] },
+    { h: "Database tables", rows: [
+      ["people", "Team members: name, email, role and status (Invited, Active, Inactive)."],
+      ["role_access", "Which roles have admin access, and which document categories each role can see."],
+      ["masters, master_tasks", "Game Prep templates and their tasks."],
+      ["sheets, sheet_tasks", "A game's prep sheet, made from a template, and its tasks."],
+      ["projects, project_tasks", "Projects and their tasks."],
+      ["task_notes", "Comments on tasks."],
+      ["task_status_log", "Every status change and assignment on every task, with who and when. Feeds history and Analytics."],
+      ["documents", "Files and links in the Documents tab."],
+      ["conversations, messages, message_reactions, conversation_reads", "Team chat: conversations, messages, emoji reactions and what each person has read."],
+      ["push_subscriptions", "Each device that turned notifications on, linked to a person."]] },
+    { h: "Server logic", rows: [
+      ["is_admin() and row level security", "Database rules: anyone on the team can read, admins can add and delete, and members can only update their own task fields."],
+      ["guard triggers", "Stop non-admins from changing protected task fields, including importance."],
+      ["completed_at triggers", "Stamp the exact time a task is marked Complete."],
+      ["status_log triggers", "Write a task_status_log row whenever a task's status or owner changes."],
+      ["assigned triggers", "Call notify when a task gets a new owner."],
+      ["messages_notify", "Calls notify when a chat message is sent."],
+      ["task-reminders (pg_cron)", "Calls notify once a day for tasks overdue, due today or due tomorrow."]] },
+    { h: "Files in the repository", rows: [
+      ["app.html", "The app."],
+      ["build.sh", "Builds index.html and version.txt for the live site."],
+      ["sw.js", "Service worker: caching and push notifications."],
+      ["manifest.webmanifest, icon.svg, icon-192.png, icon-512.png", "Home Screen install details and icons."],
+      ["supabase/schema.sql", "The database schema, with notes for each later change."],
+      ["supabase/functions/", "Source for the create-account and notify edge functions."],
+      [".github/workflows/pages.yml", "The publish workflow."]] },
+    { h: "Making a change", p: ["Edit app.html and open it directly in a browser to try it in test mode. When it's ready, add a line to UPDATES, commit and push to main; the live app updates within a minute or two.",
+      "Database changes are made in Supabase as migrations and noted at the bottom of supabase/schema.sql. Edge functions are deployed to Supabase from supabase/functions/."] }
+  ];
+  function devDocsView() {
+    return backToDev() + '<div><h1>Developer docs</h1><div class="muted">How the app is built, for anyone working on it. Version ' + appVersion() + '.</div></div>' +
+      DEV_DOCS.map(function (s) {
+        return '<h2>' + esc(s.h) + '</h2><div class="card dev-doc">' + (s.p ? s.p.map(function (x) { return "<p>" + esc(x) + "</p>"; }).join("") : "") +
+          (s.rows ? '<dl class="dev-rows">' + s.rows.map(function (r) { return "<div><dt>" + esc(r[0]) + "</dt><dd>" + esc(r[1]) + "</dd></div>"; }).join("") + "</dl>" : "") + "</div>";
+      }).join("");
   }
   // "Marked done by Bryn"; admins also see exactly when (date and time).
   function fmtStamp(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }) + " at " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); }
@@ -4561,6 +4654,7 @@ table.a-grid td:first-child { min-width: 170px; }
       case "people-settings": peopleSettingsModal(); break;
       case "send-notice": if (isAdmin()) sendNoticeModal(); break;
       case "a-range": view.aRange = t.dataset.range; render(); break;
+      case "open-updates": case "open-devdocs": view.tab = t.dataset.act.slice(5); render(); window.scrollTo(0, 0); break;
       case "back-settings": view.tab = "dashboard"; render(); profileMenu(); break;
       case "team-person": teamPersonModal(t.dataset.name); break;
       case "project-people": var ppj = byId(S.projects, view.projectId); if (ppj && canEditMembers(ppj)) projectPeopleModal(ppj); break;
