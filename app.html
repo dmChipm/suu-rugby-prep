@@ -643,6 +643,11 @@ img.fade.in { opacity: 1; }
 @media (max-width: 480px) { .tasks li.tier-row { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
 /* Status shortcuts */
 .sf-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pj-due { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pj-due label { font-weight: 600; }
+.pj-due input[type=date] { width: auto; padding: 6px 10px; }
+.pj-due-left { font-weight: 600; font-size: .9rem; }
+.pj-due.late .pj-due-left, .pj-due.late b { color: var(--red); }
 .pj-people { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .chip.ro { padding: 3px 12px; }
 .view-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
@@ -2650,6 +2655,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "Projects show their due date right under the name, with how many days are left (or how overdue it is). Project owners and the presidency can set or change it there directly, and overdue projects are flagged on the Projects list."],
     ["2026-10-19", "New Notification center in your profile settings: a record of every notification sent to you (new tasks, reminders, messages and team announcements), with a count of unread ones. It keeps notifications from today on."],
     ["2026-10-19", "Task pop-ups have a Done button at the top as well as the bottom, so you don't have to scroll down to finish. The New task form's Add task button is now Done too."],
     ["2026-10-19", "Projects with no people added no longer show the People label or the \"No one added yet\" line, just an + Add people button for those who can add them."],
@@ -4745,12 +4751,18 @@ table.a-grid td:first-child { min-width: 170px; }
   function preq(pj) { return pj.tasks.filter(function (t) { return !t.optional; }); }
   function ppct(pj) { var r = preq(pj); return r.length ? Math.round(r.filter(isDone).length * 100 / r.length) : 0; }
   function sortProjects(a, b) { var da = ppct(a) === 100 && a.tasks.length, db = ppct(b) === 100 && b.tasks.length; return (da - db) || (a.due || "9999").localeCompare(b.due || "9999") || a.created - b.created; }
+  // A project's own due date: how long is left, or how late it is while required tasks are still open.
+  function projDue(pj) {
+    if (!pj.due) return null;
+    var n = daysBetween(todayIso(), pj.due), done = ppct(pj) === 100 && preq(pj).length > 0;
+    return { late: n < 0 && !done, text: done ? "Finished" : n === 0 ? "Due today" : n === 1 ? "Due tomorrow" : n < 0 ? (n === -1 ? "1 day overdue" : -n + " days overdue") : n + " days left" };
+  }
   function projectCard(pj) {
     var pc = ppct(pj), d = preq(pj).filter(isDone).length, late = pj.tasks.filter(isLate).length, blocked = pj.tasks.filter(function (t) { return t.status === "Blocked"; }).length;
     var meta = [d + " of " + preq(pj).length + " done"]; if (pj.due) meta.push("Due " + fmtShort(pj.due)); if (pj.lead) meta.push("Owner: " + pj.lead);
     return '<button class="item" data-open-project="' + pj.id + '"><div class="ring" style="--p:' + pc + '"><span>' + pc + "%</span></div>" +
       '<div class="grow"><div class="title">' + esc(pj.name) + '</div><div class="muted small">' + esc(meta.join(" · ")) + "</div>" +
-      (late || blocked ? '<div class="meta" style="margin-top:4px">' + (late ? '<span class="flag bad">⚑ ' + late + " overdue</span>" : "") + (blocked ? '<span class="flag bad">⚑ ' + blocked + " blocked</span>" : "") + "</div>" : "") +
+      (late || blocked || (projDue(pj) || {}).late ? '<div class="meta" style="margin-top:4px">' + ((projDue(pj) || {}).late ? '<span class="flag bad">⚑ Project ' + esc(projDue(pj).text) + "</span>" : "") + (late ? '<span class="flag bad">⚑ ' + late + " overdue</span>" : "") + (blocked ? '<span class="flag bad">⚑ ' + blocked + " blocked</span>" : "") + "</div>" : "") +
       '</div><span class="chev" aria-hidden="true">›</span></button>';
   }
   function projectsView() {
@@ -4949,8 +4961,12 @@ table.a-grid td:first-child { min-width: 170px; }
     var h = '<div class="row spread"><button class="btn ghost" data-act="back">‹ All projects</button>' +
       (mgr ? kebab("project-menu", [["edit-project", "Edit details"]].concat(canManageProjects() ? [["archive-project", "Archive"]] : [], isAdmin() ? [["delete-project", "Delete"]] : [])) : "") + "</div>";
     h += "<h1>" + esc(pj.name) + "</h1>";
-    var meta = []; if (pj.lead) meta.push("Owner: " + pj.lead); if (pj.due) meta.push("Due " + fmtDate(pj.due));
-    if (meta.length) h += '<div class="muted">' + esc(meta.join(" · ")) + "</div>";
+    if (pj.lead) h += '<div class="muted">Owner: ' + esc(pj.lead) + "</div>";
+    // Due date: managers set it right here; everyone sees how long is left or how late it is.
+    var pd = projDue(pj);
+    if (pj.due || mgr) h += '<div class="pj-due' + (pd && pd.late ? " late" : "") + '"><span aria-hidden="true">📅</span>' +
+      (mgr ? '<label for="pj-due-inline">Due</label><input type="date" id="pj-due-inline" value="' + esc(pj.due || "") + '"' + (pj.due ? "" : ' aria-label="Add a due date"') + ">" : "<b>Due " + esc(fmtDate(pj.due)) + "</b>") +
+      (pd ? '<span class="pj-due-left">' + esc(pd.text) + "</span>" : mgr ? '<span class="muted small">No due date yet</span>' : "") + "</div>";
     // Purpose: why the project exists, so everyone working on it knows the goal.
     if (pj.description || mgr) h += '<section class="card pj-purpose"><div class="row spread"><h2>Purpose</h2>' + (mgr ? '<button type="button" class="btn ghost" data-act="edit-project">' + (pj.description ? "Edit" : "+ Add") + "</button>" : "") + "</div>" +
       (pj.description ? '<p>' + esc(pj.description) + "</p>" : '<p class="muted">Why are we doing this project, and what does success look like? Add it so everyone knows the goal.</p>') + "</section>";
@@ -5287,6 +5303,7 @@ table.a-grid td:first-child { min-width: 170px; }
     if (t.id === "msg-file" || t.id === "msg-media") { addPending(t.files); t.value = ""; return; }
     if (t.id === "only-flagged") { view.flagged = t.checked; render(); return; }
     if (t.id === "only-mine") { view.mine = t.checked; render(); return; }
+    if (t.id === "pj-due-inline") { var pjd = byId(S.projects, view.projectId); if (pjd && canManageProject(pjd)) { pjd.due = t.value; save(); render(); toast(t.value ? "Project due " + fmtDate(t.value) : "Due date removed"); } return; }
     if (t.dataset.ptoggle) {
       var pj = byId(S.projects, view.projectId), ptask = byId(pj.tasks, t.dataset.ptoggle);
       setStatus(ptask, t.checked ? "Complete" : "Not Started"); save(); render();
