@@ -221,7 +221,6 @@ nav.tabs button { white-space: nowrap; }
 table.grid tr.flag-bad td:first-child { box-shadow: inset 4px 0 0 var(--red); }
 table.grid tr.flag-warn td:first-child { box-shadow: inset 4px 0 0 var(--warn); }
 .imp-mark { color: var(--red); font-weight: 900; }
-.imp-mark.high { color: var(--warn); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* Overdue crucial tasks pulse red; heat-1..5 is days overdue, so the pulse deepens each day. */
 .crit-late { --heat: .14; animation: crit-pulse 3.2s ease-in-out infinite; }
@@ -1618,7 +1617,7 @@ table.a-grid td:first-child { min-width: 170px; }
     var sh = (S.sheets || []).filter(function (x) { return x.tasks.indexOf(t) >= 0; })[0];
     if (sh && req(sh).length && doneCount(sh) === req(sh).length) return pinataShow(sheetTitle(sh) + " is 100% ready!");
     var pj = (S.projects || []).filter(function (x) { return x.tasks.indexOf(t) >= 0; })[0];
-    if (pj && pj.tasks.length && pj.tasks.every(isDone)) return pinataShow(pj.name + " is 100% done!");
+    if (pj && preq(pj).length && preq(pj).every(isDone)) return pinataShow(pj.name + " is 100% done!");
     cannonShow(t.text ? "Done: " + t.text : "");
   }
   function setStatus(t, status, completed) {
@@ -1902,13 +1901,11 @@ table.a-grid td:first-child { min-width: 170px; }
     if (t.owner) { var o = t.owner.trim().toLowerCase(), op = S.people.filter(function (p) { return p.name.trim().toLowerCase() === o; })[0]; if (op && op.status === "Inactive") f.push({ lv: "warn", k: "owner", tx: "Owner deactivated" }); }
     return f;
   }
-  // Importance: "" (normal), "high" or "crucial". Only admins set it.
-  var IMPORTANCE = [["", "Normal"], ["high", "High"], ["crucial", "Crucial"]];
-  function imp(t) { return t && (t.importance === "high" || t.importance === "crucial") ? t.importance : ""; }
+  // Priority: Normal (no mark, the default), Critical (importance "crucial") or Optional (t.optional). A task is at most one of them. Only admins set it.
+  function imp(t) { return t && t.importance === "crucial" && !t.optional ? "crucial" : ""; }
   function ttl(text, t) {
     var lv = imp(t);
-    if (lv === "crucial") return '<span class="imp-mark" aria-hidden="true">!</span> ' + esc(text) + ' <span class="imp-mark" aria-hidden="true">!</span><span class="sr-only"> (crucial)</span>';
-    if (lv === "high") return '<span class="imp-mark high" aria-hidden="true">!</span> ' + esc(text) + '<span class="sr-only"> (high importance)</span>';
+    if (lv === "crucial") return '<span class="imp-mark" aria-hidden="true">!!!</span> ' + esc(text) + ' <span class="imp-mark" aria-hidden="true">!!!</span><span class="sr-only"> (critical)</span>';
     return esc(text);
   }
   // Row classes: the warning stripe, plus a red pulse on overdue crucial tasks that deepens each day it stays late.
@@ -1917,10 +1914,22 @@ table.a-grid td:first-child { min-width: 170px; }
     if (imp(t) === "crucial" && isLate(t)) c += " crit-late heat-" + Math.min(5, daysBetween(t.due, todayIso()));
     return c;
   }
-  function importanceField(id, t, editable) {
-    if (!editable) return imp(t) ? fld("Importance", "", imp(t) === "crucial" ? "Crucial" : "High", false) : "";
-    return '<label class="field">Importance<select id="' + id + '">' + IMPORTANCE.map(function (o) { return '<option value="' + o[0] + '"' + (imp(t) === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select></label>";
+  // Critical and Optional checkboxes (ids prefix-crit and prefix-opt). Ticking one clears the other; neither means Normal.
+  function prioField(prefix, t, editable, optNote) {
+    if (!editable) return imp(t) ? '<div class="muted small">Critical task</div>' : t.optional ? '<div class="muted small">Optional task</div>' : "";
+    return '<div class="field prio"><span>Priority <span class="muted small" style="font-weight:400">leave both unticked for a normal task</span></span><div class="prio-opts">' +
+      '<label class="chk"><input type="checkbox" id="' + prefix + '-crit" data-prio="' + prefix + '-opt"' + (imp(t) ? " checked" : "") + '> <span><b class="imp-mark">!!!</b> Critical</span></label>' +
+      '<label class="chk"><input type="checkbox" id="' + prefix + '-opt" data-prio="' + prefix + '-crit"' + (t.optional ? " checked" : "") + "> <span>Optional <span class=\"muted small\">" + esc(optNote || "doesn't count toward progress") + "</span></span></label></div></div>";
   }
+  function prioRead(el, prefix, t) {
+    var c = el.querySelector("#" + prefix + "-crit"), o = el.querySelector("#" + prefix + "-opt"); if (!c || !o) return;
+    t.importance = c.checked ? "crucial" : ""; t.optional = o.checked && !c.checked;
+  }
+  // Only one of Critical and Optional can be ticked (runs on click, before the change event that autosaves).
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("input[data-prio]"); if (!b || !b.checked) return;
+    var other = document.getElementById(b.dataset.prio); if (other) other.checked = false;
+  });
   function flagLevel(t) { var f = flagsOf(t); return f.some(function (x) { return x.lv === "bad"; }) ? "bad" : f.length ? "warn" : ""; }
   // "No owner" is shown once, as its own tag (noOwnerTag), so it isn't repeated here as a flag.
   function flagChips(t) { return flagsOf(t).filter(function (x) { return x.k !== "blocked" && x.k !== "owner"; }).map(function (x) { return '<span class="flag ' + x.lv + '">⚑ ' + esc(x.tx) + "</span>"; }).join(""); }
@@ -2031,7 +2040,7 @@ table.a-grid td:first-child { min-width: 170px; }
         label: s.label || "", example: !!s.example, rules: s.rules ? cleanRules(s.rules) : null, created_at: new Date(s.created || Date.now()).toISOString() };
       s.tasks.concat(s.archived || []).forEach(function (t, i) {
         r.sheet_tasks[t.id] = { archived_at: arcIso(t), archived_by: t.archivedBy || "", id: t.id, sheet_id: s.id, master_task_id: nul(t.mtId), text: t.text, owner: t.owner || "", details: t.details || "", links: t.links || "", notes: "",
-          due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), position: i, supporters: t.supporters || [], optional: !!t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], importance: imp(t), completed_at: t.completedAt || null };
+          due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), position: i, supporters: t.supporters || [], optional: !!t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], importance: imp(t), optional: !!t.optional, completed_at: t.completedAt || null };
         (t.notesLog || []).forEach(function (n) {
           r.task_notes[n.id] = { id: n.id, sheet_task_id: t.id, author: n.by || "", body: n.text, created_at: new Date(n.at).toISOString() };
         });
@@ -2080,7 +2089,7 @@ table.a-grid td:first-child { min-width: 170px; }
     });
     var stx = {}; d.sheet_tasks.slice().sort(byPos).forEach(function (t) {
       (stx[t.sheet_id] = stx[t.sheet_id] || []).push({ id: t.id, mtId: t.master_task_id, text: t.text, owner: t.owner, details: t.details, links: t.links, notes: "",
-        due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, supporters: t.supporters || [], notesLog: notes[t.id] || [], optional: t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "", importance: t.importance || "", completedAt: t.completed_at || "" });
+        due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, supporters: t.supporters || [], notesLog: notes[t.id] || [], optional: t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "", optional: !!t.optional, importance: t.importance || "", completedAt: t.completed_at || "" });
     });
     st.sheets = d.sheets.map(function (s) {
       return { id: s.id, masterId: s.master_id, masterName: s.master_name, gameInfo: s.game_info, opponent: s.opponent, date: s.date || "", label: s.label,
@@ -2630,6 +2639,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "Critical and Optional checkboxes in every task pop-up replace the Importance setting. A task can be one, the other or neither (Normal, the default). Critical tasks show !!! on both sides of their title everywhere. Project tasks can now be Optional too."],
     ["2026-10-19", "The weekly leaderboard is hidden for now, to be introduced later."],
     ["2026-10-19", "Everything on Analytics can be tapped: the summary numbers, chart titles, chart points, pie slices, bars and table rows open an explanation and the tasks behind the number. Tap a task there to jump to it."],
     ["2026-10-19", "The loading screen has a white cloud in the middle of the sky with Loading... cut out of it, so the blue sky shows through the letters."],
@@ -2676,7 +2686,7 @@ table.a-grid td:first-child { min-width: 170px; }
     ["2026-10-17", "Chat messages now send a notification to everyone else in the conversation."],
     ["2026-10-17", "Ilona Maher grunts when she tackles the piñata."],
     ["2026-10-16", "Push notifications: new tasks, a morning reminder for tasks overdue or due soon, and admin messages to one person or the whole team."],
-    ["2026-10-16", "Task importance (Normal, High, Crucial), set by admins. Crucial tasks show ! on both sides and pulse red when overdue, deeper each day."],
+    ["2026-10-16", "Task importance (Normal, High, Crucial), set by admins (later replaced by the Critical and Optional checkboxes). Crucial tasks show ! on both sides and pulse red when overdue, deeper each day."],
     ["2026-10-16", "Resend invite button in an invited person's pop-up."],
     ["2026-10-16", "The password section in the profile pop-up hides once you have a password."],
     ["2026-10-15", "New teammates can create a password and sign in right away, with no confirmation email."],
@@ -3609,10 +3619,9 @@ table.a-grid td:first-child { min-width: 170px; }
       '<div class="grid2">' + ownerCombo("nt-owner", "") +
       '<label class="field">Due Date<input type="date" id="nt-due"' + (s.date ? ' max="' + esc(s.date) + '"' : "") + "></label></div>" +
       (picks.length ? '<div class="chips nt-picks">' + picks.map(function (x) { return '<button type="button" class="chip-btn" data-off="' + x[0] + '">' + x[1] + "</button>"; }).join("") + '</div><div class="muted small" id="nt-rel"></div>' : "") +
-      importanceField("nt-imp", {}, true) +
+      prioField("nt", {}, true, "doesn't count toward this sheet's progress") +
       supportersField("nt-sup", [], true) +
       fld("Helpful links <span class=\"muted small\" style=\"font-weight:400\">one per line</span>", "nt-links", "", true, "links", ' rows="2" placeholder="https://"') +
-      '<label class="chk small"><input type="checkbox" id="nt-optional"> Optional (doesn\'t count toward this sheet\'s progress)</label>' +
       '<div id="nt-msg" class="small" style="color:var(--red)" hidden></div>' +
       '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary">Add task</button></div></form>',
       function (el) {
@@ -3629,7 +3638,7 @@ table.a-grid td:first-child { min-width: 170px; }
           if (!text) { msg.hidden = false; msg.textContent = "Give the task a name first."; txt.focus(); return; }
           s.tasks.push({ id: uid(), text: text, supporters: sup.slice(), owner: el.querySelector("#nt-owner").value.trim(), details: el.querySelector("#nt-details").value.trim(),
             links: el.querySelector("#nt-links").value.trim(), notes: "", due: due.value, status: "Not Started", done: false, completed: "",
-            importance: el.querySelector("#nt-imp").value, optional: el.querySelector("#nt-optional").checked });
+            importance: el.querySelector("#nt-crit").checked ? "crucial" : "", optional: el.querySelector("#nt-opt").checked && !el.querySelector("#nt-crit").checked });
           save(); closeModal(); render(); toast("Task added");
         });
       });
@@ -3642,11 +3651,10 @@ table.a-grid td:first-child { min-width: 170px; }
       (admin ? fld("Task", "tk-text", t.text, true) : "") +
       '<div class="grid2">' + statusSel + (admin ? ownerCombo("tk-owner", t.owner) : fld("Owner", "", t.owner, false)) +
       fld("Due Date", "tk-due", t.due, admin, "date") + fld("Date Completed", "tk-completed", t.completed, admin, "date") + "</div>" +
-      importanceField("tk-imp", t, admin) +
+      prioField("tk", t, admin, "doesn't count toward this sheet's progress") +
       supportersField("tk-sup", t.supporters || [], canSup) +
       workBlock("tk", admin || isMine(t) || isSupporting(t)) +
       (needsConfirm(t) ? fld("Confirmation <span class=\"muted small\" style=\"font-weight:400\">confirmation number, who confirmed, or other proof</span>", "tk-confirm", t.confirmation || "", true, "text") : "") +
-      (admin ? '<label class="chk small"><input type="checkbox" id="tk-optional"' + (t.optional ? " checked" : "") + "> Optional on this sheet (doesn't count toward progress)</label>" : (t.optional ? '<div class="muted small">Optional task</div>' : "")) +
       (t.due && s.date ? '<div class="muted small" id="tk-rel">Due ' + esc(dueOffsetText(daysBetween(t.due, s.date), s)) + " (" + esc(fmtDate(s.date)) + ")</div>" : "") +
       doneLine(t) + historyHtml() +
       howToBlock(how, false) +
@@ -3691,11 +3699,10 @@ table.a-grid td:first-child { min-width: 170px; }
         autosave = wireAutosave(el, function () {
           if (admin) {
             var name = el.querySelector("#tk-text").value.trim(); if (name) t.text = name;
-            t.owner = el.querySelector("#tk-owner").value.trim(); t.due = el.querySelector("#tk-due").value; t.importance = el.querySelector("#tk-imp").value;
+            t.owner = el.querySelector("#tk-owner").value.trim(); t.due = el.querySelector("#tk-due").value; prioRead(el, "tk", t);
             if (editHow) { t.details = el.querySelector("#tk-details").value.trim(); t.links = el.querySelector("#tk-links").value.trim(); }
           }
           var cf = el.querySelector("#tk-confirm"); if (cf) t.confirmation = cf.value.trim();
-          var op = el.querySelector("#tk-optional"); if (op) t.optional = op.checked;
           if (canSup) t.supporters = sup.filter(function (n) { return n.toLowerCase() !== (t.owner || "").toLowerCase(); });
           setStatus(t, st.value, comp ? comp.value : "");
           save(); render();
@@ -3711,15 +3718,14 @@ table.a-grid td:first-child { min-width: 170px; }
     openModal('<h1 style="font-size:1.3rem">' + ttl(t.text, t) + '</h1><form style="display:flex;flex-direction:column;gap:12px">' +
       (admin ? fld("Task", "mt-text", t.text, true) : "") +
       '<div class="grid2">' + (admin ? ownerCombo("mt-owner", t.owner) : fld("Owner", "", t.owner, false)) + due + "</div>" +
-      importanceField("mt-imp", t, admin) +
+      prioField("mt", t, admin, "doesn't count toward progress; admins can change it on each sheet") +
       supportersField("mt-sup", t.supporters || [], admin) +
       '<div class="field"><span>Subtasks <span class="muted small" style="font-weight:400">copied onto every new sheet</span></span><ul class="subs" id="mt-subs"></ul>' +
       (admin ? '<div class="sub-add"><input type="text" id="mt-subnew" placeholder="Add a subtask" autocomplete="off" aria-label="New subtask">' +
         '<div class="combo"><input type="text" id="mt-subwho" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="mt-subwho-list" placeholder="Assign to (optional)" aria-label="Assign the new subtask to">' +
         '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="mt-subwho-list" role="listbox" hidden></ul></div>' +
         '<button type="button" class="btn" id="mt-subadd">Add</button></div>' : "") + "</div>" +
-      '<div class="opts"><label class="chk small"><input type="checkbox" id="mt-optional"' + (t.optional ? " checked" : "") + (admin ? "" : " disabled") + "> Optional task (admins can change this on each sheet)</label>" +
-      '<label class="chk small"><input type="checkbox" id="mt-confirm"' + (t.needsConfirm ? " checked" : "") + (admin ? "" : " disabled") + "> Add a Confirmation box to this task</label></div>" +
+      '<div class="opts"><label class="chk small"><input type="checkbox" id="mt-confirm"' + (t.needsConfirm ? " checked" : "") + (admin ? "" : " disabled") + "> Add a Confirmation box to this task</label></div>" +
       (admin ? fld("Details <span class=\"muted small\" style=\"font-weight:400\">how to do this task</span>", "mt-details", t.details, true, "area", ' rows="6" placeholder="Explain the steps, who to contact, and anything to watch out for."') : howToBlock(t.details, true)) +
       fld("Links <span class=\"muted small\" style=\"font-weight:400\">" + (admin ? "one per line" : "") + "</span>", "mt-links", t.links, admin, "links", ' placeholder="https://"') +
       '<p class="muted small" style="margin:0">Status, Date Completed and Other Notes are tracked on each game sheet. The due date is worked out from the ' + what + ' date when a sheet is created.</p>' +
@@ -3736,9 +3742,9 @@ table.a-grid td:first-child { min-width: 170px; }
         });
         autosave = wireAutosave(el, function () {
           var name = el.querySelector("#mt-text").value.trim(); if (name) t.text = name;
-          t.owner = el.querySelector("#mt-owner").value.trim(); t.importance = el.querySelector("#mt-imp").value;
+          t.owner = el.querySelector("#mt-owner").value.trim(); prioRead(el, "mt", t);
           t.supporters = msup.filter(function (n) { return n.toLowerCase() !== t.owner.toLowerCase(); });
-          t.optional = el.querySelector("#mt-optional").checked; t.needsConfirm = el.querySelector("#mt-confirm").checked;
+          t.needsConfirm = el.querySelector("#mt-confirm").checked;
           var off = el.querySelector("#mt-off").value.trim(); t.dueOffset = off === "" || isNaN(off) ? null : Math.round(Number(off));
           t.details = el.querySelector("#mt-details").value.trim(); t.links = el.querySelector("#mt-links").value.trim();
           save(); render();
@@ -4692,11 +4698,13 @@ table.a-grid td:first-child { min-width: 170px; }
   }
   function canManageProjects() { return isAdmin() || PROJECT_ROLES.indexOf(currentUser().role) >= 0; }
   function canManageProject(pj) { return canManageProjects() || !!(pj && nameIsMe(pj.lead)); }
-  function ppct(pj) { return pj.tasks.length ? Math.round(pj.tasks.filter(isDone).length * 100 / pj.tasks.length) : 0; }
+  // A project's required tasks: optional ones don't count toward its progress.
+  function preq(pj) { return pj.tasks.filter(function (t) { return !t.optional; }); }
+  function ppct(pj) { var r = preq(pj); return r.length ? Math.round(r.filter(isDone).length * 100 / r.length) : 0; }
   function sortProjects(a, b) { var da = ppct(a) === 100 && a.tasks.length, db = ppct(b) === 100 && b.tasks.length; return (da - db) || (a.due || "9999").localeCompare(b.due || "9999") || a.created - b.created; }
   function projectCard(pj) {
-    var pc = ppct(pj), d = pj.tasks.filter(isDone).length, late = pj.tasks.filter(isLate).length, blocked = pj.tasks.filter(function (t) { return t.status === "Blocked"; }).length;
-    var meta = [d + " of " + pj.tasks.length + " done"]; if (pj.due) meta.push("Due " + fmtShort(pj.due)); if (pj.lead) meta.push("Owner: " + pj.lead);
+    var pc = ppct(pj), d = preq(pj).filter(isDone).length, late = pj.tasks.filter(isLate).length, blocked = pj.tasks.filter(function (t) { return t.status === "Blocked"; }).length;
+    var meta = [d + " of " + preq(pj).length + " done"]; if (pj.due) meta.push("Due " + fmtShort(pj.due)); if (pj.lead) meta.push("Owner: " + pj.lead);
     return '<button class="item" data-open-project="' + pj.id + '"><div class="ring" style="--p:' + pc + '"><span>' + pc + "%</span></div>" +
       '<div class="grow"><div class="title">' + esc(pj.name) + '</div><div class="muted small">' + esc(meta.join(" · ")) + "</div>" +
       (late || blocked ? '<div class="meta" style="margin-top:4px">' + (late ? '<span class="flag bad">⚑ ' + late + " overdue</span>" : "") + (blocked ? '<span class="flag bad">⚑ ' + blocked + " blocked</span>" : "") + "</div>" : "") +
@@ -4905,13 +4913,13 @@ table.a-grid td:first-child { min-width: 170px; }
     h += '<div class="pj-people"><span class="muted small">People</span>' + (mem.length ? mem.map(function (n) { return '<span class="chip ro">' + esc(n) + "</span>"; }).join("")
       : '<span class="muted small">' + (canMem ? "No one added yet, so tasks can go to anyone." : "Anyone on the team") + "</span>") +
       (canMem ? '<button type="button" class="btn ghost" data-act="project-people">' + (mem.length ? "Edit" : "+ Add people") + "</button>" : "") + "</div>";
-    h += '<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="row spread"><strong>' + pj.tasks.filter(isDone).length + " of " + pj.tasks.length + ' tasks done</strong><span class="muted small">' + pc + "%</span></div>" +
+    h += '<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="row spread"><strong>' + preq(pj).filter(isDone).length + " of " + preq(pj).length + ' tasks done</strong><span class="muted small">' + pc + "%</span></div>" +
       '<div class="bar"><i style="width:' + pc + '%"></i></div>' + sfChips(pj.tasks, view.sf) + "</div>";
     var pshown = pj.tasks.filter(function (t) { return matchSF(t, view.sf); });
     h += sfBanner(view.sf, pshown.length);
     h += '<div class="card"><ul class="tasks">' + (pshown.length ? pshown.map(function (t) {
       return '<li class="' + (isDone(t) ? "is-done" : "") + rowFlags(t) + '"><label class="check" title="Mark done"><input type="checkbox" id="pt-' + t.id + '" data-ptoggle="' + t.id + '" aria-label="Done: ' + esc(t.text) + '" ' + (isDone(t) ? "checked" : "") + "></label>" +
-        '<button class="tmain" data-open-ptask="' + t.id + '"><span class="txt">' + ttl(t.text, t) + '</span><span class="meta">' + statusPill(t) + flagChips(t) + (t.owner ? "<span>" + esc(t.owner) + ((t.supporters || []).length ? " +" + t.supporters.length : "") + "</span>" : noOwnerTag()) + (workTags(t).length ? '<span class="tag">' + workTags(t).join(" · ") + "</span>" : "") +
+        '<button class="tmain" data-open-ptask="' + t.id + '"><span class="txt">' + ttl(t.text, t) + '</span><span class="meta">' + statusPill(t) + flagChips(t) + (t.optional ? '<span class="tag">Optional</span>' : "") + (t.owner ? "<span>" + esc(t.owner) + ((t.supporters || []).length ? " +" + t.supporters.length : "") + "</span>" : noOwnerTag()) + (workTags(t).length ? '<span class="tag">' + workTags(t).join(" · ") + "</span>" : "") +
         (t.due ? '<span class="' + (isLate(t) ? "late" : "") + '">Due ' + esc(fmtShort(t.due)) + "</span>" : "") + "</span></button></li>";
     }).join("") : '<li class="muted">No tasks yet.</li>') + "</ul>" +
       (mgr ? '<form class="add" id="f-add-ptask"><input type="text" id="new-ptask" placeholder="Add a task" aria-label="New task" autocomplete="off"><button class="btn primary">Add</button></form>' : "") + "</div>";
@@ -4950,7 +4958,7 @@ table.a-grid td:first-child { min-width: 170px; }
       (mgr ? fld("Task", "pk-text", t.text, true) : "") +
       '<div class="grid2">' + statusSel + (mgr ? ownerCombo("pk-owner", t.owner) : fld("Owner", "", t.owner, false)) +
       fld("Due Date", "pk-due", t.due, mgr, "date") + fld("Date Completed", "pk-completed", t.completed, true, "date") + "</div>" +
-      importanceField("pk-imp", t, isAdmin()) +
+      prioField("pk", t, isAdmin(), "doesn't count toward the project's progress") +
       supportersField("pk-sup", t.supporters || [], mgr) +
       doneLine(t) + historyHtml() +
       workBlock("pk", canWork) +
@@ -4972,7 +4980,7 @@ table.a-grid td:first-child { min-width: 170px; }
             var n = el.querySelector("#pk-text").value.trim(); if (n) t.text = n; t.owner = el.querySelector("#pk-owner").value.trim(); t.due = el.querySelector("#pk-due").value;
             t.supporters = psup.filter(function (x) { return x.toLowerCase() !== (t.owner || "").toLowerCase(); });
           }
-          var pim = el.querySelector("#pk-imp"); if (pim && isAdmin()) t.importance = pim.value;
+          if (isAdmin()) prioRead(el, "pk", t);
           t.notes = el.querySelector("#pk-notes").value.trim();
           setStatus(t, st.value, comp.value); save(); render();
         }, ["pk-sup"].concat(workSkip("pk")));
