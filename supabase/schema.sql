@@ -268,3 +268,19 @@ create or replace function public.mark_notifications_read() returns void languag
 revoke all on function public.mark_notifications_read() from public, anon;
 grant execute on function public.mark_notifications_read() to authenticated;
 alter table public.project_tasks add column if not exists optional boolean not null default false;
+
+-- Calendar subscriptions: one private token per person; the calendar edge function serves their feed at ?t=<token>.
+create table if not exists public.calendar_feeds (person_id text primary key references public.people(id) on delete cascade, token text not null unique default encode(gen_random_bytes(18), 'hex'), created_at timestamptz not null default now());
+alter table public.calendar_feeds enable row level security;
+revoke all on public.calendar_feeds from anon, authenticated;
+create or replace function public.my_calendar_token(p_reset boolean default false) returns text language plpgsql security definer set search_path = public, extensions as '
+declare me text := public.current_person_id(); tok text;
+begin
+  if me is null then raise exception ''not signed in''; end if;
+  if p_reset then delete from public.calendar_feeds where person_id = me; end if;
+  insert into public.calendar_feeds(person_id) values (me) on conflict (person_id) do nothing;
+  select token into tok from public.calendar_feeds where person_id = me;
+  return tok;
+end';
+revoke all on function public.my_calendar_token(boolean) from public, anon;
+grant execute on function public.my_calendar_token(boolean) to authenticated;
