@@ -727,6 +727,9 @@ ul.hist li { display: flex; flex-direction: column; }
 .lb-n { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
 .lb-1 .lb-name { font-size: 1.1rem; }
 .lb-list li.lb-me .lb-name { color: var(--red); }
+.pj-purpose { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; border-left: 4px solid var(--red); }
+.pj-purpose h2 { margin: 0; font-size: 1.05rem; }
+.pj-purpose p { margin: 0; white-space: pre-wrap; }
 .a-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .a-tile { padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .a-big { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
@@ -2639,6 +2642,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "Each project has a Purpose section at the top explaining why it exists and what success looks like. Project owners and the presidency can add or edit it."],
     ["2026-10-19", "Critical and Optional checkboxes in every task pop-up replace the Importance setting. A task can be one, the other or neither (Normal, the default). Critical tasks show !!! on both sides of their title everywhere. Project tasks can now be Optional too."],
     ["2026-10-19", "The weekly leaderboard is hidden for now, to be introduced later."],
     ["2026-10-19", "Everything on Analytics can be tapped: the summary numbers, chart titles, chart points, pie slices, bars and table rows open an explanation and the tasks behind the number. Tap a task there to jump to it."],
@@ -4908,7 +4912,9 @@ table.a-grid td:first-child { min-width: 170px; }
     h += "<h1>" + esc(pj.name) + "</h1>";
     var meta = []; if (pj.lead) meta.push("Owner: " + pj.lead); if (pj.due) meta.push("Due " + fmtDate(pj.due));
     if (meta.length) h += '<div class="muted">' + esc(meta.join(" · ")) + "</div>";
-    if (pj.description) h += '<p style="margin:0;white-space:pre-wrap">' + esc(pj.description) + "</p>";
+    // Purpose: why the project exists, so everyone working on it knows the goal.
+    if (pj.description || mgr) h += '<section class="card pj-purpose"><div class="row spread"><h2>Purpose</h2>' + (mgr ? '<button type="button" class="btn ghost" data-act="edit-project">' + (pj.description ? "Edit" : "+ Add") + "</button>" : "") + "</div>" +
+      (pj.description ? '<p>' + esc(pj.description) + "</p>" : '<p class="muted">Why are we doing this project, and what does success look like? Add it so everyone knows the goal.</p>') + "</section>";
     var mem = pj.members || [], canMem = canEditMembers(pj);
     h += '<div class="pj-people"><span class="muted small">People</span>' + (mem.length ? mem.map(function (n) { return '<span class="chip ro">' + esc(n) + "</span>"; }).join("")
       : '<span class="muted small">' + (canMem ? "No one added yet, so tasks can go to anyone." : "Anyone on the team") + "</span>") +
@@ -4931,7 +4937,7 @@ table.a-grid td:first-child { min-width: 170px; }
     var isNew = !pj; pj = pj || { name: "", description: "", lead: "", due: "" };
     openModal("<h1>" + (isNew ? "New project" : "Project details") + '</h1><form id="f-project" style="display:flex;flex-direction:column;gap:12px">' +
       fld("Name", "pj-name", pj.name, true, "text", ' required placeholder="e.g. Spring fundraiser"') +
-      fld("What it's for", "pj-desc", pj.description, true, "area", ' placeholder="One or two lines so everyone knows the goal"') +
+      fld("Purpose <span class=\"muted small\" style=\"font-weight:400\">why we're doing it and what success looks like</span>", "pj-desc", pj.description, true, "area", ' rows="4" placeholder="e.g. Raise $3,000 for the spring tour so travel costs don\'t fall on players."') +
       '<div class="grid2">' + ownerCombo("pj-lead", pj.lead) + fld("Due Date", "pj-due", pj.due, true, "date") + "</div>" +
       (isNew ? '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary">Create project</button></div>'
         : '<div class="row" style="justify-content:flex-end"><span class="muted small">Changes save automatically</span><button type="button" class="btn primary" data-close>Done</button></div>') + "</form>",
