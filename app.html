@@ -2630,6 +2630,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "The weekly leaderboard is hidden for now, to be introduced later."],
     ["2026-10-19", "Everything on Analytics can be tapped: the summary numbers, chart titles, chart points, pie slices, bars and table rows open an explanation and the tasks behind the number. Tap a task there to jump to it."],
     ["2026-10-19", "The loading screen has a white cloud in the middle of the sky with Loading... cut out of it, so the blue sky shows through the letters."],
     ["2026-10-19", "The loading screen's cloud letters are puffy grey."],
@@ -4147,8 +4148,10 @@ table.a-grid td:first-child { min-width: 170px; }
       return '<section class="todo-sec"><div class="row spread"><h2>' + title + '</h2><span class="muted small">' + n + " open</span></div>" +
         (open.length ? taskGroups(open) : '<div class="card empty">' + (any ? "Everything you're in charge of here is done. Legend! 🎉" : none) + "</div>") + "</section>";
     }
-    return h + leaderboardHtml() + section("Game Prep", sg, "Nothing on upcoming game or event sheets is assigned to you.") + section("Projects", pg, "No project tasks are assigned to you.");
+    return h + (SHOW_LEADERBOARD ? leaderboardHtml() : "") + section("Game Prep", sg, "Nothing on upcoming game or event sheets is assigned to you.") + section("Projects", pg, "No project tasks are assigned to you.");
   }
+  // The leaderboard is built but hidden for now; set this to true to show it on My Tasks again.
+  var SHOW_LEADERBOARD = false;
   // This week's leaderboard (Monday to Sunday): the top three people by tasks marked done, credited to who marked it done.
   function leaderboardHtml() {
     var t0 = todayIso(), dow = (new Date(t0 + "T12:00:00").getDay() + 6) % 7, mon = addDays(t0, -dow), counts = {};
