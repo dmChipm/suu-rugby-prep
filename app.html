@@ -484,11 +484,9 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .boot-loader::before { content: ""; position: absolute; left: 0; right: 0; top: var(--ground); border-top: 2px solid #2d6e2a; }
 .boot-loader.out { opacity: 0; pointer-events: none; }
 .bl-scene { position: absolute; width: var(--w); height: auto; left: 50%; top: calc(var(--ground) - var(--w) * .375); transform: translateX(-50%); display: block; overflow: visible; }
-/* "Loading..." in puffy grey cloud letters: rounded type puffed out by offset grey copies, lighter on top and darker underneath, each letter bobbing. */
-.bl-word { position: absolute; left: 0; right: 0; top: calc(var(--ground) * .26); text-align: center; font-family: "Fredoka", "Nunito", system-ui, sans-serif; font-weight: 700; font-size: clamp(2.6rem, 12vw, 6rem); line-height: 1.2; letter-spacing: .06em; color: #c3c9d1; pointer-events: none; white-space: nowrap; }
-.bl-word span { display: inline-block; animation: bl-puff 2.6s ease-in-out infinite;
-  text-shadow: .045em .035em 0 #c3c9d1, -.045em .035em 0 #c3c9d1, .035em -.045em 0 #d3d8de, -.035em -.045em 0 #d3d8de, 0 -.06em 0 #dde1e6, 0 .07em 0 #a9b0ba, .03em .1em .06em rgba(60, 70, 85, .25); }
-@keyframes bl-puff { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-.06em) scale(1.04); } }
+/* A cloud bank in the middle of the sky with "Loading..." cut out of it, so the blue sky shows through the letters. */
+.bl-cloud { position: absolute; left: 50%; top: calc(var(--ground) * .2); width: min(92vw, 620px); height: auto; transform: translateX(-50%); overflow: visible; pointer-events: none; animation: bl-drift 3s ease-in-out infinite; filter: drop-shadow(0 6px 10px rgba(30, 80, 130, .18)); }
+@keyframes bl-drift { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
 .boot-loader .ps-runner { position: static; filter: none; }
 .boot-loader .ps-runner.run .rn-legf, .boot-loader .ps-runner.run .rn-legb, .boot-loader .ps-runner.run .rn-armf, .boot-loader .ps-runner.run .rn-armb { animation-duration: .18s; }
 .boot-loader .ps-runner.run .rn-bob { animation-duration: .09s; }
@@ -517,7 +515,7 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
   0%, 76.9% { transform: translate(226px, 178px) rotate(-30deg); opacity: 0; } 77%, 87% { transform: translate(226px, 178px) rotate(-30deg); opacity: 1; }
   90.5% { transform: translate(278px, 96px) rotate(150deg) scale(.9); } 93.5% { transform: translate(324px, 56px) rotate(330deg) scale(.7); }
   97% { transform: translate(366px, 44px) rotate(520deg) scale(.35); opacity: 1; } 99%, 100% { transform: translate(376px, 42px) rotate(560deg) scale(0); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .bl-word span, .bl-pos, .bl-pose, .bl-carry, .bl-kick, .boot-loader .ps-runner * { animation: none !important; } .bl-pos { transform: translate(150px, 182px); } .bl-kick { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bl-cloud, .bl-pos, .bl-pose, .bl-carry, .bl-kick, .boot-loader .ps-runner * { animation: none !important; } .bl-pos { transform: translate(150px, 182px); } .bl-kick { opacity: 0; } }
 .ps-skip { position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: .78rem; color: rgba(255, 255, 255, .55); }
 @keyframes ps-neon-on { 0% { opacity: 0; } 8% { opacity: 1; } 14% { opacity: .15; } 22% { opacity: 1; } 30% { opacity: .35; } 36%, 70% { opacity: 1; } 74% { opacity: .55; } 78%, 100% { opacity: 1; } }
 @keyframes np-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1103,6 +1101,11 @@ table.a-grid td:first-child { min-width: 170px; }
   // ---------- loading screen ----------
   // A white and red rugby ball centered on (0,0), about 26 wide.
   var BL_BALL = '<ellipse rx="13" ry="8" fill="#fff" stroke="#14161c" stroke-width="2"/><g transform="scale(.84 .8) translate(-17 -12)" fill="none" stroke-linecap="round"><path d="M3.5 15 C11 5.5 22 19.5 30.5 9" stroke="#c8102e" stroke-width="4"/><path d="M6.5 18.6 C13.5 11.5 22.5 23 28.8 14.2" stroke="#14161c" stroke-width="1.6"/></g>';
+  // The cloud bank: overlapping puffs, with the word masked out of it.
+  var BL_CLOUD = '<svg class="bl-cloud" viewBox="0 -16 400 166" aria-label="Loading"><defs><mask id="bl-cut" maskUnits="userSpaceOnUse" x="0" y="-16" width="400" height="166">' +
+    '<rect y="-16" width="400" height="166" fill="#fff"/><text x="200" y="98" text-anchor="middle" font-family="Fredoka, Nunito, system-ui, sans-serif" font-weight="700" font-size="54" letter-spacing="2" fill="#000">Loading...</text></mask></defs>' +
+    '<g mask="url(#bl-cut)" fill="#fff">' + [[52, 92, 34], [92, 70, 42], [140, 52, 48], [196, 44, 52], [252, 54, 46], [300, 70, 42], [342, 90, 34], [120, 100, 36], [200, 104, 40], [280, 100, 36]].map(function (c) { return '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="' + c[2] + '"/>'; }).join("") +
+    '<rect x="52" y="90" width="290" height="42" rx="21"/></g></svg>';
   function loaderHtml(preview) {
     return '<svg class="bl-scene" viewBox="0 0 400 220" role="img" aria-label="An SUU player scores a try and kicks the conversion">' +
       // The sky and field are the loading screen's own background, so lines run on past the drawing to the bottom of the screen.
@@ -1124,8 +1127,7 @@ table.a-grid td:first-child { min-width: 170px; }
   }
   var bootLoader = null, bootStart = Date.now();
   function showLoader(preview) {
-    var el = document.createElement("div"); el.className = "boot-loader"; el.setAttribute("role", "status"); el.innerHTML = loaderHtml(preview) +
-      '<div class="bl-word">' + "Loading...".split("").map(function (c, i) { return '<span style="animation-delay:' + (-i * .22).toFixed(2) + 's">' + c + "</span>"; }).join("") + "</div>";
+    var el = document.createElement("div"); el.className = "boot-loader"; el.setAttribute("role", "status"); el.innerHTML = loaderHtml(preview) + BL_CLOUD;
     document.body.appendChild(el);
     if (preview) el.addEventListener("click", function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 420); });
     return el;
@@ -2617,6 +2619,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "The loading screen has a white cloud in the middle of the sky with Loading... cut out of it, so the blue sky shows through the letters."],
     ["2026-10-19", "The loading screen's cloud letters are puffy grey."],
     ["2026-10-19", "A weekly leaderboard on My Tasks: the top three people by tasks finished this week (Monday to Sunday), with gold, silver and bronze medals."],
     ["2026-10-19", "The loading screen's cloud letters are softer: plain whimsical white with no glow."],
