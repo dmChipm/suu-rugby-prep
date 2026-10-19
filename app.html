@@ -724,6 +724,8 @@ ul.hist li { display: flex; flex-direction: column; }
 .set-items li { align-items: center; gap: 12px; }
 .set-items li.push-box { flex-direction: row; border-top: 0; padding-top: 10px; }
 .set-items .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.oa-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.ai-steps p { margin: 0 0 8px; }
 .cal-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .cal-btns .btn { text-decoration: none; }
 .cal-copy { flex-wrap: nowrap; gap: 8px; margin-top: 4px; }
@@ -2049,6 +2051,12 @@ table.a-grid td:first-child { min-width: 170px; }
   var CFG = window.RUGBY_CONFIG || null;
   var ONLINE = !!(CFG && window.supabase && window.supabase.createClient);
   var sb = ONLINE ? window.supabase.createClient(CFG.url, CFG.key) : null;
+  // An AI assistant asking to connect (OAuth): Supabase Auth sends the person here with ?authorization_id=. Kept until they're signed in.
+  var OAUTH_KEY = KEY + "-oauth";
+  if (ONLINE) try {
+    var oaId = new URLSearchParams(location.search).get("authorization_id");
+    if (oaId) { localStorage.setItem(OAUTH_KEY, JSON.stringify({ id: oaId, at: Date.now() })); history.replaceState(null, "", location.pathname); }
+  } catch (e) {}
   var auth = { state: ONLINE ? "loading" : "ready", email: "", sent: false, error: "", mode: "signin", note: "" };
   // Arriving from a "reset your password" email: show the new-password form before entering the app.
   try { auth.recovery = /type=recovery/.test(location.hash); } catch (e) { auth.recovery = false; }
@@ -2242,7 +2250,7 @@ table.a-grid td:first-child { min-width: 170px; }
       meId = r.data.id; refreshPush();
       return pull().then(function () {
         if (auth.state === "notinvited") return;
-        auth.state = "ready"; render();
+        auth.state = "ready"; render(); resumeOAuth();
         sb.channel("team").on("postgres_changes", { event: "*", schema: "public" }, schedulePull).subscribe();
       });
     }).catch(function (e) { auth.state = "signedout"; auth.error = "Sign-in didn't finish. " + (e && e.message ? e.message : ""); render(); });
@@ -2257,6 +2265,38 @@ table.a-grid td:first-child { min-width: 170px; }
     sb.auth.getSession().then(function (r) {
       if (r.data && r.data.session) startSession(r.data.session); else { auth.state = "signedout"; render(); }
     });
+  }
+
+  // Consent screen for an AI assistant (Claude, ChatGPT…) connecting to the team app through the mcp edge function.
+  function oauthCall(method, id, body) {
+    return sb.auth.getSession().then(function (r) {
+      var tok = r.data && r.data.session && r.data.session.access_token;
+      return fetch(CFG.url.replace(/\/$/, "") + "/auth/v1/oauth/authorizations/" + encodeURIComponent(id) + (body ? "/consent" : ""), {
+        method: method, headers: { apikey: CFG.key, Authorization: "Bearer " + tok, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined
+      }).then(function (res) { return res.json().then(function (j) { if (!res.ok) throw new Error(j.msg || j.message || j.error_description || "Request failed"); return j; }); });
+    });
+  }
+  function resumeOAuth() {
+    var p = null; try { p = JSON.parse(localStorage.getItem(OAUTH_KEY) || "null"); localStorage.removeItem(OAUTH_KEY); } catch (e) {}
+    if (!p || !p.id || Date.now() - p.at > 15 * 60e3) return;
+    oauthCall("GET", p.id).then(function (d) {
+      if (d.redirect_url && !d.authorization_id) { location.assign(d.redirect_url); return; } // already approved before
+      var who = (d.client && (d.client.name || d.client.client_name)) || "An AI assistant", host = "";
+      try { host = new URL(d.redirect_uri || (d.client && d.client.redirect_uris && d.client.redirect_uris[0]) || "").host; } catch (e) {}
+      openModal('<h1>Connect ' + esc(who) + "?</h1>" +
+        "<p style=\"margin:0\"><b>" + esc(who) + "</b>" + (host ? ' <span class="muted small">(' + esc(host) + ")</span>" : "") + " wants to use the team app as you, <b>" + esc(currentUser().name) + "</b>. It will be able to:</p>" +
+        '<ul class="oa-list"><li>See game sheets, projects, tasks, the team list and your notifications</li><li>Change task status, owners, due dates and notes, and add tasks where you\'re allowed to</li><li>Read your chats and send messages as you</li></ul>' +
+        '<p class="muted small" style="margin:0">Only connect assistants you use yourself. You can disconnect it from the assistant\'s settings at any time.</p>' +
+        '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" id="oa-deny">Don\'t allow</button><button type="button" class="btn primary" id="oa-ok">Allow</button></div>', function (el) {
+          function decide(action) {
+            el.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+            oauthCall("POST", p.id, { action: action }).then(function (r) { if (r.redirect_url) location.assign(r.redirect_url); else closeModal(); })
+              .catch(function (e) { closeModal(); toast("That didn't go through: " + e.message + ". Try connecting again from the assistant."); });
+          }
+          el.querySelector("#oa-ok").addEventListener("click", function () { decide("approve"); });
+          el.querySelector("#oa-deny").addEventListener("click", function () { decide("deny"); });
+        });
+    }).catch(function (e) { toast("Couldn't load the connection request: " + e.message + ". Try connecting again from the assistant."); });
   }
 
   function appUrl() { return (CFG && CFG.appUrl) || location.origin + location.pathname; }
@@ -2682,6 +2722,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "Connect an AI assistant in your profile settings: add the team app to Claude or ChatGPT as a connector, sign in, and ask it about your tasks, update them, add tasks or send messages. It acts as you, with the same access you have in the app."],
     ["2026-10-19", "Fixes from a full walkthrough: opening a task on a phone no longer pops up the keyboard; the header is much shorter on phones, with the tabs on one row you can swipe; the Game Prep page lists each task once instead of up to three times; My progress on Projects shows only project work; and tasks on a game sheet are sorted with overdue and blocked first, then by due date."],
     ["2026-10-19", "Add to my calendar in your profile settings: subscribe Google Calendar or Apple Calendar to your own tasks, your projects' due dates and every game day. It keeps itself up to date."],
     ["2026-10-19", "Projects show their due date right under the name, with how many days are left (or how overdue it is). Project owners and the presidency can set or change it there directly, and overdue projects are flagged on the Projects list."],
@@ -2944,6 +2985,18 @@ table.a-grid td:first-child { min-width: 170px; }
     var pj = byId(S.projects || [], id); return pj ? pj.name : "A project";
   }
   // Admins: every status change and assignment, newest first.
+  // How to connect an AI assistant to the mcp edge function. The assistant signs in with the person's own account.
+  function aiConnectModal() {
+    var url = (CFG && CFG.url ? CFG.url.replace(/\/$/, "") : "https://qjzwafkobntrglqcwctj.supabase.co") + "/functions/v1/mcp";
+    openModal('<h1>Connect an AI assistant</h1><p style="margin:0">Add the team app to Claude, ChatGPT or any assistant that supports MCP connectors. Then you can ask it things like "What are my tasks this week?", "Mark Field Booked done" or "Message the team that practice moved to 6pm".</p>' +
+      '<label class="small" for="ai-url" style="font-weight:600">Connector address</label><div class="row cal-copy"><input type="text" id="ai-url" readonly value="' + esc(url) + '"><button type="button" class="btn" id="ai-copy">Copy</button></div>' +
+      '<div class="ai-steps"><p><b>Claude:</b> Settings › Connectors › Add custom connector. Name it SUU Rugby, paste the address and tap Add, then Connect.</p>' +
+      '<p><b>ChatGPT:</b> Settings › Apps &amp; Connectors › Advanced settings, turn on Developer mode, then back in Apps &amp; Connectors tap Create. Paste the address, choose OAuth and create it.</p>' +
+      "<p>Either way you'll be sent here to sign in and tap Allow. The assistant then acts as you, so it can only see and change what you can in the app.</p></div>" +
+      '<div class="row" style="justify-content:flex-end"><button class="btn" data-close>Close</button></div>', function (el) {
+        el.querySelector("#ai-copy").addEventListener("click", function () { copyText(url, "Connector address copied", el.querySelector("#ai-url")); });
+      });
+  }
   // Calendar subscription: a private feed of your tasks, your projects' due dates and game days (the calendar edge function).
   function calendarModal() {
     openModal('<h1>Add to my calendar</h1><p style="margin:0">See your tasks with due dates, your projects\' due dates and every game day in Google Calendar or Apple Calendar. It updates on its own as things change, though calendars can take a few hours to pick up changes.</p>' +
@@ -4067,6 +4120,7 @@ table.a-grid td:first-child { min-width: 170px; }
       (ONLINE ? '<li class="push-box" id="set-push"><div class="grow"><strong>Notifications</strong><div class="push-text muted small"></div></div><button type="button" class="btn push-btn" hidden>Turn on</button></li>' : "") +
       '<li><button type="button" class="set-link" id="set-notif-center"><strong>Notification center <span class="nc-badge" hidden></span></strong><span class="muted small">Every notification sent to you</span></button><span aria-hidden="true">›</span></li>' +
       '<li><button type="button" class="set-link" id="set-calendar"><strong>Add to my calendar</strong><span class="muted small">Your tasks and game days in Google or Apple Calendar</span></button><span aria-hidden="true">›</span></li>' +
+      '<li><button type="button" class="set-link" id="set-ai"><strong>Connect an AI assistant</strong><span class="muted small">Use the team app from Claude, ChatGPT and others</span></button><span aria-hidden="true">›</span></li>' +
       '<li><label class="chk" for="set-sound"><input type="checkbox" id="set-sound"' + (soundOn() ? " checked" : "") + "> Celebration sounds</label></li>" +
       (isAdmin() ? '<li><button type="button" class="set-link" id="set-open-analytics"><strong>Analytics</strong><span class="muted small">Who finishes what, how often and how fast</span></button><span aria-hidden="true">›</span></li>' +
         '<li><button type="button" class="set-link" id="set-status-log"><strong>Status log</strong><span class="muted small">Every status change and assignment</span></button><span aria-hidden="true">›</span></li>' +
@@ -4080,6 +4134,7 @@ table.a-grid td:first-child { min-width: 170px; }
     if (ONLINE) sb.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null).then(function (r) {
       var b = nc.querySelector(".nc-badge"); if (!r.error && r.count) { b.textContent = r.count > 99 ? "99+" : r.count; b.hidden = false; }
     });
+    el.querySelector("#set-ai").addEventListener("click", function () { closeModal(); aiConnectModal(); });
     el.querySelector("#set-calendar").addEventListener("click", function () { closeModal(); calendarModal(); });
     var oa = el.querySelector("#set-open-analytics"); if (oa) oa.addEventListener("click", openAnalytics);
     var sl = el.querySelector("#set-status-log"); if (sl) sl.addEventListener("click", function () { closeModal(); statusLogModal(); });

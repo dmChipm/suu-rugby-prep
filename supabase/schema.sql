@@ -284,3 +284,8 @@ begin
 end';
 revoke all on function public.my_calendar_token(boolean) from public, anon;
 grant execute on function public.my_calendar_token(boolean) to authenticated;
+
+-- AI assistant connector (edge function "mcp", verify_jwt off): a remote MCP server for Claude, ChatGPT and other clients.
+--   It signs people in with Supabase Auth's OAuth 2.1 server (Authentication > OAuth Server: enabled, dynamic client registration on,
+--   authorization path pointing at the app, which shows the Allow screen for ?authorization_id=). Every query runs with the person's
+--   own token, so the policies above decide what an assistant can see and change.
