@@ -4097,12 +4097,13 @@ table.a-grid td:first-child { min-width: 170px; }
     rows.forEach(function (r, i) { if (r.name.toLowerCase() === meKey) myRank = i; });
     var medals = ["🥇", "🥈", "🥉"], top = rows.slice(0, 3);
     var h = '<section class="lb"><div class="row spread"><h2>This week\'s leaders</h2><span class="muted small">' + esc(fmtShort(mon)) + " – " + esc(fmtShort(addDays(mon, 6))) + "</span></div>";
+    h += '<div class="muted small">Tasks completed this week, counted for whoever marked them done.</div>';
     if (!top.length) return h + '<div class="card empty">No tasks finished yet this week. The first one takes the gold! 🏉</div></section>';
     h += '<ol class="card lb-list">' + top.map(function (r, i) {
       return '<li class="lb-' + (i + 1) + (r.name.toLowerCase() === meKey ? " lb-me" : "") + '"><span class="lb-medal" aria-label="' + ["1st", "2nd", "3rd"][i] + ' place">' + medals[i] + '</span><span class="lb-name clip1">' + esc(r.name) +
-        (r.name.toLowerCase() === meKey ? ' <span class="muted small">(you)</span>' : "") + '</span><b class="lb-n">' + r.n + '</b><span class="muted small">' + (r.n === 1 ? "task" : "tasks") + "</span></li>";
+        (r.name.toLowerCase() === meKey ? ' <span class="muted small">(you)</span>' : "") + '</span><b class="lb-n">' + r.n + '</b><span class="muted small">' + (r.n === 1 ? "task" : "tasks") + " completed</span></li>";
     }).join("") + "</ol>";
-    if (myRank > 2) h += '<div class="muted small">You\'re #' + (myRank + 1) + " with " + rows[myRank].n + (rows[myRank].n === 1 ? " task" : " tasks") + ". " + (rows[2].n - rows[myRank].n + 1) + " more to reach the podium!</div>";
+    if (myRank > 2) h += '<div class="muted small">You\'re #' + (myRank + 1) + " with " + rows[myRank].n + (rows[myRank].n === 1 ? " task" : " tasks") + " completed this week. " + (rows[2].n - rows[myRank].n + 1) + " more to reach the podium!</div>";
     return h + "</section>";
   }
   // One upcoming sheet as a dashboard card: readiness, % done, status mix and quick filters.
