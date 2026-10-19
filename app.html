@@ -488,10 +488,10 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .boot-loader .ps-runner.run .rn-legf, .boot-loader .ps-runner.run .rn-legb, .boot-loader .ps-runner.run .rn-armf, .boot-loader .ps-runner.run .rn-armb { animation-duration: .18s; }
 .boot-loader .ps-runner.run .rn-bob { animation-duration: .09s; }
 .boot-loader .ps-runner svg { width: 76px; height: 95px; overflow: visible; }
-.bl-pos { animation: bl-pos 4s linear infinite; }
-.bl-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: bl-pose 4s linear infinite; }
-.bl-carry { transform: translate(20px, -50px) rotate(-20deg); animation: bl-carry 4s ease-in-out infinite; }
-.bl-kick { transform-box: fill-box; transform-origin: center; animation: bl-kick 4s linear infinite; }
+.bl-pos { animation: bl-pos 2s linear infinite; }
+.bl-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: bl-pose 2s linear infinite; }
+.bl-carry { transform: translate(20px, -50px) rotate(-20deg); animation: bl-carry 2s ease-in-out infinite; }
+.bl-kick { transform-box: fill-box; transform-origin: center; animation: bl-kick 2s linear infinite; }
 /* One continuous 4 second loop with no fades: she runs in from the left (0-43%), bends to score (43-54%), carries the ball
    back round (54-73%), bends to set it down (73-77%), steps back (77-82%), kicks (82-88%) and runs off to the right while the
    ball sails through the posts, so the next loop picks up as she runs in again. */
@@ -2602,6 +2602,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "The loading screen loop runs twice as fast, in 2 seconds."],
     ["2026-10-18", "More on Analytics: game readiness for each upcoming game, overdue tasks each week, open tasks by person (including tasks with no owner), last-minute work by game, problem tasks, and time stuck Blocked or On Hold. Fixed game sheet cards showing –% instead of their percent done."],
     ["2026-10-18", "Analytics has charts: a line chart of tasks finished per week, pie charts of where every task stands and how many were finished by the due date, and a bar chart of tasks finished by person."],
     ["2026-10-18", "The loading screen player is back to her original, slimmer build."],
