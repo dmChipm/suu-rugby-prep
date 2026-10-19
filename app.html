@@ -2602,6 +2602,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "Adding a task to a project or a template opens its full pop-up right away, so the owner, due date and other fields can be filled in."],
     ["2026-10-19", "The loading screen loop runs in 1 second."],
     ["2026-10-19", "The loading screen loop runs twice as fast, in 2 seconds."],
     ["2026-10-18", "More on Analytics: game readiness for each upcoming game, overdue tasks each week, open tasks by person (including tasks with no owner), last-minute work by game, problem tasks, and time stuck Blocked or On Hold. Fixed game sheet cards showing –% instead of their percent done."],
@@ -5154,14 +5155,15 @@ table.a-grid td:first-child { min-width: 170px; }
     if (e.target.id === "f-add-ptask") {
       if (!canManageProject(byId(S.projects, view.projectId))) return;
       var pin = e.target.querySelector("input"), pv = pin.value.trim(); if (!pv) return;
-      byId(S.projects, view.projectId).tasks.push({ id: uid(), text: pv, owner: "", due: "", status: "Not Started", done: false, completed: "", notes: "" });
-      save(); render(); var pa = app.querySelector("#new-ptask"); if (pa) pa.focus(); return;
+      // Add it, then open its full pop-up so the owner, due date and the rest can be filled in right away.
+      var pj = byId(S.projects, view.projectId), nt = { id: uid(), text: pv, owner: "", due: "", status: "Not Started", done: false, completed: "", notes: "" };
+      pj.tasks.push(nt); save(); render(); projectTaskModal(pj, nt); return;
     }
     if (!isAdmin()) return;
     var f = e.target, input = f.querySelector("input"), v = input.value.trim();
     if (f.dataset.form === "add-sheet-task") { newSheetTaskModal(byId(S.sheets, view.sheetId), v); input.value = ""; return; }
     if (!v) return;
-    if (f.dataset.form === "add-master-task") byId(S.masters, view.masterId).tasks.push(mkTask(v));
+    if (f.dataset.form === "add-master-task") { var tm = byId(S.masters, view.masterId), mt = mkTask(v); tm.tasks.push(mt); save(); render(); masterTaskModal(tm, mt); return; }
     save(); render();
     var again = app.querySelector("#" + input.id); if (again) again.focus();
   });
