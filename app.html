@@ -117,6 +117,9 @@ label.field { display: flex; flex-direction: column; gap: 4px; font-weight: 600;
 .scrim { position: fixed; inset: 0; background: rgba(20, 8, 10, .55); display: grid; place-items: center; padding: 16px; z-index: 20; }
 .modal { width: 100%; max-width: 540px; background: var(--surface); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; max-height: 90vh; overflow: auto; }
 .modal h1 { font-size: 1.5rem; }
+.m-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.m-head h1 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.m-head .btn { flex: none; }
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-weight: 600; z-index: 30; font-size: .92rem; max-width: calc(100% - 32px); }
 .tasks li { align-items: flex-start; }
 .tasks .check { flex: none; padding-top: 2px; }
@@ -2642,6 +2645,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "Task pop-ups have a Done button at the top as well as the bottom, so you don't have to scroll down to finish. The New task form's Add task button is now Done too."],
     ["2026-10-19", "Projects with no people added no longer show the People label or the \"No one added yet\" line, just an + Add people button for those who can add them."],
     ["2026-10-19", "Each project has a Purpose section at the top explaining why it exists and what success looks like. Project owners and the presidency can add or edit it."],
     ["2026-10-19", "Critical and Optional checkboxes in every task pop-up replace the Importance setting. A task can be one, the other or neither (Normal, the default). Critical tasks show !!! on both sides of their title everywhere. Project tasks can now be Optional too."],
@@ -3613,10 +3617,12 @@ table.a-grid td:first-child { min-width: 170px; }
   }
 
   // Adding a task to one game sheet: everything the owner needs in one form, with due-date shortcuts counted back from game day.
+  // A task pop-up's title with a Done button beside it, so a long pop-up can be closed without scrolling to the bottom.
+  function taskHead(t) { return '<div class="m-head"><h1 style="font-size:1.3rem">' + ttl(t.text, t) + '</h1><button type="button" class="btn primary" data-close>Done</button></div>'; }
   function newSheetTaskModal(s, name) {
     var what = s.gameInfo ? "game" : "event", sup = [];
     var picks = s.date ? [[0, what === "game" ? "Game day" : "Event day"], [1, "1 day before"], [3, "3 days before"], [7, "1 week before"], [14, "2 weeks before"]] : [];
-    openModal('<h1 style="font-size:1.3rem">New task</h1><p class="muted small" style="margin:-4px 0 0">For ' + esc(sheetTitle(s)) + (s.date ? " · " + esc(fmtDate(s.date)) : "") +
+    openModal('<div class="m-head"><h1 style="font-size:1.3rem">New task</h1><button type="submit" form="nt-form" class="btn primary">Done</button></div><p class="muted small" style="margin:-4px 0 0">For ' + esc(sheetTitle(s)) + (s.date ? " · " + esc(fmtDate(s.date)) : "") +
       ". Only this sheet gets it. To add it to every future " + what + ", add it to the template instead.</p>" +
       '<form id="nt-form" style="display:flex;flex-direction:column;gap:12px">' +
       fld("Task", "nt-text", name || "", true, "text", ' placeholder="e.g. Book the referee" required') +
@@ -3628,7 +3634,7 @@ table.a-grid td:first-child { min-width: 170px; }
       supportersField("nt-sup", [], true) +
       fld("Helpful links <span class=\"muted small\" style=\"font-weight:400\">one per line</span>", "nt-links", "", true, "links", ' rows="2" placeholder="https://"') +
       '<div id="nt-msg" class="small" style="color:var(--red)" hidden></div>' +
-      '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary">Add task</button></div></form>',
+      '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary">Done</button></div></form>',
       function (el) {
         attachCombo(el, "nt-owner");
         attachSupporters(el, "nt-sup", sup, el.querySelector("#nt-owner"), function () {});
@@ -3652,7 +3658,7 @@ table.a-grid td:first-child { min-width: 170px; }
     var admin = isAdmin();
     var statusSel = '<label class="field">Status<select id="tk-status">' + STATUSES.map(function (x) { return "<option" + (x === t.status ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></label>";
     var mt = masterTaskOf(s, t), editHow = admin && !mt, how = howTo(s, t), links = linkList(linksOf(s, t)), canSup = admin || isMine(t), sup = (t.supporters || []).slice();
-    openModal('<h1 style="font-size:1.3rem">' + ttl(t.text, t) + "</h1>" + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") + '<form style="display:flex;flex-direction:column;gap:12px">' +
+    openModal(taskHead(t) + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") + '<form style="display:flex;flex-direction:column;gap:12px">' +
       (admin ? fld("Task", "tk-text", t.text, true) : "") +
       '<div class="grid2">' + statusSel + (admin ? ownerCombo("tk-owner", t.owner) : fld("Owner", "", t.owner, false)) +
       fld("Due Date", "tk-due", t.due, admin, "date") + fld("Date Completed", "tk-completed", t.completed, admin, "date") + "</div>" +
@@ -3720,7 +3726,7 @@ table.a-grid td:first-child { min-width: 170px; }
     var due = admin
       ? '<label class="field">Due Date<span class="row" style="gap:8px;flex-wrap:nowrap"><input type="number" id="mt-off" min="-60" max="365" step="1" style="width:6em" value="' + (t.dueOffset === null ? "" : esc(t.dueOffset)) + '"><span class="muted small" style="font-weight:400">days before the ' + what + " (0 = " + what + " day)</span></span></label>"
       : fld("Due Date", "", t.dueOffset === null || t.dueOffset === "" ? "" : dueOffsetText(t.dueOffset, m), false);
-    openModal('<h1 style="font-size:1.3rem">' + ttl(t.text, t) + '</h1><form style="display:flex;flex-direction:column;gap:12px">' +
+    openModal(taskHead(t) + '<form style="display:flex;flex-direction:column;gap:12px">' +
       (admin ? fld("Task", "mt-text", t.text, true) : "") +
       '<div class="grid2">' + (admin ? ownerCombo("mt-owner", t.owner) : fld("Owner", "", t.owner, false)) + due + "</div>" +
       prioField("mt", t, admin, "doesn't count toward progress; admins can change it on each sheet") +
@@ -4960,7 +4966,7 @@ table.a-grid td:first-child { min-width: 170px; }
   function projectTaskModal(pj, t) {
     var mgr = canManageProject(pj), canWork = mgr || isMine(t) || isSupporting(t), psup = (t.supporters || []).slice(), pool = projectPool(pj);
     var statusSel = '<label class="field">Status<select id="pk-status">' + STATUSES.map(function (x) { return "<option" + (x === t.status ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></label>";
-    openModal('<h1 style="font-size:1.3rem">' + ttl(t.text, t) + "</h1>" + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") +
+    openModal(taskHead(t) + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") +
       '<div class="muted small">' + esc(pj.name) + '</div><form style="display:flex;flex-direction:column;gap:12px">' +
       (mgr ? fld("Task", "pk-text", t.text, true) : "") +
       '<div class="grid2">' + statusSel + (mgr ? ownerCombo("pk-owner", t.owner) : fld("Owner", "", t.owner, false)) +
