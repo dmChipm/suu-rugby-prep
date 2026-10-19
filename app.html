@@ -2642,6 +2642,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "Projects with no people added no longer show the People label or the \"No one added yet\" line, just an + Add people button for those who can add them."],
     ["2026-10-19", "Each project has a Purpose section at the top explaining why it exists and what success looks like. Project owners and the presidency can add or edit it."],
     ["2026-10-19", "Critical and Optional checkboxes in every task pop-up replace the Importance setting. A task can be one, the other or neither (Normal, the default). Critical tasks show !!! on both sides of their title everywhere. Project tasks can now be Optional too."],
     ["2026-10-19", "The weekly leaderboard is hidden for now, to be introduced later."],
@@ -4916,8 +4917,8 @@ table.a-grid td:first-child { min-width: 170px; }
     if (pj.description || mgr) h += '<section class="card pj-purpose"><div class="row spread"><h2>Purpose</h2>' + (mgr ? '<button type="button" class="btn ghost" data-act="edit-project">' + (pj.description ? "Edit" : "+ Add") + "</button>" : "") + "</div>" +
       (pj.description ? '<p>' + esc(pj.description) + "</p>" : '<p class="muted">Why are we doing this project, and what does success look like? Add it so everyone knows the goal.</p>') + "</section>";
     var mem = pj.members || [], canMem = canEditMembers(pj);
-    h += '<div class="pj-people"><span class="muted small">People</span>' + (mem.length ? mem.map(function (n) { return '<span class="chip ro">' + esc(n) + "</span>"; }).join("")
-      : '<span class="muted small">' + (canMem ? "No one added yet, so tasks can go to anyone." : "Anyone on the team") + "</span>") +
+    // People: the chips when someone's been added; otherwise just the add button for those who can edit it.
+    if (mem.length || canMem) h += '<div class="pj-people">' + (mem.length ? '<span class="muted small">People</span>' + mem.map(function (n) { return '<span class="chip ro">' + esc(n) + "</span>"; }).join("") : "") +
       (canMem ? '<button type="button" class="btn ghost" data-act="project-people">' + (mem.length ? "Edit" : "+ Add people") + "</button>" : "") + "</div>";
     h += '<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px"><div class="row spread"><strong>' + preq(pj).filter(isDone).length + " of " + preq(pj).length + ' tasks done</strong><span class="muted small">' + pc + "%</span></div>" +
       '<div class="bar"><i style="width:' + pc + '%"></i></div>' + sfChips(pj.tasks, view.sf) + "</div>";
