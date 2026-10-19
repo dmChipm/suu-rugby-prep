@@ -21,7 +21,7 @@ jobs:
       - name: Build index.html
         run: APP_URL="https://dmchipm.github.io/suu-rugby-prep/" sh build.sh
       - name: Collect site files
-        run: mkdir _site && cp index.html version.txt sw.js manifest.webmanifest icon.svg icon-192.png icon-512.png _site/
+        run: mkdir _site && cp index.html version.txt sw.js manifest.webmanifest icon.svg icon-192.png icon-512.png _site/ && mkdir _site/oauth && cp oauth/consent.html _site/oauth/
       - uses: actions/configure-pages@v5
         with:
           enablement: true

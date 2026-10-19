@@ -2055,7 +2055,7 @@ table.a-grid td:first-child { min-width: 170px; }
   var OAUTH_KEY = KEY + "-oauth";
   if (ONLINE) try {
     var oaId = new URLSearchParams(location.search).get("authorization_id");
-    if (oaId) { localStorage.setItem(OAUTH_KEY, JSON.stringify({ id: oaId, at: Date.now() })); history.replaceState(null, "", location.pathname); }
+    if (oaId) { localStorage.setItem(OAUTH_KEY, JSON.stringify({ id: oaId, at: Date.now() })); history.replaceState(null, "", appUrl()); }
   } catch (e) {}
   var auth = { state: ONLINE ? "loading" : "ready", email: "", sent: false, error: "", mode: "signin", note: "" };
   // Arriving from a "reset your password" email: show the new-password form before entering the app.
