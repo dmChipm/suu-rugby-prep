@@ -484,10 +484,10 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .boot-loader::before { content: ""; position: absolute; left: 0; right: 0; top: var(--ground); border-top: 2px solid #2d6e2a; }
 .boot-loader.out { opacity: 0; pointer-events: none; }
 .bl-scene { position: absolute; width: var(--w); height: auto; left: 50%; top: calc(var(--ground) - var(--w) * .375); transform: translateX(-50%); display: block; overflow: visible; }
-/* "Loading..." in whimsical white cloud letters: rounded type puffed out by offset white copies, softly see-through, each letter bobbing. */
-.bl-word { position: absolute; left: 0; right: 0; top: calc(var(--ground) * .26); text-align: center; font-family: "Fredoka", "Nunito", system-ui, sans-serif; font-weight: 700; font-size: clamp(2.6rem, 12vw, 6rem); line-height: 1.2; letter-spacing: .06em; color: #fff; opacity: .88; pointer-events: none; white-space: nowrap; }
+/* "Loading..." in puffy grey cloud letters: rounded type puffed out by offset grey copies, lighter on top and darker underneath, each letter bobbing. */
+.bl-word { position: absolute; left: 0; right: 0; top: calc(var(--ground) * .26); text-align: center; font-family: "Fredoka", "Nunito", system-ui, sans-serif; font-weight: 700; font-size: clamp(2.6rem, 12vw, 6rem); line-height: 1.2; letter-spacing: .06em; color: #c3c9d1; pointer-events: none; white-space: nowrap; }
 .bl-word span { display: inline-block; animation: bl-puff 2.6s ease-in-out infinite;
-  text-shadow: .04em .03em 0 #fff, -.04em .03em 0 #fff, .03em -.04em 0 #fff, -.03em -.04em 0 #fff, 0 .06em 0 #eef3f8; }
+  text-shadow: .045em .035em 0 #c3c9d1, -.045em .035em 0 #c3c9d1, .035em -.045em 0 #d3d8de, -.035em -.045em 0 #d3d8de, 0 -.06em 0 #dde1e6, 0 .07em 0 #a9b0ba, .03em .1em .06em rgba(60, 70, 85, .25); }
 @keyframes bl-puff { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-.06em) scale(1.04); } }
 .boot-loader .ps-runner { position: static; filter: none; }
 .boot-loader .ps-runner.run .rn-legf, .boot-loader .ps-runner.run .rn-legb, .boot-loader .ps-runner.run .rn-armf, .boot-loader .ps-runner.run .rn-armb { animation-duration: .18s; }
@@ -2617,6 +2617,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "The loading screen's cloud letters are puffy grey."],
     ["2026-10-19", "A weekly leaderboard on My Tasks: the top three people by tasks finished this week (Monday to Sunday), with gold, silver and bronze medals."],
     ["2026-10-19", "The loading screen's cloud letters are softer: plain whimsical white with no glow."],
     ["2026-10-19", "The loading screen says Loading... in puffy cloud letters in the sky."],
