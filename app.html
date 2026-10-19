@@ -484,10 +484,10 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .boot-loader::before { content: ""; position: absolute; left: 0; right: 0; top: var(--ground); border-top: 2px solid #2d6e2a; }
 .boot-loader.out { opacity: 0; pointer-events: none; }
 .bl-scene { position: absolute; width: var(--w); height: auto; left: 50%; top: calc(var(--ground) - var(--w) * .375); transform: translateX(-50%); display: block; overflow: visible; }
-/* "Loading..." in puffy cloud letters: rounded white type thickened by offset white copies, a soft blue underside and glow, each letter bobbing. */
-.bl-word { position: absolute; left: 0; right: 0; top: calc(var(--ground) * .26); text-align: center; font-family: "Fredoka", "Nunito", system-ui, sans-serif; font-weight: 700; font-size: clamp(2.8rem, 13vw, 6.5rem); line-height: 1; letter-spacing: .05em; color: #fff; pointer-events: none; white-space: nowrap; }
+/* "Loading..." in whimsical white cloud letters: rounded type puffed out by offset white copies, softly see-through, each letter bobbing. */
+.bl-word { position: absolute; left: 0; right: 0; top: calc(var(--ground) * .26); text-align: center; font-family: "Fredoka", "Nunito", system-ui, sans-serif; font-weight: 700; font-size: clamp(2.6rem, 12vw, 6rem); line-height: 1.2; letter-spacing: .06em; color: #fff; opacity: .88; pointer-events: none; white-space: nowrap; }
 .bl-word span { display: inline-block; animation: bl-puff 2.6s ease-in-out infinite;
-  text-shadow: 0 0 .05em #fff, .045em .035em .035em #fff, -.045em .035em .035em #fff, .035em -.045em .035em #fff, -.035em -.045em .035em #fff, 0 .07em .03em #e3edf7, .02em .1em .04em #d4e2ef, 0 .13em .2em rgba(30, 80, 130, .3), 0 0 .35em rgba(255, 255, 255, .9); }
+  text-shadow: .04em .03em 0 #fff, -.04em .03em 0 #fff, .03em -.04em 0 #fff, -.03em -.04em 0 #fff, 0 .06em 0 #eef3f8; }
 @keyframes bl-puff { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-.06em) scale(1.04); } }
 .boot-loader .ps-runner { position: static; filter: none; }
 .boot-loader .ps-runner.run .rn-legf, .boot-loader .ps-runner.run .rn-legb, .boot-loader .ps-runner.run .rn-armf, .boot-loader .ps-runner.run .rn-armb { animation-duration: .18s; }
@@ -721,6 +721,15 @@ ul.hist li { display: flex; flex-direction: column; }
 .set-link { all: unset; cursor: pointer; flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .set-link:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
 .set-analytics { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.lb { display: flex; flex-direction: column; gap: 8px; }
+.lb-list { list-style: none; margin: 0; padding: 6px 16px; display: flex; flex-direction: column; }
+.lb-list li { display: flex; align-items: center; gap: 12px; padding: 10px 0; min-width: 0; }
+.lb-list li + li { border-top: 1px solid var(--line); }
+.lb-medal { font-size: 1.6rem; line-height: 1; flex: none; }
+.lb-name { flex: 1; min-width: 0; font-weight: 700; }
+.lb-n { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.lb-1 .lb-name { font-size: 1.1rem; }
+.lb-list li.lb-me .lb-name { color: var(--red); }
 .a-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .a-tile { padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .a-big { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
@@ -2608,6 +2617,8 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "A weekly leaderboard on My Tasks: the top three people by tasks finished this week (Monday to Sunday), with gold, silver and bronze medals."],
+    ["2026-10-19", "The loading screen's cloud letters are softer: plain whimsical white with no glow."],
     ["2026-10-19", "The loading screen says Loading... in puffy cloud letters in the sky."],
     ["2026-10-19", "Adding a task to a project or a template opens its full pop-up right away, so the owner, due date and other fields can be filled in."],
     ["2026-10-19", "The loading screen loop runs in 1 second."],
@@ -4070,7 +4081,29 @@ table.a-grid td:first-child { min-width: 170px; }
       return '<section class="todo-sec"><div class="row spread"><h2>' + title + '</h2><span class="muted small">' + n + " open</span></div>" +
         (open.length ? taskGroups(open) : '<div class="card empty">' + (any ? "Everything you're in charge of here is done. Legend! 🎉" : none) + "</div>") + "</section>";
     }
-    return h + section("Game Prep", sg, "Nothing on upcoming game or event sheets is assigned to you.") + section("Projects", pg, "No project tasks are assigned to you.");
+    return h + leaderboardHtml() + section("Game Prep", sg, "Nothing on upcoming game or event sheets is assigned to you.") + section("Projects", pg, "No project tasks are assigned to you.");
+  }
+  // This week's leaderboard (Monday to Sunday): the top three people by tasks marked done, credited to who marked it done.
+  function leaderboardHtml() {
+    var t0 = todayIso(), dow = (new Date(t0 + "T12:00:00").getDay() + 6) % 7, mon = addDays(t0, -dow), counts = {};
+    eachTask(function (t) {
+      if (!isDone(t)) return;
+      var day = t.completedAt ? isoOf(new Date(t.completedAt)) : t.completed, who = (t.by || t.owner || "").trim();
+      if (!day || day < mon || day > t0 || !who) return;
+      var k = who.toLowerCase(); (counts[k] = counts[k] || { name: who, n: 0 }).n++;
+    });
+    var rows = Object.keys(counts).map(function (k) { return counts[k]; }).sort(function (a, b) { return b.n - a.n || a.name.localeCompare(b.name); });
+    var meKey = currentUser().name.trim().toLowerCase(), myRank = -1;
+    rows.forEach(function (r, i) { if (r.name.toLowerCase() === meKey) myRank = i; });
+    var medals = ["🥇", "🥈", "🥉"], top = rows.slice(0, 3);
+    var h = '<section class="lb"><div class="row spread"><h2>This week\'s leaders</h2><span class="muted small">' + esc(fmtShort(mon)) + " – " + esc(fmtShort(addDays(mon, 6))) + "</span></div>";
+    if (!top.length) return h + '<div class="card empty">No tasks finished yet this week. The first one takes the gold! 🏉</div></section>';
+    h += '<ol class="card lb-list">' + top.map(function (r, i) {
+      return '<li class="lb-' + (i + 1) + (r.name.toLowerCase() === meKey ? " lb-me" : "") + '"><span class="lb-medal" aria-label="' + ["1st", "2nd", "3rd"][i] + ' place">' + medals[i] + '</span><span class="lb-name clip1">' + esc(r.name) +
+        (r.name.toLowerCase() === meKey ? ' <span class="muted small">(you)</span>' : "") + '</span><b class="lb-n">' + r.n + '</b><span class="muted small">' + (r.n === 1 ? "task" : "tasks") + "</span></li>";
+    }).join("") + "</ol>";
+    if (myRank > 2) h += '<div class="muted small">You\'re #' + (myRank + 1) + " with " + rows[myRank].n + (rows[myRank].n === 1 ? " task" : " tasks") + ". " + (rows[2].n - rows[myRank].n + 1) + " more to reach the podium!</div>";
+    return h + "</section>";
   }
   // One upcoming sheet as a dashboard card: readiness, % done, status mix and quick filters.
   function upcomingCard(s) {
