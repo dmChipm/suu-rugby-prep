@@ -115,6 +115,7 @@ label.field { display: flex; flex-direction: column; gap: 4px; font-weight: 600;
 .note { background: var(--red-soft); color: var(--ink); border-radius: 10px; padding: 10px 14px; font-size: .9rem; }
 
 .scrim { position: fixed; inset: 0; background: rgba(20, 8, 10, .55); display: grid; place-items: center; padding: 16px; z-index: 20; }
+.modal:focus { outline: none; }
 .modal { width: 100%; max-width: 540px; background: var(--surface); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; max-height: 90vh; overflow: auto; }
 .modal h1 { font-size: 1.5rem; }
 .m-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -904,6 +905,22 @@ table.a-grid td:first-child { min-width: 170px; }
 @media (prefers-reduced-motion: reduce) { #app.view-in, #app.view-in-back, .bubble-row.pop, .pending .chip, .att-loading { animation: none !important; } img.fade { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* Compact phone header: the title fits one line and the tabs stay on one row that scrolls sideways. */
+@media (max-width: 600px) {
+  nav.tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  nav.tabs::-webkit-scrollbar { display: none; }
+  nav.tabs button { flex: none; }
+  .top-inner { flex-wrap: nowrap; padding: 8px 16px 4px; gap: 8px; }
+  .brand { font-size: 1.15rem; white-space: nowrap; flex: 1; min-width: 0; }
+  .brand > span { overflow: hidden; text-overflow: ellipsis; }
+  .brand small { display: none; }
+  .brand .ball { flex: none; }
+  .me { flex: none; max-width: 46%; padding: 3px 10px 3px 3px; }
+  .me small { display: none; }
+  .me b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .me > span:last-child { min-width: 0; }
+  header.top { padding-bottom: 6px; }
+}
 </style>
 
 <header class="top">
@@ -1990,7 +2007,9 @@ table.a-grid td:first-child { min-width: 170px; }
     var scrim = root.firstChild;
     scrim.addEventListener("click", function (e) { if (e.target === scrim || e.target.closest("[data-close]")) closeModal(); });
     if (onReady) onReady(scrim.firstChild);
-    var f = scrim.querySelector("input, select"); if (f) f.focus();
+    // On touch screens, focusing a text box pops up the keyboard over the pop-up, so focus the pop-up itself; forms that want typing focus their own box.
+    var f = scrim.querySelector("input, select"), touch = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+    if (touch) { scrim.firstChild.setAttribute("tabindex", "-1"); scrim.firstChild.focus({ preventScroll: true }); } else if (f) f.focus();
   }
   var onModalClose = null;
   function closeModal() { if (onModalClose) { var f = onModalClose; onModalClose = null; f(); } document.getElementById("modal-root").innerHTML = ""; if (typeof ONLINE !== "undefined" && ONLINE) setTimeout(flushPendingPull, 0); }
@@ -2012,6 +2031,8 @@ table.a-grid td:first-child { min-width: 170px; }
     badge.hidden = !unread; badge.textContent = unread > 99 ? "99+" : unread;
     // Templates and Projects live inside the "Game Prep & Projects" tab, so that tab stays highlighted there.
     ["dashboard", "sheets", "projects", "people", "docs", "messages", "analytics", "dev"].forEach(function (k) { document.getElementById("tab-" + k).setAttribute("aria-selected", String(view.tab === k || (k === "sheets" && (view.tab === "masters" || view.tab === "projects")) || (k === "dev" && (view.tab === "updates" || view.tab === "devdocs")))); });
+    var onTab = document.querySelector('nav.tabs button[aria-selected="true"]'), nav = onTab && onTab.parentNode;
+    if (nav && nav.scrollWidth > nav.clientWidth) { var l = onTab.offsetLeft - nav.offsetLeft, r = l + onTab.offsetWidth; if (l < nav.scrollLeft || r > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = Math.max(0, l - 24); }
   }
   document.getElementById("me-btn").addEventListener("click", function () { if (ONLINE) accountModal(); else switchUserModal(); });
   document.querySelector("nav.tabs").addEventListener("click", function (e) {
@@ -2661,6 +2682,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "Fixes from a full walkthrough: opening a task on a phone no longer pops up the keyboard; the header is much shorter on phones, with the tabs on one row you can swipe; the Game Prep page lists each task once instead of up to three times; My progress on Projects shows only project work; and tasks on a game sheet are sorted with overdue and blocked first, then by due date."],
     ["2026-10-19", "Add to my calendar in your profile settings: subscribe Google Calendar or Apple Calendar to your own tasks, your projects' due dates and every game day. It keeps itself up to date."],
     ["2026-10-19", "Projects show their due date right under the name, with how many days are left (or how overdue it is). Project owners and the presidency can set or change it there directly, and overdue projects are flagged on the Projects list."],
     ["2026-10-19", "New Notification center in your profile settings: a record of every notification sent to you (new tasks, reminders, messages and team announcements), with a count of unread ones. It keeps notifications from today on."],
@@ -3301,12 +3323,15 @@ table.a-grid td:first-child { min-width: 170px; }
           '<div class="tcol"><button class="tmain" data-open-task="' + t.id + '"><span class="txt">' + ttl(t.text, t) + '</span><span class="meta">' + meta.join("") + "</span></button></div></li>";
       };
       var inline = view.sf === "Complete", openT = inline ? shown : shown.filter(function (t) { return !isDone(t); }), doneT = inline ? [] : shown.filter(isDone);
+      // Most urgent first: overdue, then blocked, then early warnings, then soonest due. The Table layout keeps the sheet's own order.
+      var urg = function (t) { return isDone(t) ? 4 : isLate(t) ? 0 : t.status === "Blocked" ? 1 : flagLevel(t) === "warn" ? 2 : 3; };
+      openT = openT.slice().sort(function (a, b) { return urg(a) - urg(b) || (a.due || "9").localeCompare(b.due || "9"); });
       h += '<ul class="tasks">' + openT.map(row).join("");
       if (!openT.length) h += '<li class="muted">' + (doneT.length && !view.sf && fil === "all" ? "Every task is finished. Nice work." : emptyMsg) + "</li>";
       h += "</ul>";
       if (doneT.length) h += '<details class="done-sec" data-done-sec' + (view.doneOpen ? " open" : "") + '><summary>Done (' + doneT.length + ')</summary><ul class="tasks">' + doneT.map(row).join("") + "</ul></details>";
     }
-    if (admin) h += '<form class="add" data-form="add-sheet-task"><input type="text" id="new-sheet-task" placeholder="New task for this game, e.g. Book the referee" aria-label="New task"><button class="btn primary">+ Add task</button></form>';
+    if (admin) h += '<form class="add" data-form="add-sheet-task"><input type="text" id="new-sheet-task" placeholder="New task, e.g. Book the referee" aria-label="New task"><button class="btn primary">+ Add task</button></form>';
     h += "</div>";
     h += tip("About this sheet", "<p>Tap a task to see its details, notes, subtasks and files.</p>" + (admin ? "<p>Changes here affect only this sheet. To change future sheets, edit the template.</p>" : ""));
     h += archivedBox("Archived tasks", s.archived || [], function (t) { return t.text; }, "data-restore-stask", isAdmin());
@@ -4311,7 +4336,10 @@ table.a-grid td:first-child { min-width: 170px; }
     h += "<h2>Upcoming</h2>";
     if (!up.length) h += '<div class="card empty">Nothing upcoming.' + (isAdmin() ? " Tap <b>New sheet</b> to start one." : "") + "</div>";
     else h += '<div class="list">' + up.map(upcomingCard).join("") + "</div>";
-    var groups = [["overdue", "Overdue", late], ["blocked", "Blocked", blocked], ["warnings", "Early warnings", warnings], ["soon", "Due in the next 7 days", soon]];
+    // Each task shows once: "Due in the next 7 days" leaves out anything already listed as overdue, blocked or an early warning.
+    var flagged = late.concat(blocked, warnings).map(function (x) { return x.t; });
+    var soonRest = soon.filter(function (x) { return flagged.indexOf(x.t) < 0; });
+    var groups = [["overdue", "Overdue", late], ["blocked", "Blocked", blocked], ["warnings", "Early warnings", warnings], ["soon", flagged.length ? "Also due in the next 7 days" : "Due in the next 7 days", soonRest]];
     h += myDashboard("prep");
     h += "<h2>What needs attention</h2>";
     if (!late.length && !blocked.length && !soon.length && !warnings.length) h += '<div class="card empty">Nothing overdue, blocked or due this week.</div>';
@@ -4809,7 +4837,7 @@ table.a-grid td:first-child { min-width: 170px; }
     var h = prepSwitch("projects") + '<div class="row spread"><h1>Projects</h1><div class="row">' + (mgr ? '<button class="btn" data-act="new-project">+ New project</button>' : "") + "</div></div>";
     var arcP = archivedBox("Archived projects", S.archivedProjects || [], function (x) { return x.name; }, "data-restore-project", mgr);
     if (!list.length) return h + '<div class="card empty">No projects yet.' + (mgr ? " Tap <b>New project</b> to start one." : " The presidency will add them here.") + "</div>" + arcP;
-    h += myDashboard("all");
+    h += myDashboard("proj");
     h += "<h2>Overview</h2>";
     var multi = list.length >= 2; // with one project, its own card below already says all this
     h += '<div class="hero card">' + (multi ? '<div class="bigring" style="--p:' + op + '"><span><b>' + (total ? op + "%" : "–") + "</b><small>complete</small></span></div>" : "") +
@@ -4886,7 +4914,7 @@ table.a-grid td:first-child { min-width: 170px; }
       '<div class="mydash-chart" role="img" aria-label="Tasks you finished each week: ' + weeks.map(function (w) { return w.label + " " + w.n; }).join(", ") + '">' + (hist.length ? "" : '<div class="muted small">Your finished tasks will show up here.</div>') + '<div class="mydash-bars">' +
       weeks.map(function (w) { return '<div class="mydash-col"><span class="n">' + (w.n || "") + '</span><span class="b" style="height:' + Math.round(w.n * 100 / peak) + '%"></span><span class="l">' + esc(w.label) + "</span></div>"; }).join("") + "</div></div></details>" +
       (scope === "all" ? (next.length ? '<div><div class="muted small" style="margin-bottom:4px">Up next for you</div><ul class="tasks">' + next.map(nextLi).join("") + "</ul></div>" : '<div class="muted small">You are all caught up. 🎉</div>') + (cur.some(function (x) { return x.kind === "proj"; }) ? '<div class="mydash-groups"><div class="muted small">Your project work</div>' + myWorkGroups() + "</div>" : "") :
-       scope === "proj" ? '<div class="mydash-groups"><div class="muted small">Your work by project</div>' + myWorkGroups() + "</div>" : next.length ? '<div><div class="muted small" style="margin-bottom:4px">Up next for you</div><ul class="tasks">' + next.map(nextLi).join("") + "</ul></div>" : '<div class="muted small">You are all caught up. 🎉</div>') + "</div>";
+       scope === "proj" ? '<div class="mydash-groups"><div class="muted small">Your work by project</div>' + myWorkGroups() + "</div>" : scope === "prep" ? "" : next.length ? '<div><div class="muted small" style="margin-bottom:4px">Up next for you</div><ul class="tasks">' + next.map(nextLi).join("") + "</ul></div>" : '<div class="muted small">You are all caught up. 🎉</div>') + "</div>";
     return h;
   }
   // Per-project groups of your open project work (tasks you own or help with, plus your open subtasks), for My progress.
@@ -5170,7 +5198,7 @@ table.a-grid td:first-child { min-width: 170px; }
   function docsView() {
     var admin = isAdmin();
     var h = '<div class="row spread"><h1>Documents</h1>' + (admin ? '<button class="btn" data-act="upload-docs">+ Upload</button>' : "") + "</div>";
-    h += '<div class="search"><input type="search" id="doc-search" placeholder="Search names, notes and the text inside files" value="' + esc(view.docQ || "") + '" aria-label="Search documents"></div>';
+    h += '<div class="search"><input type="search" id="doc-search" placeholder="Search documents and their text" value="' + esc(view.docQ || "") + '" aria-label="Search documents"></div>';
     h += '<div id="doc-results">' + docResults() + "</div>";
     h += tip("What search looks at", "Search looks inside PDFs, Word (.docx) and text files. Scanned pages and photos can only be found by their name and notes.");
     // Archived documents: out of the list, search and attach pickers, but kept (with their files) until restored or deleted.
