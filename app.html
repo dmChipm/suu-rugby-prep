@@ -766,6 +766,17 @@ ul.hist li { display: flex; flex-direction: column; }
 .a-bars .a-stack .a-open { background: var(--warn); }
 .a-bars .a-none { color: var(--red); font-weight: 700; }
 .a-keys { flex-direction: row; flex-wrap: wrap; gap: 4px 16px; font-size: .8rem; color: var(--muted); }
+[data-drill] { cursor: pointer; }
+button.a-tile { text-align: left; font: inherit; color: inherit; cursor: pointer; }
+button.a-tile:hover, .a-grid tr[data-drill]:hover td { border-color: var(--red); background: var(--red-soft); }
+.a-more { margin-top: 4px; font-size: .78rem; font-weight: 700; color: var(--red); }
+.a-chart .a-h { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; }
+.a-chart .a-h .i { font-style: normal; display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; border: 1.5px solid var(--muted); color: var(--muted); font-size: .7rem; font-weight: 800; }
+.a-legend li.a-click { border-radius: 6px; padding: 2px 4px; margin: 0 -4px; }
+.a-legend li.a-click:hover, .a-bars [data-drill]:hover { background: var(--red-soft); }
+.a-chart svg .a-hit:hover { fill: var(--red-soft); fill-opacity: .5; }
+.a-explain p { margin: 0 0 4px; }
+.a-drill { max-height: 55vh; overflow: auto; }
 table.grid.a-grid { min-width: 640px; }
 table.a-grid td { font-variant-numeric: tabular-nums; }
 table.a-grid td:first-child { min-width: 170px; }
@@ -2619,6 +2630,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "Everything on Analytics can be tapped: the summary numbers, chart titles, chart points, pie slices, bars and table rows open an explanation and the tasks behind the number. Tap a task there to jump to it."],
     ["2026-10-19", "The loading screen has a white cloud in the middle of the sky with Loading... cut out of it, so the blue sky shows through the letters."],
     ["2026-10-19", "The loading screen's cloud letters are puffy grey."],
     ["2026-10-19", "A weekly leaderboard on My Tasks: the top three people by tasks finished this week (Monday to Sunday), with gold, silver and bronze medals."],
@@ -2935,11 +2947,11 @@ table.a-grid td:first-child { min-width: 170px; }
     S.people.filter(function (p) { return p.status !== "Inactive"; }).forEach(function (p) { var k = p.name.trim().toLowerCase(); people[k] = people[k] || { name: p.name, rows: [] }; });
     var plist = Object.keys(people).map(function (k) {
       var g = people[k], st = stats(g.rows), mine = open.filter(function (x) { return (x.t.owner || "").trim().toLowerCase() === k; });
-      return Object.assign(st, { name: g.name, perWeek: g.rows.length / weeks, openNow: mine.length, lateNow: mine.filter(function (x) { return isLate(x.t); }).length });
+      return Object.assign(st, { name: g.name, key: k, rows: g.rows, open: mine, perWeek: g.rows.length / weeks, openNow: mine.length, lateNow: mine.filter(function (x) { return isLate(x.t); }).length });
     }).sort(function (a, b) { return b.n - a.n || a.name.localeCompare(b.name); });
-    var tlist = Object.keys(tasks).map(function (k) { return Object.assign(stats(tasks[k].rows), { name: tasks[k].name, t: tasks[k].t }); })
+    var tlist = Object.keys(tasks).map(function (k) { return Object.assign(stats(tasks[k].rows), { name: tasks[k].name, t: tasks[k].t, rows: tasks[k].rows }); })
       .sort(function (a, b) { return b.n - a.n || a.name.localeCompare(b.name); });
-    return { all: stats(done), people: plist, tasks: tlist, weeks: weeks, openCount: open.length };
+    return { all: stats(done), people: plist, tasks: tlist, weeks: weeks, openCount: open.length, done: done, open: open };
   }
   function analyticsView() {
     var range = view.aRange || "30";
@@ -2947,28 +2959,60 @@ table.a-grid td:first-child { min-width: 170px; }
       if (!view.aLoading) { view.aLoading = true; loadLog().then(function (r) { view.aLog = r; }).catch(function () { view.aLog = []; view.aErr = true; }).then(function () { view.aLoading = false; if (view.tab === "analytics") render(); }); }
       return '' + (analyticsTabOn() ? "" : '<button class="btn ghost" data-act="back-settings">‹ Settings</button>') + '<h1>Analytics</h1><div class="card empty">Loading…</div>';
     }
+    aDrills = [];
     var d = analyticsData(range, view.aLog), a = d.all;
     var h = '' + (analyticsTabOn() ? "" : '<button class="btn ghost" data-act="back-settings">‹ Settings</button>') + '' +
       '<div class="row spread"><h1>Analytics</h1><div class="seg" role="group" aria-label="Time range">' + [["30", "30 days"], ["90", "90 days"], ["all", "All time"]].map(function (r) { return '<button data-act="a-range" data-range="' + r[0] + '" aria-pressed="' + (range === r[0]) + '">' + r[1] + "</button>"; }).join("") + "</div></div>";
     if (view.aErr) h += '<div class="note">Couldn\'t load the task history, so times to finish are missing below.</div>';
+    var rng = range === "all" ? "the app's whole history" : "the last " + range + " days", byDay = d.done.slice().sort(function (x, y) { return (y.day || "").localeCompare(x.day || ""); });
+    var timed = d.done.filter(function (x) { return x.dur != null; }).sort(function (x, y) { return y.dur - x.dur; });
+    var dated = d.done.filter(function (x) { return x.onTime != null; }).sort(function (x, y) { return x.early - y.early; });
     h += '<div class="a-tiles">' +
-      tile(a.n, "tasks finished", (a.n / d.weeks).toFixed(1) + " a week") +
-      tile(fmtDur(a.avgDur), "average time to finish", a.timed ? "from assignment to done, " + a.timed + (a.timed === 1 ? " task" : " tasks") : "not enough history yet") +
-      tile(pctOf(a.onTime, a.dated), "finished by the due date", a.dated ? a.onTime + " of " + a.dated + " with due dates" : "no due dates yet") +
-      tile(fmtEarly(a.early), "average vs due date", d.openCount + " tasks still open") + "</div>";
+      tile(a.n, "tasks finished", (a.n / d.weeks).toFixed(1) + " a week", drill("Tasks finished", "<p>Every required task marked Complete in " + rng + ", newest first. Optional tasks are left out. <b>" + (a.n / d.weeks).toFixed(1) + " a week</b> is the total divided by the number of weeks.</p>", byDay.map(doneRow))) +
+      tile(fmtDur(a.avgDur), "average time to finish", a.timed ? "from assignment to done, " + a.timed + (a.timed === 1 ? " task" : " tasks") : "not enough history yet",
+        drill("Average time to finish", "<p>For each task, the time from when its owner was assigned it to when it was marked Complete, averaged across " + a.timed + (a.timed === 1 ? " task" : " tasks") + ". Only tasks assigned and finished since Oct 17, 2026 (when the app started recording) count. Slowest first.</p>", timed.map(function (x) { return aRow(x, fmtDur(x.dur) + " to finish" + (x.who ? " · " + x.who : "")); }))) +
+      tile(pctOf(a.onTime, a.dated), "finished by the due date", a.dated ? a.onTime + " of " + a.dated + " with due dates" : "no due dates yet",
+        drill("Finished by the due date", "<p>Of the " + a.dated + " finished tasks that had a due date, " + a.onTime + " were finished on or before it. Late ones are listed first.</p>", dated.map(function (x) { return aRow(x, (x.onTime ? "On time" : "Late") + " · " + fmtEarly(x.early), !x.onTime); }))) +
+      tile(fmtEarly(a.early), "average vs due date", d.openCount + " tasks still open",
+        drill("Average vs due date", "<p>How many days before (early) or after (late) its due date each task was finished, averaged. Tasks without a due date are left out. Latest first.</p>", dated.map(function (x) { return aRow(x, fmtEarly(x.early), !x.onTime); }))) + "</div>";
     h += analyticsCharts(range, d, view.aLog || []);
     h += '<h2>By person</h2><div class="card tablewrap"><table class="grid a-grid"><thead><tr><th>Person</th><th>Finished</th><th>Per week</th><th>Avg time to finish</th><th>On time</th><th>Avg vs due date</th><th>Open now</th><th>Overdue now</th></tr></thead><tbody>' +
       d.people.map(function (p) {
-        return "<tr><td><b>" + esc(p.name) + "</b></td><td>" + p.n + "</td><td>" + p.perWeek.toFixed(1) + "</td><td>" + fmtDur(p.avgDur) + "</td><td>" + pctOf(p.onTime, p.dated) + "</td><td>" + fmtEarly(p.early) + "</td><td>" + p.openNow + '</td><td class="' + (p.lateNow ? "late" : "") + '">' + p.lateNow + "</td></tr>";
+        return "<tr" + personDrill(p, rng) + "><td><b>" + esc(p.name) + "</b></td><td>" + p.n + "</td><td>" + p.perWeek.toFixed(1) + "</td><td>" + fmtDur(p.avgDur) + "</td><td>" + pctOf(p.onTime, p.dated) + "</td><td>" + fmtEarly(p.early) + "</td><td>" + p.openNow + '</td><td class="' + (p.lateNow ? "late" : "") + '">' + p.lateNow + "</td></tr>";
       }).join("") + "</tbody></table></div>";
     h += '<h2>By task</h2><p class="muted small" style="margin:0">Tasks with the same name (like a template task on every game sheet) are grouped together.</p>' +
       '<div class="card tablewrap"><table class="grid a-grid"><thead><tr><th>Task</th><th>Times finished</th><th>Avg time to finish</th><th>Fastest</th><th>Slowest</th><th>On time</th><th>Avg vs due date</th></tr></thead><tbody>' +
       (d.tasks.length ? d.tasks.map(function (t) {
-        return "<tr><td>" + ttl(t.name, t.t) + "</td><td>" + t.n + "</td><td>" + fmtDur(t.avgDur) + "</td><td>" + fmtDur(t.min) + "</td><td>" + fmtDur(t.max) + "</td><td>" + pctOf(t.onTime, t.dated) + "</td><td>" + fmtEarly(t.early) + "</td></tr>";
+        return "<tr" + drill(t.name, "<p>Every time a task called <b>" + esc(t.name) + "</b> was finished in " + rng + ", newest first.</p>", t.rows.slice().sort(function (x, y) { return (y.day || "").localeCompare(x.day || ""); }).map(doneRow)) + "><td>" + ttl(t.name, t.t) + "</td><td>" + t.n + "</td><td>" + fmtDur(t.avgDur) + "</td><td>" + fmtDur(t.min) + "</td><td>" + fmtDur(t.max) + "</td><td>" + pctOf(t.onTime, t.dated) + "</td><td>" + fmtEarly(t.early) + "</td></tr>";
       }).join("") : '<tr><td colspan="7" class="muted">No tasks finished in this time range.</td></tr>') + "</tbody></table></div>";
     h += tip("How these numbers work", "<p><b>Time to finish</b> runs from when the task's owner was assigned it to when it was marked Complete. The app started recording this on Oct 17, 2026, so older tasks only count toward the due-date numbers.</p><p><b>On time</b> means it was finished on or before its due date. <b>Who</b> is the person who marked it done.</p><p>Optional tasks are left out.</p>");
     return h;
-    function tile(big, label, sub) { return '<div class="card a-tile"><div class="a-big">' + esc(String(big)) + '</div><div class="a-label">' + esc(label) + '</div><div class="muted small">' + esc(sub) + "</div></div>"; }
+    function tile(big, label, sub, dr) { return '<button type="button" class="card a-tile"' + dr + '><div class="a-big">' + esc(String(big)) + '</div><div class="a-label">' + esc(label) + '</div><div class="muted small">' + esc(sub) + '</div><span class="a-more">Details ›</span></button>'; }
+  }
+  // Tap-through details on Analytics: each number, chart point, slice and row registers what it means and the tasks behind it.
+  var aDrills = [];
+  function drill(title, explain, rows, empty) { aDrills.push({ title: title, explain: explain, rows: rows || null, empty: empty }); return ' data-drill="' + (aDrills.length - 1) + '" tabindex="0" role="button"'; }
+  function aRow(x, meta, bad) { return { t: x.t, kind: x.kind, p: x.p, meta: meta, bad: !!bad }; }
+  function doneRow(x) { return aRow(x, "Done " + (x.day ? fmtShort(x.day) : "") + (x.who ? " by " + x.who : "")); }
+  function openRow(x) { return aRow(x, x.t.status + (x.t.due ? " · due " + fmtShort(x.t.due) : "") + (x.t.owner ? " · " + x.t.owner : ""), isLate(x.t)); }
+  function personDrill(p, rng) {
+    return drill(p.name, "<p><b>" + p.n + "</b> finished in " + rng + " (" + p.perWeek.toFixed(1) + " a week), <b>" + p.openNow + "</b> open now" + (p.lateNow ? ", " + p.lateNow + " overdue" : "") + ". Open tasks first, then finished ones, newest first.</p>",
+      p.open.slice().sort(function (x, y) { return byDue(x.t, y.t); }).map(openRow).concat(p.rows.slice().sort(function (x, y) { return (y.day || "").localeCompare(x.day || ""); }).map(doneRow)));
+  }
+  function openDrill(dr) {
+    var rows = dr.rows;
+    openModal('<h1 style="font-size:1.3rem">' + esc(dr.title) + '</h1><div class="a-explain">' + dr.explain + "</div>" +
+      (rows ? (rows.length ? '<ul class="tasks a-drill">' + rows.slice(0, 200).map(function (r, i) {
+        return '<li><button type="button" class="tmain" data-go="' + i + '"><span class="txt">' + esc(r.t.text) + '</span><span class="meta"><span>' + esc(r.kind === "sheet" ? sheetTitle(r.p) : r.p.name) + '</span><span class="' + (r.bad ? "late" : "") + '">' + esc(r.meta) + '</span></span></button><span class="chev" aria-hidden="true">›</span></li>';
+      }).join("") + "</ul>" + (rows.length > 200 ? '<div class="muted small">Showing the first 200 of ' + rows.length + ".</div>" : "") : '<div class="card empty">' + esc(dr.empty || "No tasks here.") + "</div>") : "") +
+      '<div class="row" style="justify-content:flex-end"><button class="btn primary" data-close>Close</button></div>', function (el) {
+      el.addEventListener("click", function (e) {
+        var b = e.target.closest("[data-go]"); if (!b) return;
+        var r = rows[Number(b.dataset.go)]; closeModal();
+        if (r.kind === "sheet") { view.tab = "sheets"; view.sf = ""; view.sheetId = r.p.id; render(); window.scrollTo(0, 0); sheetTaskModal(r.p, r.t); }
+        else { view.tab = "projects"; view.sf = ""; view.projectId = r.p.id; render(); window.scrollTo(0, 0); projectTaskModal(r.p, r.t); }
+      });
+    });
   }
   // Charts for the Analytics page: game readiness, weekly finished and overdue trends, status and on-time pies,
   // workload and output by person, last-minute work by game, problem tasks and time stuck Blocked or On Hold.
@@ -2977,13 +3021,16 @@ table.a-grid td:first-child { min-width: 170px; }
     eachTask(function (t, kind, p) {
       if (t.optional) return;
       var day = isDone(t) ? (t.completedAt ? isoOf(new Date(t.completedAt)) : t.completed) || "" : "";
-      all.push({ t: t, kind: kind, p: p, day: day }); if (day) done.push(day);
+      all.push({ t: t, kind: kind, p: p, day: day, who: (t.by || t.owner || "").trim() }); if (day) done.push(day);
     });
-    var h = '<div class="a-charts">';
+    var h = '<div class="a-charts">', rng = range === "all" ? "the app's whole history" : "the last " + range + " days";
+    function newest(xs) { return xs.slice().sort(function (x, y) { return (y.day || "").localeCompare(x.day || ""); }); }
+    // A chart title that opens what the chart means.
+    function hd(title, explain) { return "<h3" + drill(title, explain) + ' class="a-h">' + esc(title) + ' <i class="i" aria-hidden="true">i</i></h3>'; }
     // 1. Game readiness: every upcoming game's % done next to how many days are left.
     var games = S.sheets.filter(function (s) { return s.date && !isPast(s.date); }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
     var rdColor = { "Ready": "var(--done)", "Behind": "var(--red)", "At risk": "var(--warn)", "On track": "var(--hold)" };
-    h += '<div class="card a-chart wide"><h3>Game readiness</h3>' + (games.length ? games.map(function (s) {
+    h += '<div class="card a-chart wide">' + hd("Game readiness", "<p>Every upcoming game sheet: the share of its required tasks that are Complete, how many days are left, and its status (Ready, On track, At risk or Behind) from the sheet's own rules for overdue and blocked tasks. Tap a game to open its sheet.</p>") + (games.length ? games.map(function (s) {
       var r = readiness(s), p = pct(s), extra = [r.late ? r.late + " overdue" : "", r.blocked ? r.blocked + " blocked" : ""].filter(Boolean).join(", ");
       return '<div class="a-game"><div class="a-game-top"><button type="button" class="a-link" data-open-sheet="' + s.id + '">' + esc(sheetTitle(s)) + '</button><span class="muted small">' + esc(daysToGo(s.date)) + "</span></div>" +
         '<div class="a-game-bar"><div class="a-track"><div class="a-fill" style="width:' + p + "%;background:" + rdColor[r.label] + '"></div></div><b>' + p + "%</b></div>" +
@@ -2993,46 +3040,57 @@ table.a-grid td:first-child { min-width: 170px; }
     var nWeeks = range === "all" ? Math.min(52, Math.max(4, Math.ceil(d.weeks))) : Math.ceil(Number(range) / 7), weeks = [], late = [];
     for (var i = nWeeks - 1; i >= 0; i--) {
       var end = addDays(today, -7 * i), start = addDays(end, -6);
-      weeks.push({ label: shortDay(start), v: done.filter(function (x) { return x >= start && x <= end; }).length });
-      late.push({ label: shortDay(start), v: all.filter(function (x) { return x.t.due && x.t.due < end && (!x.day || x.day > end); }).length });
+      var wk = all.filter(function (x) { return x.day && x.day >= start && x.day <= end; }), od = all.filter(function (x) { return x.t.due && x.t.due < end && (!x.day || x.day > end); }), lbl = shortDay(start) + " – " + shortDay(end);
+      weeks.push({ label: shortDay(start), v: wk.length, drill: drill("Finished " + lbl, "<p>" + wk.length + (wk.length === 1 ? " task" : " tasks") + " marked Complete that week.</p>", newest(wk).map(doneRow), "Nothing was finished that week.") });
+      late.push({ label: shortDay(start), v: od.length, drill: drill("Overdue on " + shortDay(end), "<p>" + od.length + (od.length === 1 ? " task was" : " tasks were") + " past due and not yet finished at the end of " + shortDay(end) + ".</p>",
+        od.map(function (x) { return aRow(x, "Due " + fmtShort(x.t.due) + (x.day ? " · finished " + fmtShort(x.day) : " · still open"), true); }), "Nothing was overdue then.") });
     }
-    h += '<div class="card a-chart wide"><h3>Tasks finished per week</h3>' + lineChart(weeks, "Tasks finished per week", "var(--done)") + "</div>";
-    h += '<div class="card a-chart wide"><h3>Overdue tasks at the end of each week</h3>' + lineChart(late, "Overdue tasks at the end of each week", "var(--red)") + "</div>";
+    h += '<div class="card a-chart wide">' + hd("Tasks finished per week", "<p>How many required tasks were marked Complete in each week (weeks end today). Tap a point to see that week's tasks.</p>") + lineChart(weeks, "Tasks finished per week", "var(--done)") + "</div>";
+    h += '<div class="card a-chart wide">' + hd("Overdue tasks at the end of each week", "<p>How many tasks were past their due date and still not finished at the end of each week. A falling line means the team is catching up. Tap a point to see which tasks.</p>") + lineChart(late, "Overdue tasks at the end of each week", "var(--red)") + "</div>";
     // 3. Every task right now, by status (not limited to the time range), and the on-time share.
     var counts = {}; STATUSES.forEach(function (st) { counts[st] = 0; });
     all.forEach(function (x) { var st = isDone(x.t) ? "Complete" : (x.t.status || "Not Started"); counts[st] = (counts[st] || 0) + 1; });
     var stColor = { "Not Started": "var(--muted)", "In Progress": "var(--warn)", "Blocked": "var(--red)", "On Hold": "var(--hold)", "Complete": "var(--done)" };
-    h += '<div class="card a-chart"><h3>Where every task stands now</h3>' + pieChart(STATUSES.map(function (st) { return { label: st, v: counts[st] || 0, color: stColor[st] }; })) + "</div>";
+    h += '<div class="card a-chart">' + hd("Where every task stands now", "<p>Every required task on every game sheet and project right now, by status. This isn't limited to the time range. Tap a status to see its tasks.</p>") + pieChart(STATUSES.map(function (st) {
+      var xs = all.filter(function (x) { return (isDone(x.t) ? "Complete" : (x.t.status || "Not Started")) === st; });
+      return { label: st, v: counts[st] || 0, color: stColor[st], drill: drill(st, "<p>" + xs.length + (xs.length === 1 ? " task is " : " tasks are ") + st + " right now.</p>", st === "Complete" ? newest(xs).map(doneRow) : xs.slice().sort(function (x, y) { return byDue(x.t, y.t); }).map(openRow)) };
+    })) + "</div>";
     var a = d.all;
-    h += '<div class="card a-chart"><h3>Finished by the due date</h3>' + pieChart([
-      { label: "On time", v: a.onTime, color: "var(--done)" }, { label: "Late", v: a.dated - a.onTime, color: "var(--red)" }, { label: "No due date", v: a.n - a.dated, color: "var(--muted)" }]) + "</div>";
+    var fin = d.done, onT = fin.filter(function (x) { return x.onTime === true; }), lateF = fin.filter(function (x) { return x.onTime === false; }), noDue = fin.filter(function (x) { return x.onTime == null; });
+    h += '<div class="card a-chart">' + hd("Finished by the due date", "<p>Every task finished in " + rng + ", split by whether it was done on or before its due date. Tap a slice to see the tasks.</p>") + pieChart([
+      { label: "On time", v: a.onTime, color: "var(--done)", drill: drill("Finished on time", "<p>Finished on or before the due date in " + rng + ".</p>", newest(onT).map(function (x) { return aRow(x, fmtEarly(x.early) + (x.who ? " · " + x.who : "")); })) },
+      { label: "Late", v: a.dated - a.onTime, color: "var(--red)", drill: drill("Finished late", "<p>Finished after the due date in " + rng + ", latest first.</p>", lateF.slice().sort(function (x, y) { return x.early - y.early; }).map(function (x) { return aRow(x, fmtEarly(x.early) + (x.who ? " · " + x.who : ""), true); })) },
+      { label: "No due date", v: a.n - a.dated, color: "var(--muted)", drill: drill("Finished with no due date", "<p>These had no due date, so they can't count as on time or late. Adding due dates makes this chart more useful.</p>", newest(noDue).map(doneRow)) }]) + "</div>";
     // 4. Workload: open tasks per person right now, overdue first, plus the tasks nobody owns.
     var load = d.people.filter(function (p) { return p.openNow; }).sort(function (x, y) { return y.openNow - x.openNow || y.lateNow - x.lateNow; }).slice(0, 12)
-      .map(function (p) { return { label: p.name, a: p.lateNow, b: p.openNow - p.lateNow }; });
+      .map(function (p) { return { label: p.name, a: p.lateNow, b: p.openNow - p.lateNow, drill: drill(p.name + "'s open tasks", "<p>" + p.openNow + " open" + (p.lateNow ? ", " + p.lateNow + " overdue" : "") + ". Overdue first, then by due date.</p>", p.open.slice().sort(function (x, y) { return isLate(y.t) - isLate(x.t) || byDue(x.t, y.t); }).map(openRow)) }; });
     var unowned = all.filter(function (x) { return !isDone(x.t) && !(x.t.owner || "").trim(); });
-    if (unowned.length) load.push({ label: "No owner", a: unowned.filter(function (x) { return isLate(x.t); }).length, b: unowned.filter(function (x) { return !isLate(x.t); }).length, none: true });
-    h += '<div class="card a-chart wide"><h3>Open tasks by person</h3>' + (load.length ? stackChart(load) + '<ul class="a-legend a-keys"><li><i style="background:var(--red)"></i>Overdue</li><li><i style="background:var(--warn)"></i>Open, not overdue</li></ul>' : '<div class="muted small">No open tasks.</div>') + "</div>";
+    if (unowned.length) load.push({ label: "No owner", a: unowned.filter(function (x) { return isLate(x.t); }).length, b: unowned.filter(function (x) { return !isLate(x.t); }).length, none: true,
+      drill: drill("Tasks with no owner", "<p>Open tasks nobody is in charge of. Give each one an owner so it doesn't slip.</p>", unowned.slice().sort(function (x, y) { return byDue(x.t, y.t); }).map(openRow)) });
+    h += '<div class="card a-chart wide">' + hd("Open tasks by person", "<p>Each person's unfinished tasks right now (tasks they own), with the overdue part in red. Use it to spot someone overloaded while others have room. Tap a person to see their tasks.</p>") + (load.length ? stackChart(load) + '<ul class="a-legend a-keys"><li><i style="background:var(--red)"></i>Overdue</li><li><i style="background:var(--warn)"></i>Open, not overdue</li></ul>' : '<div class="muted small">No open tasks.</div>') + "</div>";
     var who = d.people.filter(function (p) { return p.n; }).slice(0, 10);
-    h += '<div class="card a-chart wide"><h3>Tasks finished by person</h3>' + (who.length ? barChart(who.map(function (p) { return { label: p.name, v: p.n }; })) : '<div class="muted small">No tasks finished in this time range.</div>') + "</div>";
+    h += '<div class="card a-chart wide">' + hd("Tasks finished by person", "<p>How many tasks each person marked Complete in " + rng + ". Credit goes to whoever marked it done. Tap a person to see them.</p>") + (who.length ? barChart(who.map(function (p) { return { label: p.name, v: p.n, drill: drill(p.name + " finished", "<p>" + p.n + (p.n === 1 ? " task" : " tasks") + " finished in " + rng + ", newest first.</p>", newest(p.rows).map(doneRow)) }; })) : '<div class="muted small">No tasks finished in this time range.</div>') + "</div>";
     // 5. Last-minute work: of each past game's finished tasks, how many were finished in the 48 hours before kickoff (or later).
     var lastMin = S.sheets.filter(function (s) { return s.date && s.date <= today && (!since || s.date >= since); }).sort(function (a, b) { return a.date < b.date ? 1 : -1; }).map(function (s) {
       var fin = all.filter(function (x) { return x.p === s && x.day; }), cut = addDays(s.date, -1);
-      return { label: sheetTitle(s), v: fin.filter(function (x) { return x.day >= cut; }).length, of: fin.length };
+      var lm = fin.filter(function (x) { return x.day >= cut; });
+      return { label: sheetTitle(s), v: lm.length, of: fin.length, drill: drill(sheetTitle(s), "<p>" + lm.length + " of " + fin.length + " finished tasks for this game were done the day before it (" + fmtShort(cut) + ") or later.</p>", newest(lm).map(doneRow), "Nothing was left to the last minute.") };
     }).filter(function (r) { return r.of; });
-    h += '<div class="card a-chart wide"><h3>Last-minute work</h3><p class="muted small" style="margin:0">Tasks finished the day before the game or later, out of everything finished for that game.</p>' +
-      (lastMin.length ? barChart(lastMin.map(function (r) { return { label: r.label, v: r.v, max: r.of, show: r.v + " of " + r.of + " · " + Math.round(r.v * 100 / r.of) + "%" }; })) : '<div class="muted small">No games played in this time range.</div>') + "</div>";
+    h += '<div class="card a-chart wide">' + hd("Last-minute work", "<p>For each game played in " + rng + ": how many of its finished tasks were done the day before the game or later. A high share means prep is being left late. Tap a game to see which tasks.</p>") + '<p class="muted small" style="margin:0">Tasks finished the day before the game or later, out of everything finished for that game.</p>' +
+      (lastMin.length ? barChart(lastMin.map(function (r) { return { label: r.label, v: r.v, max: r.of, show: r.v + " of " + r.of + " · " + Math.round(r.v * 100 / r.of) + "%", drill: r.drill }; })) : '<div class="muted small">No games played in this time range.</div>') + "</div>";
     // 6. Problem tasks: by task name, how often it was finished late, plus how many are overdue or blocked now.
     var prob = {};
-    function pk(x) { var k = x.t.text.trim().toLowerCase(); return prob[k] = prob[k] || { label: x.t.text.trim(), late: 0, over: 0, blocked: 0 }; }
+    function pk(x) { var k = x.t.text.trim().toLowerCase(); return prob[k] = prob[k] || { label: x.t.text.trim(), late: 0, over: 0, blocked: 0, rows: [] }; }
     all.forEach(function (x) {
-      if (x.day) { if (x.t.due && x.day > x.t.due && (!since || x.day >= since)) pk(x).late++; return; }
+      if (x.day) { if (x.t.due && x.day > x.t.due && (!since || x.day >= since)) { pk(x).late++; pk(x).rows.push(aRow(x, "Finished " + fmtShort(x.day) + ", due " + fmtShort(x.t.due), true)); } return; }
       if (isLate(x.t)) pk(x).over++;
       if (x.t.status === "Blocked") pk(x).blocked++;
+      if (isLate(x.t) || x.t.status === "Blocked") pk(x).rows.push(openRow(x));
     });
     var plist = Object.keys(prob).map(function (k) { var r = prob[k]; r.v = r.late + r.over + r.blocked; return r; }).filter(function (r) { return r.v; })
       .sort(function (x, y) { return y.v - x.v || x.label.localeCompare(y.label); }).slice(0, 10);
-    h += '<div class="card a-chart wide"><h3>Problem tasks</h3><p class="muted small" style="margin:0">Tasks finished late in this time range, plus ones overdue or blocked right now. Same-name tasks are grouped.</p>' +
-      (plist.length ? barChart(plist.map(function (r) { return { label: r.label, v: r.v, show: [r.late ? r.late + " late" : "", r.over ? r.over + " overdue" : "", r.blocked ? r.blocked + " blocked" : ""].filter(Boolean).join(", ") }; })) : '<div class="muted small">No late or blocked tasks. Nice.</div>') + "</div>";
+    h += '<div class="card a-chart wide">' + hd("Problem tasks", "<p>Tasks that most often run late or get stuck. Same-name tasks (like one template task on every game sheet) are grouped. Tap one to see each copy.</p>") + '<p class="muted small" style="margin:0">Tasks finished late in this time range, plus ones overdue or blocked right now. Same-name tasks are grouped.</p>' +
+      (plist.length ? barChart(plist.map(function (r) { return { label: r.label, v: r.v, show: [r.late ? r.late + " late" : "", r.over ? r.over + " overdue" : "", r.blocked ? r.blocked + " blocked" : ""].filter(Boolean).join(", "), drill: drill(r.label, "<p>Every copy of this task that was finished late in " + rng + ", or is overdue or blocked now. If it keeps showing up, its due date or template instructions may need a change.</p>", r.rows) }; })) : '<div class="muted small">No late or blocked tasks. Nice.</div>') + "</div>";
     // 7. Stuck time: how long tasks sat Blocked or On Hold, from the status history.
     var stuck = {}, now = Date.now(), spells = [];
     log.slice().reverse().forEach(function (x) {
@@ -3043,12 +3101,12 @@ table.a-grid td:first-child { min-width: 170px; }
     });
     var sinceMs = since ? Date.parse(since + "T00:00:00") : 0, ended = spells.filter(function (sp) { return sp.start >= sinceMs; });
     var nowStuck = all.filter(function (x) { return !isDone(x.t) && (x.t.status === "Blocked" || x.t.status === "On Hold"); }).map(function (x) {
-      var sp = stuck[x.t.id]; return { label: x.t.text, status: x.t.status, ms: sp ? now - sp.from : null };
+      var sp = stuck[x.t.id]; return { label: x.t.text, status: x.t.status, ms: sp ? now - sp.from : null, x: x };
     }).sort(function (x, y) { return (y.ms || 0) - (x.ms || 0); });
-    h += '<div class="card a-chart wide"><h3>Time stuck Blocked or On Hold</h3><p class="muted small" style="margin:0">' +
+    h += '<div class="card a-chart wide">' + hd("Time stuck Blocked or On Hold", "<p>From the status history: how long tasks stayed Blocked or On Hold before moving on, and the tasks stuck right now, longest first. History starts Oct 17, 2026, so anything stuck before then shows as since before Oct 17. Tap a task to open it.</p>") + '<p class="muted small" style="margin:0">' +
       (ended.length ? "Tasks that got unstuck in this time range were stuck for " + fmtDur(avg(ended.map(function (sp) { return sp.ms; }))) + " on average (" + ended.length + (ended.length === 1 ? " time" : " times") + ")." : "No task has come off Blocked or On Hold in this time range.") +
       " Recorded from Oct 17, 2026 on.</p>" +
-      (nowStuck.length ? barChart(nowStuck.slice(0, 10).map(function (r) { return { label: r.label + " (" + r.status + ")", v: r.ms || 0, show: r.ms == null ? "since before Oct 17" : fmtDur(r.ms) }; })) : '<div class="muted small">Nothing is Blocked or On Hold right now.</div>') + "</div>";
+      (nowStuck.length ? barChart(nowStuck.slice(0, 10).map(function (r) { return { label: r.label + " (" + r.status + ")", v: r.ms || 0, show: r.ms == null ? "since before Oct 17" : fmtDur(r.ms), drill: drill(r.label, "<p>" + r.status + " " + (r.ms == null ? "since before Oct 17, 2026, when history started" : "for " + fmtDur(r.ms)) + ". Tap it to open the task and see its notes.</p>", [openRow(r.x)]) }; })) : '<div class="muted small">Nothing is Blocked or On Hold right now.</div>') + "</div>";
     return h + "</div>";
   }
   function shortDay(iso) { return new Date(iso + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
@@ -3063,6 +3121,9 @@ table.a-grid td:first-child { min-width: 170px; }
     g += '<polygon points="' + x(0) + "," + y(0) + " " + line + " " + x(n - 1) + "," + y(0) + '" fill="' + color + '" opacity=".12"/>';
     g += '<polyline points="' + line + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
     g += pts.map(function (p, i) { return '<circle cx="' + x(i) + '" cy="' + y(p.v) + '" r="4" fill="var(--surface)" stroke="' + color + '" stroke-width="2"><title>Week of ' + esc(p.label) + ": " + p.v + "</title></circle>"; }).join("");
+    // Tap anywhere in a week's column to see its tasks.
+    var half = n > 1 ? (W - L - R) / (n - 1) / 2 : (W - L - R) / 2;
+    g += pts.map(function (p, i) { var x0 = Math.max(L, x(i) - half), x1 = Math.min(W - R, x(i) + half); return p.drill ? '<rect class="a-hit" x="' + x0 + '" y="' + T + '" width="' + (x1 - x0) + '" height="' + (H - T - B) + '" fill="transparent"' + p.drill + '><title>Week of ' + esc(p.label) + ": " + p.v + "</title></rect>" : ""; }).join("");
     return '<svg class="a-line" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(label) + '">' + g + "</svg>";
   }
   function pieChart(segs) {
@@ -3076,18 +3137,19 @@ table.a-grid td:first-child { min-width: 170px; }
     });
     g += '<text class="a-mid" x="64" y="72" text-anchor="middle">' + total + "</text>";
     return '<div class="a-pie"><svg viewBox="0 0 128 128" role="img" aria-label="' + esc(segs.map(function (sg) { return sg.label + " " + sg.v; }).join(", ")) + '">' + g + '</svg><ul class="a-legend">' +
-      segs.map(function (sg) { return '<li><i style="background:' + sg.color + '"></i>' + esc(sg.label) + "<b>" + sg.v + " · " + Math.round(sg.v * 100 / total) + "%</b></li>"; }).join("") + "</ul></div>";
+      segs.map(function (sg) { return "<li" + (sg.drill ? ' class="a-click"' + sg.drill : "") + '><i style="background:' + sg.color + '"></i>' + esc(sg.label) + "<b>" + sg.v + " · " + Math.round(sg.v * 100 / total) + "%</b></li>"; }).join("") + "</ul></div>";
   }
   // Horizontal bars. Each row: label, v, optional max (its own 100%) and show (the text instead of v).
   function barChart(rows) {
     var max = Math.max.apply(null, rows.map(function (r) { return r.v; })) || 1;
-    return '<div class="a-bars">' + rows.map(function (r) { return "<span>" + esc(r.label) + '</span><div class="a-track"><div class="a-fill" style="width:' + (r.v * 100 / (r.max || max)).toFixed(1) + '%"></div></div><b>' + esc(r.show != null ? r.show : String(r.v)) + "</b>"; }).join("") + "</div>";
+    return '<div class="a-bars">' + rows.map(function (r) { var dr = r.drill || "", dr2 = dr.replace(' tabindex="0" role="button"', ""); return "<span" + dr + ">" + esc(r.label) + '</span><div class="a-track"' + dr2 + '><div class="a-fill" style="width:' + (r.v * 100 / (r.max || max)).toFixed(1) + '%"></div></div><b' + dr2 + ">" + esc(r.show != null ? r.show : String(r.v)) + "</b>"; }).join("") + "</div>";
   }
   // Stacked bars: a (overdue, red) then b (open, amber) per row.
   function stackChart(rows) {
     var max = Math.max.apply(null, rows.map(function (r) { return r.a + r.b; })) || 1;
     return '<div class="a-bars">' + rows.map(function (r) {
-      return "<span" + (r.none ? ' class="a-none"' : "") + ">" + esc(r.label) + '</span><div class="a-track a-stack"><div class="a-fill" style="width:' + (r.a * 100 / max).toFixed(1) + '%"></div><div class="a-fill a-open" style="width:' + (r.b * 100 / max).toFixed(1) + '%"></div></div><b>' +
+      var dr = r.drill || "", dr2 = dr.replace(' tabindex="0" role="button"', "");
+      return "<span" + (r.none ? ' class="a-none"' : "") + dr + ">" + esc(r.label) + '</span><div class="a-track a-stack"' + dr2 + '><div class="a-fill" style="width:' + (r.a * 100 / max).toFixed(1) + '%"></div><div class="a-fill a-open" style="width:' + (r.b * 100 / max).toFixed(1) + '%"></div></div><b' + dr2 + ">" +
         (r.a + r.b) + (r.a ? ' <span class="muted small">· ' + r.a + " overdue</span>" : "") + "</b>";
     }).join("") + "</div>";
   }
@@ -5092,10 +5154,11 @@ table.a-grid td:first-child { min-width: 170px; }
   }
   app.addEventListener("click", function (e) {
     if (e.target.closest("a")) return;
-    var t = e.target.closest("[data-open-sheet],[data-open-master],[data-act],[data-open-task],[data-open-mtask],[data-layout],[data-move],[data-jump],[data-open-person],[data-expand],[data-open-doc],[data-open-project],[data-open-ptask],[data-open-convo],[data-unpend]");
+    var t = e.target.closest("[data-open-sheet],[data-open-master],[data-act],[data-open-task],[data-open-mtask],[data-layout],[data-move],[data-jump],[data-open-person],[data-expand],[data-open-doc],[data-open-project],[data-open-ptask],[data-open-convo],[data-unpend],[data-drill]");
     if (!t) return;
     var sheet = view.sheetId && byId(S.sheets, view.sheetId);
     var master = view.masterId && byId(S.masters, view.masterId);
+    if (t.dataset.drill) { if (aDrills[t.dataset.drill]) openDrill(aDrills[t.dataset.drill]); return; }
     if (t.dataset.openDoc) { docModal(byId(S.documents, t.dataset.openDoc)); return; }
     if (t.dataset.unpend !== undefined && view.pending && view.pending[view.convoId]) { view.pending[view.convoId].splice(Number(t.dataset.unpend), 1); render(); return; }
     if (t.dataset.openConvo) { view.convoId = t.dataset.openConvo; render(); window.scrollTo(0, 0); var ti = document.getElementById("msg-input"); if (ti && window.matchMedia("(min-width: 700px)").matches) ti.focus(); return; }
