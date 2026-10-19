@@ -718,6 +718,11 @@ ul.hist li { display: flex; flex-direction: column; }
 .set-items li { align-items: center; gap: 12px; }
 .set-items li.push-box { flex-direction: row; border-top: 0; padding-top: 10px; }
 .set-items .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.nc-badge { background: var(--red); color: #fff; border-radius: 999px; font-size: .72rem; padding: 1px 7px; margin-left: 4px; vertical-align: 2px; }
+.nc-list li { flex-direction: row; align-items: flex-start; gap: 10px; }
+.nc-list li.nc-new { background: color-mix(in srgb, var(--red) 7%, transparent); }
+.nc-ico { font-size: 1.15rem; line-height: 1.4; }
+.nc-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .set-link { all: unset; cursor: pointer; flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .set-link:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
 .set-analytics { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -2645,6 +2650,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "New Notification center in your profile settings: a record of every notification sent to you (new tasks, reminders, messages and team announcements), with a count of unread ones. It keeps notifications from today on."],
     ["2026-10-19", "Task pop-ups have a Done button at the top as well as the bottom, so you don't have to scroll down to finish. The New task form's Add task button is now Done too."],
     ["2026-10-19", "Projects with no people added no longer show the People label or the \"No one added yet\" line, just an + Add people button for those who can add them."],
     ["2026-10-19", "Each project has a Purpose section at the top explaining why it exists and what success looks like. Project owners and the presidency can add or edit it."],
@@ -2903,6 +2909,26 @@ table.a-grid td:first-child { min-width: 170px; }
     var pj = byId(S.projects || [], id); return pj ? pj.name : "A project";
   }
   // Admins: every status change and assignment, newest first.
+  // Notification center: every notification sent to the signed-in person, newest first. Opening it marks them read.
+  var NC_ICON = { assigned: "📋", reminder: "⏰", message: "💬", admin: "📣" };
+  function notifCenterModal() {
+    openModal('<h1>Notification center</h1><p class="muted small" style="margin:0">Every notification sent to you, newest first. Recorded from Oct 19, 2026 on.</p>' +
+      '<div id="nc-list" class="muted small">' + (ONLINE ? "Loading…" : "Notifications are kept here once you sign in to the team app.") + '</div><div class="row" style="justify-content:flex-end"><button class="btn" data-close>Close</button></div>',
+      function (el) {
+        if (!ONLINE) return;
+        var box = el.querySelector("#nc-list");
+        sb.from("notifications").select("id,kind,title,body,delivered,created_at,read_at").order("created_at", { ascending: false }).limit(200).then(function (r) {
+          if (r.error) throw r.error;
+          var rows = r.data || [];
+          box.classList.remove("muted", "small");
+          box.innerHTML = rows.length ? '<ul class="tasks nc-list">' + rows.map(function (x) {
+            return '<li class="' + (x.read_at ? "" : "nc-new") + '"><span class="nc-ico" aria-hidden="true">' + (NC_ICON[x.kind] || "🔔") + '</span><div class="nc-row"><b>' + esc(x.title) + "</b><span>" + esc(x.body) + '</span><span class="muted small">' + esc(fmtStamp(x.created_at)) +
+              (x.delivered ? "" : " · Not delivered to a device") + "</span></div></li>";
+          }).join("") + "</ul>" : '<p class="muted small" style="margin:0">No notifications yet.</p>';
+          if (rows.some(function (x) { return !x.read_at; })) sb.rpc("mark_notifications_read");
+        }).catch(function () { box.textContent = "Couldn't load your notifications just now."; });
+      });
+  }
   function statusLogModal() {
     openModal('<h1>Status log</h1><p class="muted small" style="margin:0">Every status change and assignment on game sheets and projects, newest first. Recorded from Oct 17, 2026 on.</p>' +
       '<input type="search" id="dl-q" placeholder="Search by task, person, status or place" aria-label="Search the status log">' +
@@ -3975,6 +4001,7 @@ table.a-grid td:first-child { min-width: 170px; }
   function settingsItemsHtml() {
     return '<ul class="tasks set-items">' +
       (ONLINE ? '<li class="push-box" id="set-push"><div class="grow"><strong>Notifications</strong><div class="push-text muted small"></div></div><button type="button" class="btn push-btn" hidden>Turn on</button></li>' : "") +
+      '<li><button type="button" class="set-link" id="set-notif-center"><strong>Notification center <span class="nc-badge" hidden></span></strong><span class="muted small">Every notification sent to you</span></button><span aria-hidden="true">›</span></li>' +
       '<li><label class="chk" for="set-sound"><input type="checkbox" id="set-sound"' + (soundOn() ? " checked" : "") + "> Celebration sounds</label></li>" +
       (isAdmin() ? '<li><button type="button" class="set-link" id="set-open-analytics"><strong>Analytics</strong><span class="muted small">Who finishes what, how often and how fast</span></button><span aria-hidden="true">›</span></li>' +
         '<li><button type="button" class="set-link" id="set-status-log"><strong>Status log</strong><span class="muted small">Every status change and assignment</span></button><span aria-hidden="true">›</span></li>' +
@@ -3983,6 +4010,11 @@ table.a-grid td:first-child { min-width: 170px; }
   function wireSettingsItems(el) {
     var pb = el.querySelector("#set-push"); if (pb) wirePushBox(pb);
     el.querySelector("#set-sound").addEventListener("change", function (e) { setSound(e.target.checked); toast(e.target.checked ? "Sounds on" : "Sounds off"); });
+    var nc = el.querySelector("#set-notif-center");
+    nc.addEventListener("click", function () { closeModal(); notifCenterModal(); });
+    if (ONLINE) sb.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null).then(function (r) {
+      var b = nc.querySelector(".nc-badge"); if (!r.error && r.count) { b.textContent = r.count > 99 ? "99+" : r.count; b.hidden = false; }
+    });
     var oa = el.querySelector("#set-open-analytics"); if (oa) oa.addEventListener("click", openAnalytics);
     var sl = el.querySelector("#set-status-log"); if (sl) sl.addEventListener("click", function () { closeModal(); statusLogModal(); });
     var at = el.querySelector("#set-atab"); if (at) at.addEventListener("change", function (e) { try { localStorage.setItem(KEY + "-atab", e.target.checked ? "on" : "off"); } catch (x) {} renderChrome(); toast(e.target.checked ? "Analytics tab added" : "Analytics tab hidden"); });

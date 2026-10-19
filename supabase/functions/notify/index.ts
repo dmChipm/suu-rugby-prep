@@ -33,7 +33,8 @@ async function activePeople(): Promise<Person[]> {
 }
 
 // Sends one message to every device of each person; removes devices the push service says are gone.
-async function deliver(personIds: string[], msg: { title: string; body: string; tag?: string }) {
+// Every message is also kept in each person's notification center (the notifications table), even if they have no devices.
+async function deliver(personIds: string[], msg: { title: string; body: string; tag?: string; kind?: string }) {
   if (!personIds.length) return { devices: 0, reached: [] as string[] };
   const { data: subs } = await admin.from("push_subscriptions").select("endpoint,person_id,p256dh,auth").in("person_id", personIds);
   const payload = JSON.stringify({ title: msg.title, body: msg.body, tag: msg.tag || "", url: APP_URL });
@@ -49,11 +50,13 @@ async function deliver(personIds: string[], msg: { title: string; body: string; 
       else console.error("push failed", code, (e as Error).message);
     }
   }));
+  const { error } = await admin.from("notifications").insert(personIds.map((id) => ({ person_id: id, kind: msg.kind || "", title: msg.title, body: msg.body, delivered: reached.has(id) })));
+  if (error) console.error("record failed", error.message);
   return { devices, reached: [...reached] };
 }
 
 function mark(t: { text: string; importance?: string }) {
-  return t.importance === "crucial" ? "! " + t.text + " !" : t.importance === "high" ? "! " + t.text : t.text;
+  return t.importance === "crucial" ? "!!! " + t.text + " !!!" : t.text;
 }
 function sheetName(s: { opponent?: string; label?: string; master_name?: string } | null) {
   if (!s) return "Game Prep";
@@ -83,9 +86,9 @@ async function assigned(body: { table: string; items: { id: string; owner: strin
     if (!p || (body.actor && norm(p.email) === norm(body.actor))) continue; // no alert for assigning yourself
     const crucial = tasks.some((t) => t.importance === "crucial");
     const msg = tasks.length === 1
-      ? { title: crucial ? "New crucial task for you" : "New task for you", body: mark(tasks[0]) + " · " + tasks[0].where }
+      ? { title: crucial ? "New critical task for you" : "New task for you", body: mark(tasks[0]) + " · " + tasks[0].where }
       : { title: "You have " + tasks.length + " new tasks", body: list(tasks.map(mark)) + " · " + [...new Set(tasks.map((t) => t.where))].join(", ") };
-    devices += (await deliver([p.id], { ...msg, tag: "assigned-" + tasks[0].id })).devices;
+    devices += (await deliver([p.id], { ...msg, tag: "assigned-" + tasks[0].id, kind: "assigned" })).devices;
   }
   return { devices };
 }
@@ -106,7 +109,7 @@ async function messages(body: { ids: string[] }) {
     const members: string[] = c.member_ids || [];
     const group = c.name || (members.length > 2 ? "Group chat" : "");
     const to = members.filter((id) => !ms.every((m) => m.author_id === id) && people.some((p) => p.id === id));
-    const msg = { title: group ? who + " in " + group : who, body: (ms.length > 1 ? ms.length + " messages. " : "") + text.slice(0, 180), tag: "chat-" + c.id };
+    const msg = { title: group ? who + " in " + group : who, body: (ms.length > 1 ? ms.length + " messages. " : "") + text.slice(0, 180), tag: "chat-" + c.id, kind: "message" };
     devices += (await deliver(to, msg)).devices;
   }
   return { devices };
@@ -137,9 +140,9 @@ async function reminders() {
     if (!p) continue;
     const late = tasks.filter((t) => t.due < today).length, now = tasks.filter((t) => t.due === today).length, soon = tasks.filter((t) => t.due === tomorrow).length;
     const parts = [late && late + " overdue", now && now + " due today", soon && soon + " due tomorrow"].filter(Boolean);
-    const order = (t: Row) => (t.importance === "crucial" ? 0 : t.importance === "high" ? 1 : 2);
+    const order = (t: Row) => (t.importance === "crucial" ? 0 : 1);
     const names = tasks.slice().sort((a, b) => order(a) - order(b) || (a.due < b.due ? -1 : 1)).map(mark);
-    devices += (await deliver([p.id], { title: "Tasks: " + parts.join(", "), body: list(names), tag: "reminders" })).devices;
+    devices += (await deliver([p.id], { title: "Tasks: " + parts.join(", "), body: list(names), tag: "reminders", kind: "reminder" })).devices;
   }
   return { devices };
 }
@@ -158,7 +161,7 @@ async function send(req: Request, body: { to: string | string[]; title?: string;
   const ids = body.to === "team" ? people.map((p) => p.id) : (Array.isArray(body.to) ? body.to : []).filter((id) => people.some((p) => p.id === id));
   if (!ids.length) return reply(400, { error: "no_one" });
   const title = String(body.title || "").trim().slice(0, 80) || "From " + me.name;
-  const r = await deliver(ids, { title, body: text, tag: "admin-" + Date.now() });
+  const r = await deliver(ids, { title, body: text, tag: "admin-" + Date.now(), kind: "admin" });
   return reply(200, { ok: true, devices: r.devices, reached: r.reached.length, people: ids.length });
 }
 

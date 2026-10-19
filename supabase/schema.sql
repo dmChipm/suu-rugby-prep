@@ -248,3 +248,23 @@ create policy "owner updates" on public.projects for update using (public.is_pro
 --   task_status_log(task_id, kind 'sheet'|'project', parent_id, task_text, event 'status'|'assigned', owner, from_status, to_status,
 --   changed_by, changed_at), written by trigger log_task_status() on status/owner changes; only admins can read it.
 --   The app's Analytics (admins) and Status log read it.
+
+-- Notification center: a record of every notification sent to each person (written by the notify function).
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  person_id text not null references public.people(id) on delete cascade,
+  kind text not null default '',            -- assigned, reminder, message or admin
+  title text not null default '',
+  body text not null default '',
+  delivered boolean not null default false, -- reached at least one of their devices
+  created_at timestamptz not null default now(),
+  read_at timestamptz
+);
+create index if not exists notifications_person_created on public.notifications (person_id, created_at desc);
+alter table public.notifications enable row level security;
+create policy "own notifications read" on public.notifications for select using (person_id = public.current_person_id());
+create or replace function public.mark_notifications_read() returns void language sql security definer set search_path = ''
+  as 'update public.notifications set read_at = now() where person_id = public.current_person_id() and read_at is null';
+revoke all on function public.mark_notifications_read() from public, anon;
+grant execute on function public.mark_notifications_read() to authenticated;
+alter table public.project_tasks add column if not exists optional boolean not null default false;
