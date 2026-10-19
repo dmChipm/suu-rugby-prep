@@ -484,6 +484,11 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .boot-loader::before { content: ""; position: absolute; left: 0; right: 0; top: var(--ground); border-top: 2px solid #2d6e2a; }
 .boot-loader.out { opacity: 0; pointer-events: none; }
 .bl-scene { position: absolute; width: var(--w); height: auto; left: 50%; top: calc(var(--ground) - var(--w) * .375); transform: translateX(-50%); display: block; overflow: visible; }
+/* "Loading..." in puffy cloud letters: rounded white type thickened by offset white copies, a soft blue underside and glow, each letter bobbing. */
+.bl-word { position: absolute; left: 0; right: 0; top: calc(var(--ground) * .26); text-align: center; font-family: "Fredoka", "Nunito", system-ui, sans-serif; font-weight: 700; font-size: clamp(2.8rem, 13vw, 6.5rem); line-height: 1; letter-spacing: .05em; color: #fff; pointer-events: none; white-space: nowrap; }
+.bl-word span { display: inline-block; animation: bl-puff 2.6s ease-in-out infinite;
+  text-shadow: 0 0 .05em #fff, .045em .035em .035em #fff, -.045em .035em .035em #fff, .035em -.045em .035em #fff, -.035em -.045em .035em #fff, 0 .07em .03em #e3edf7, .02em .1em .04em #d4e2ef, 0 .13em .2em rgba(30, 80, 130, .3), 0 0 .35em rgba(255, 255, 255, .9); }
+@keyframes bl-puff { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-.06em) scale(1.04); } }
 .boot-loader .ps-runner { position: static; filter: none; }
 .boot-loader .ps-runner.run .rn-legf, .boot-loader .ps-runner.run .rn-legb, .boot-loader .ps-runner.run .rn-armf, .boot-loader .ps-runner.run .rn-armb { animation-duration: .18s; }
 .boot-loader .ps-runner.run .rn-bob { animation-duration: .09s; }
@@ -512,7 +517,7 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
   0%, 76.9% { transform: translate(226px, 178px) rotate(-30deg); opacity: 0; } 77%, 87% { transform: translate(226px, 178px) rotate(-30deg); opacity: 1; }
   90.5% { transform: translate(278px, 96px) rotate(150deg) scale(.9); } 93.5% { transform: translate(324px, 56px) rotate(330deg) scale(.7); }
   97% { transform: translate(366px, 44px) rotate(520deg) scale(.35); opacity: 1; } 99%, 100% { transform: translate(376px, 42px) rotate(560deg) scale(0); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .bl-pos, .bl-pose, .bl-carry, .bl-kick, .boot-loader .ps-runner * { animation: none !important; } .bl-pos { transform: translate(150px, 182px); } .bl-kick { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bl-word span, .bl-pos, .bl-pose, .bl-carry, .bl-kick, .boot-loader .ps-runner * { animation: none !important; } .bl-pos { transform: translate(150px, 182px); } .bl-kick { opacity: 0; } }
 .ps-skip { position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: .78rem; color: rgba(255, 255, 255, .55); }
 @keyframes ps-neon-on { 0% { opacity: 0; } 8% { opacity: 1; } 14% { opacity: .15; } 22% { opacity: 1; } 30% { opacity: .35; } 36%, 70% { opacity: 1; } 74% { opacity: .55; } 78%, 100% { opacity: 1; } }
 @keyframes np-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1110,7 +1115,8 @@ table.a-grid td:first-child { min-width: 170px; }
   }
   var bootLoader = null, bootStart = Date.now();
   function showLoader(preview) {
-    var el = document.createElement("div"); el.className = "boot-loader"; el.setAttribute("role", "status"); el.innerHTML = loaderHtml(preview);
+    var el = document.createElement("div"); el.className = "boot-loader"; el.setAttribute("role", "status"); el.innerHTML = loaderHtml(preview) +
+      '<div class="bl-word">' + "Loading...".split("").map(function (c, i) { return '<span style="animation-delay:' + (-i * .22).toFixed(2) + 's">' + c + "</span>"; }).join("") + "</div>";
     document.body.appendChild(el);
     if (preview) el.addEventListener("click", function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 420); });
     return el;
@@ -2602,6 +2608,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-19", "The loading screen says Loading... in puffy cloud letters in the sky."],
     ["2026-10-19", "Adding a task to a project or a template opens its full pop-up right away, so the owner, due date and other fields can be filled in."],
     ["2026-10-19", "The loading screen loop runs in 1 second."],
     ["2026-10-19", "The loading screen loop runs twice as fast, in 2 seconds."],
