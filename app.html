@@ -483,8 +483,8 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .ps-runner.dive .rn-armf, .ps-runner.dive .rn-armb { animation: none; transform: rotate(-100deg); }
 .ps-runner.dive .rn-legf { animation: none; transform: rotate(40deg); }
 .ps-runner.dive .rn-legb { animation: none; transform: rotate(10deg); }
-/* Loading screen (sat 25% lower on the screen via --drop): an SUU player runs in a try, loops back round the field and kicks the conversion, on repeat until the app is ready. */
-.boot-loader { --w: 100vw; --drop: 25%; --ground: calc(58% + var(--drop)); position: fixed; inset: 0; z-index: 400; overflow: hidden; transition: opacity .4s;
+/* Loading screen (sat 18% lower on the screen via --drop): an SUU player runs in a try, loops back round the field and kicks the conversion, on repeat until the app is ready. */
+.boot-loader { --w: 100vw; --drop: 18%; --ground: calc(58% + var(--drop)); position: fixed; inset: 0; z-index: 400; overflow: hidden; transition: opacity .4s;
   background: linear-gradient(#3d8fd6, #7cc0ee 70%, #c4e6fa) top / 100% var(--ground) no-repeat, repeating-linear-gradient(90deg, #4aa144 0 calc(var(--w) / 15.4), #3f8f3a 0 calc(var(--w) / 7.7)); }
 .boot-loader::before { content: ""; position: absolute; left: 0; right: 0; top: var(--ground); border-top: 2px solid #2d6e2a; }
 .boot-loader.out { opacity: 0; pointer-events: none; }
@@ -2765,7 +2765,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
-    ["2026-10-20", "The loading screen sits lower: the cloud, the field and the player all moved down a quarter of the screen."],
+    ["2026-10-20", "The loading screen sits lower: the cloud, the field and the player all moved down 18% of the screen."],
     ["2026-10-20", "A project's Purpose box has a pencil icon in its top right corner. Tap it to edit the purpose right in the box, with no pop-up."],
     ["2026-10-20", "While a pop-up is open, pulling down no longer refreshes the page, so you can't lose what you were typing. On a computer, refreshing with a pop-up open asks you first."],
     ["2026-10-20", "Refreshing the app (including pulling down to refresh on a phone) keeps you on the page you were on, scrolled to the same spot, instead of jumping back to My Tasks."],
