@@ -494,11 +494,11 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .boot-loader .ps-runner.run .rn-legf, .boot-loader .ps-runner.run .rn-legb, .boot-loader .ps-runner.run .rn-armf, .boot-loader .ps-runner.run .rn-armb { animation-duration: .18s; }
 .boot-loader .ps-runner.run .rn-bob { animation-duration: .09s; }
 .boot-loader .ps-runner svg { width: 76px; height: 95px; overflow: visible; }
-.bl-pos { animation: bl-pos 1s linear infinite; }
-.bl-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: bl-pose 1s linear infinite; }
-.bl-carry { transform: translate(20px, -50px) rotate(-20deg); animation: bl-carry 1s ease-in-out infinite; }
-.bl-kick { transform-box: fill-box; transform-origin: center; animation: bl-kick 1s linear infinite; }
-/* One continuous 4 second loop with no fades: she runs in from the left (0-43%), bends to score (43-54%), carries the ball
+.bl-pos { animation: bl-pos .8s linear infinite; }
+.bl-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: bl-pose .8s linear infinite; }
+.bl-carry { transform: translate(20px, -50px) rotate(-20deg); animation: bl-carry .8s ease-in-out infinite; }
+.bl-kick { transform-box: fill-box; transform-origin: center; animation: bl-kick .8s linear infinite; }
+/* One continuous 0.8 second loop with no fades: she runs in from the left (0-43%), bends to score (43-54%), carries the ball
    back round (54-73%), bends to set it down (73-77%), steps back (77-82%), kicks (82-88%) and runs off to the right while the
    ball sails through the posts, so the next loop picks up as she runs in again. */
 @keyframes bl-pos {
@@ -2733,6 +2733,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-20", "The loading screen loop is a little faster: 0.8 seconds instead of 1."],
     ["2026-10-20", "The loading screen is back to the original: Ilona runs in, scores the try and kicks the conversion, on a one second loop."],
     ["2026-10-20", "Development tab: a new App usage section shows how many people use the app each day on average, who has signed in, and how often each person opens it (opens a week, days used, last opened and the device they usually use). Recording starts today."],
     ["2026-10-19", "Connect an AI assistant in your profile settings: add the team app to Claude or ChatGPT as a connector, sign in, and ask it about your tasks, update them, add tasks or send messages. It acts as you, with the same access you have in the app."],
