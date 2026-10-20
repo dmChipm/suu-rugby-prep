@@ -627,6 +627,24 @@ main.convo-mode { padding-bottom: 12px; }
 html.typing header.top, html.typing .convo-wrap > .row.spread { display: none; }
 html.typing main.convo-mode { padding-top: 10px; padding-bottom: 8px; }
 html.typing .convo-wrap { height: calc(var(--vvh, 100dvh) - 34px - env(safe-area-inset-top, 0px)); min-height: 0; gap: 8px; animation: fade-in .18s ease-out; }
+/* An open chat fills the whole screen under the header: no box around the messages, the composer pinned to the bottom edge.
+   On wide screens the content keeps a readable column in the middle. */
+main.convo-mode { --cg: max(16px, calc((100% - 728px) / 2)); max-width: none; padding: 0; gap: 0; background: var(--surface); }
+main.convo-mode .convo-wrap { height: calc(100dvh - var(--head-h, 200px) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); min-height: 360px; gap: 0; }
+body:has(main.convo-mode) { background: var(--surface); }
+main.convo-mode .convo-wrap > * { padding-inline: var(--cg); }
+main.convo-mode .convo-wrap > .row.spread { padding-top: 24px; }
+main.convo-mode .convo-wrap > h1 { padding-block: 6px 10px; border-bottom: 1px solid var(--line); }
+main.convo-mode .convo-wrap .chat { border: 0; border-radius: 0; box-shadow: none; background: transparent; padding-block: 12px; }
+main.convo-mode .convo-wrap > .replying, main.convo-mode .convo-wrap > .pending { padding-block: 6px; }
+main.convo-mode .convo-wrap > .composer { padding-block: 10px; border-top: 1px solid var(--line); }
+html.typing main.convo-mode { padding: 0; }
+html.typing main.convo-mode .convo-wrap { height: calc(var(--vvh, 100dvh) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+html.typing main.convo-mode .convo-wrap > h1 { padding-top: 10px; }
+/* The message box is one line tall, the same height as the photo and file buttons, until what's typed needs more room. */
+.composer .attach-btn, .composer .send-btn { height: 44px; }
+.composer textarea { height: 44px; min-height: 44px; line-height: 20px; padding-block: 10px; }
+.composer textarea::placeholder { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 html.typing .convo-wrap h1 { font-size: 1.15rem; }
 @keyframes fade-in { from { opacity: .4; } to { opacity: 1; } }
 .chat-empty { text-align: center; padding: 24px 0; }
@@ -2765,6 +2783,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-20", "An open chat fills the whole screen instead of sitting in a box, and the message box stays the same height as the photo and file buttons until you type more than one line."],
     ["2026-10-20", "The loading screen sits lower: the cloud, the field and the player all moved down 18% of the screen."],
     ["2026-10-20", "A project's Purpose box has a pencil icon in its top right corner. Tap it to edit the purpose right in the box, with no pop-up."],
     ["2026-10-20", "While a pop-up is open, pulling down no longer refreshes the page, so you can't lose what you were typing. On a computer, refreshing with a pop-up open asks you first."],
@@ -4831,7 +4850,7 @@ table.a-grid td:first-child { min-width: 170px; }
     syncSendBtn();
     return true;
   }
-  function autoGrow(ta) { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 160) + "px"; }
+  function autoGrow(ta) { if (!ta.value) { ta.style.height = ""; return; } ta.style.height = "auto"; ta.style.height = Math.max(44, Math.min(ta.scrollHeight + 4, 160)) + "px"; }
   var sending = false;
   function sendMessage() {
     var c = byId(S.convos, view.convoId), ta = document.getElementById("msg-input"); if (!c || !ta || sending) return;
