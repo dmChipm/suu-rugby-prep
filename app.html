@@ -724,6 +724,8 @@ ul.hist li { display: flex; flex-direction: column; }
 .set-items li { align-items: center; gap: 12px; }
 .set-items li.push-box { flex-direction: row; border-top: 0; padding-top: 10px; }
 .set-items .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.u-wrap { display: flex; flex-direction: column; gap: 12px; }
+#dev-usage { display: flex; flex-direction: column; gap: 12px; }
 .oa-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 .ai-steps p { margin: 0 0 8px; }
 .cal-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -2200,7 +2202,7 @@ table.a-grid td:first-child { min-width: 170px; }
     newVersionLive().then(function (isNew) {
       var busy = document.getElementById("modal-root").firstChild || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
       if (isNew && !busy) { location.reload(); return; }
-      if (auth.state === "ready") schedulePull();
+      if (auth.state === "ready") { schedulePull(); logOpen("open"); }
     });
   });
   function newVersionLive() {
@@ -2241,7 +2243,14 @@ table.a-grid td:first-child { min-width: 170px; }
     }).then(function () { pushing--; if (!pushing) flushPendingPull(); });
   }
 
-  function startSession(session) {
+  // App usage (Development tab): record each sign-in and each time the app is opened. The server skips opens within 30 minutes of the last one.
+  function deviceLabel() {
+    var ua = navigator.userAgent || "", standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
+    var os = /iPhone|iPod/.test(ua) ? "iPhone" : /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? "iPad" : /Android/.test(ua) ? "Android" : /Mac/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows" : "Other";
+    return os + (standalone ? " app" : " browser");
+  }
+  function logOpen(kind) { if (ONLINE && auth.state === "ready") sb.rpc("log_app_open", { p_kind: kind, p_device: deviceLabel() }).then(function () {}, function () {}); }
+  function startSession(session, fresh) {
     auth.email = session.user.email || "";
     if (auth.recovery) { auth.state = "signedout"; auth.mode = "reset"; render(); return; }
     auth.state = "loading"; render();
@@ -2250,7 +2259,7 @@ table.a-grid td:first-child { min-width: 170px; }
       meId = r.data.id; refreshPush();
       return pull().then(function () {
         if (auth.state === "notinvited") return;
-        auth.state = "ready"; render(); resumeOAuth();
+        auth.state = "ready"; render(); resumeOAuth(); logOpen(fresh ? "signin" : "open");
         sb.channel("team").on("postgres_changes", { event: "*", schema: "public" }, schedulePull).subscribe();
       });
     }).catch(function (e) { auth.state = "signedout"; auth.error = "Sign-in didn't finish. " + (e && e.message ? e.message : ""); render(); });
@@ -2258,7 +2267,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   function bootOnline() {
     sb.auth.onAuthStateChange(function (ev, session) {
-      if (ev === "SIGNED_IN" && session && auth.state !== "ready" && auth.state !== "loading") startSession(session);
+      if (ev === "SIGNED_IN" && session && auth.state !== "ready" && auth.state !== "loading") startSession(session, true);
       if (ev === "PASSWORD_RECOVERY") { auth.recovery = true; auth.mode = "reset"; auth.state = "signedout"; render(); }
       if (ev === "SIGNED_OUT") { auth.state = "signedout"; meId = null; render(); }
     });
@@ -2550,7 +2559,7 @@ table.a-grid td:first-child { min-width: 170px; }
       if (kind === "reset") sb.auth.updateUser({ password: pass, data: { has_password: true } }).then(function (r) {
         done(r, function () {
           auth.recovery = false; auth.mode = "signin"; try { history.replaceState(null, "", location.pathname + location.search); } catch (x) {}
-          sb.auth.getSession().then(function (g) { if (g.data && g.data.session) startSession(g.data.session); });
+          sb.auth.getSession().then(function (g) { if (g.data && g.data.session) startSession(g.data.session, true); });
           toast("Password saved");
         });
       });
@@ -2601,8 +2610,10 @@ table.a-grid td:first-child { min-width: 170px; }
         '<div class="row" style="flex-wrap:wrap;gap:8px"><span class="small muted">Or pick one:</span>' + [["bird", "Thunderbird"], ["thor", "Thor"], ["pika", "Pikachu"], ["train", "Train"], ["ilona", "Ilona Maher"]].map(function (x) { return '<button class="btn" data-show="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
         '<label class="row small" style="gap:8px"><input type="checkbox" id="dev-sound"' + (soundOn() ? " checked" : "") + '> Play sounds on this device</label>' +
         '<p class="muted small" style="margin:0">The cannon plays when a task is checked off. One of the five piñata shows plays at random when that finishes a whole game sheet or project. Tap the screen to skip either.</p></div>' +
+        '<h2>App usage</h2><div id="dev-usage">' + usageShell() + "</div>" +
         '<h2>Documentation</h2><div class="dev-links">' + devLink("open-devdocs", "Developer docs", "Tech stack, how it's built and where everything lives") + devLink("open-updates", "Update log", "Version " + appVersion() + " · everything that has changed") + "</div>" +
         '<h2>App info</h2><div class="card"><ul class="tasks dev-info">' + info.map(function (x) { return '<li><span class="muted small">' + esc(x[0]) + '</span><span class="dev-v">' + esc(String(x[1])) + "</span></li>"; }).join("") + "</ul></div>";
+      loadUsage(app.querySelector("#dev-usage"));
       app.querySelector("#dev-small").addEventListener("click", function () { cannonShow("Done: Book the field"); });
       app.querySelector("#dev-big").addEventListener("click", function () { pinataShow("Home Game is 100% ready!"); });
       app.querySelector("#dev-loader").addEventListener("click", function () { showLoader(true); });
@@ -2722,6 +2733,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-20", "Development tab: a new App usage section shows how many people use the app each day on average, who has signed in, and how often each person opens it (opens a week, days used, last opened and the device they usually use). Recording starts today."],
     ["2026-10-19", "Connect an AI assistant in your profile settings: add the team app to Claude or ChatGPT as a connector, sign in, and ask it about your tasks, update them, add tasks or send messages. It acts as you, with the same access you have in the app."],
     ["2026-10-19", "Fixes from a full walkthrough: opening a task on a phone no longer pops up the keyboard; the header is much shorter on phones, with the tabs on one row you can swipe; the Game Prep page lists each task once instead of up to three times; My progress on Projects shows only project work; and tasks on a game sheet are sorted with overdue and blocked first, then by due date."],
     ["2026-10-19", "Add to my calendar in your profile settings: subscribe Google Calendar or Apple Calendar to your own tasks, your projects' due dates and every game day. It keeps itself up to date."],
@@ -2838,6 +2850,57 @@ table.a-grid td:first-child { min-width: 170px; }
   function verOf(i) { return i <= LAUNCH_AT ? "1." + (LAUNCH_AT - i) : "0." + (UPDATES.length - i); }
   function appVersion() { return verOf(0); }
   function backToDev() { return '<button class="btn ghost" data-act="goto-tab" data-tab="dev">‹ Development</button>'; }
+  // App usage for developers: daily people, who signs in, how often each person opens the app (app_opens, read through app_usage()).
+  var USAGE_SINCE = "2026-10-20";
+  function usageShell() {
+    var d = view.usageDays || 30;
+    return '<div class="row spread"><span class="muted small">Recorded from ' + esc(fmtDate(USAGE_SINCE)) + ' on. Opens within 30 minutes of each other count once.</span><div class="seg" role="group" aria-label="Usage range">' +
+      [7, 30, 90].map(function (n) { return '<button type="button" data-usage-days="' + n + '" aria-pressed="' + (d === n) + '">' + n + " days</button>"; }).join("") + "</div></div>" +
+      '<div class="u-body muted small">' + (ONLINE ? "Loading usage…" : "Usage is recorded once the team uses the online app. Test mode doesn't record anything.") + "</div>";
+  }
+  function loadUsage(box) {
+    if (!box) return;
+    box.querySelectorAll("[data-usage-days]").forEach(function (b) { b.addEventListener("click", function () { view.usageDays = Number(b.dataset.usageDays); box.innerHTML = usageShell(); loadUsage(box); }); });
+    if (!ONLINE) return;
+    var days = view.usageDays || 30, body = box.querySelector(".u-body");
+    sb.rpc("app_usage", { p_days: days }).then(function (r) {
+      if (r.error) throw r.error;
+      body.classList.remove("muted", "small"); body.innerHTML = usageHtml(r.data || [], days);
+    }).catch(function (e) { body.textContent = "Couldn't load usage just now" + (e && e.message ? " (" + e.message + ")" : "") + "."; });
+  }
+  function usageHtml(rows, days) {
+    var dayOf = function (iso) { return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Denver" }); };
+    var today = dayOf(new Date().toISOString()), start = addDays(today, -(days - 1)); if (start < USAGE_SINCE) start = USAGE_SINCE;
+    var span = Math.max(1, daysBetween(start, today) + 1), byDay = {}, per = {};
+    rows = rows.filter(function (x) { return dayOf(x.opened_at) >= start; });
+    rows.forEach(function (x) {
+      var d = dayOf(x.opened_at); (byDay[d] = byDay[d] || {})[x.person_id] = 1;
+      var p = per[x.person_id] = per[x.person_id] || { opens: 0, signins: 0, days: {}, last: "", dev: {} };
+      p.opens++; if (x.kind === "signin") p.signins++; p.days[d] = 1; if (x.opened_at > p.last) p.last = x.opened_at; p.dev[x.device || "Unknown"] = (p.dev[x.device || "Unknown"] || 0) + 1;
+    });
+    var series = []; for (var i = 0; i < span; i++) { var dk = addDays(start, i); series.push({ d: dk, n: Object.keys(byDay[dk] || {}).length }); }
+    var total = series.reduce(function (a, x) { return a + x.n; }, 0), avg = total / span, ids = Object.keys(per), peak = Math.max.apply(null, series.map(function (x) { return x.n; }).concat([1]));
+    var nameOf = function (id) { var p = byId(S.people, id); return p ? p.name : "Removed person"; }, roleOf = function (id) { var p = byId(S.people, id); return p ? p.role : ""; };
+    var h = '<div class="a-tiles">' + [[avg.toFixed(1), "people a day on average", "over " + span + (span === 1 ? " day" : " days")], [ids.length, "people opened the app", "of " + S.people.filter(function (p) { return p.status !== "Inactive"; }).length + " on the team"],
+      [rows.length, "opens", (rows.length / span).toFixed(1) + " a day"], [rows.filter(function (x) { return x.kind === "signin"; }).length, "sign-ins", "fresh logins, not reopening"]].map(function (t) {
+        return '<div class="card a-tile"><span class="a-big">' + esc(String(t[0])) + '</span><span class="a-label">' + esc(t[1]) + '</span><span class="muted small">' + esc(t[2]) + "</span></div>"; }).join("") + "</div>";
+    // People per day: one bar per day, labels on the first, middle and last day.
+    var W = 600, H = 150, bw = W / Math.max(span, 14);
+    h += '<div class="card a-chart"><h3>People using the app each day</h3><svg viewBox="0 -14 ' + W + " " + (H + 34) + '" role="img" aria-label="People using the app each day">' +
+      series.map(function (x, i) { var bh = Math.round(x.n * H / peak); return '<rect x="' + (i * bw + bw * .15).toFixed(1) + '" y="' + (H - bh) + '" width="' + (bw * .7).toFixed(1) + '" height="' + Math.max(bh, x.n ? 2 : 0) + '" rx="2" fill="var(--red)"><title>' + esc(fmtShort(x.d)) + ": " + x.n + (x.n === 1 ? " person" : " people") + "</title></rect>" +
+        (span <= 31 && x.n ? '<text x="' + (i * bw + bw / 2).toFixed(1) + '" y="' + (H - bh - 4) + '" text-anchor="middle">' + x.n + "</text>" : ""); }).join("") +
+      '<line x1="0" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="var(--line)"/>' +
+      [0, Math.floor((span - 1) / 2), span - 1].filter(function (v, i, a) { return a.indexOf(v) === i; }).map(function (i) { return '<text x="' + (i * bw + bw / 2).toFixed(1) + '" y="' + (H + 20) + '" text-anchor="middle">' + esc(fmtShort(series[i].d)) + "</text>"; }).join("") + "</svg></div>";
+    var list = ids.sort(function (a, b) { return per[b].opens - per[a].opens || nameOf(a).localeCompare(nameOf(b)); });
+    h += '<div class="card tablewrap"><table class="grid a-grid"><thead><tr><th>Person</th><th>Days used</th><th>Opens</th><th>Opens a week</th><th>Sign-ins</th><th>Last opened</th><th>Usually on</th></tr></thead><tbody>' +
+      (list.length ? list.map(function (id) {
+        var p = per[id], dev = Object.keys(p.dev).sort(function (a, b) { return p.dev[b] - p.dev[a]; })[0];
+        return "<tr><td><b>" + esc(nameOf(id)) + '</b><div class="muted small">' + esc(roleOf(id)) + "</div></td><td>" + Object.keys(p.days).length + " of " + span + "</td><td>" + p.opens + "</td><td>" + (p.opens * 7 / span).toFixed(1) + "</td><td>" + p.signins + '</td><td class="nowrap">' + esc(fmtStamp(p.last)) + "</td><td>" + esc(dev) + "</td></tr>";
+      }).join("") : '<tr><td colspan="7" class="muted">No one has opened the app in this range yet.</td></tr>') + "</tbody></table></div>";
+    var never = S.people.filter(function (p) { return p.status !== "Inactive" && !per[p.id]; });
+    if (never.length) h += '<p class="muted small" style="margin:0"><b>Hasn\'t opened it in this range:</b> ' + never.map(function (p) { return esc(p.name); }).join(", ") + "</p>";
+    return '<div class="u-wrap">' + h + "</div>";
+  }
   function devLink(act, title, sub) {
     return '<button type="button" class="card dev-link" data-act="' + act + '"><span class="grow"><strong>' + esc(title) + '</strong><span class="muted small">' + esc(sub) + '</span></span><span class="dev-chev" aria-hidden="true">›</span></button>';
   }

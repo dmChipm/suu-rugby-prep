@@ -289,3 +289,30 @@ grant execute on function public.my_calendar_token(boolean) to authenticated;
 --   It signs people in with Supabase Auth's OAuth 2.1 server (Authentication > OAuth Server: enabled, dynamic client registration on,
 --   authorization path pointing at the app, which shows the Allow screen for ?authorization_id=). Every query runs with the person's
 --   own token, so the policies above decide what an assistant can see and change.
+
+-- App usage (Development tab): one row per sign-in or app open; log_app_open() skips opens within 30 minutes of the last.
+--   Only developers can read it, through app_usage(days). Recorded from Oct 20, 2026.
+create table if not exists public.app_opens (id bigserial primary key, person_id text not null references public.people(id) on delete cascade, opened_at timestamptz not null default now(), kind text not null default 'open' check (kind in ('open','signin')), device text not null default '');
+create index if not exists app_opens_time on public.app_opens (opened_at);
+create index if not exists app_opens_person on public.app_opens (person_id, opened_at desc);
+alter table public.app_opens enable row level security;
+revoke all on public.app_opens from anon, authenticated;
+create or replace function public.log_app_open(p_kind text default 'open', p_device text default '') returns void language plpgsql security definer set search_path = public as '
+declare me text := public.current_person_id();
+begin
+  if me is null then return; end if;
+  if p_kind = ''open'' and exists (select 1 from public.app_opens where person_id = me and opened_at > now() - interval ''30 minutes'') then return; end if;
+  insert into public.app_opens(person_id, kind, device) values (me, case when p_kind = ''signin'' then ''signin'' else ''open'' end, left(coalesce(p_device, ''''), 40));
+end';
+revoke all on function public.log_app_open(text, text) from public, anon;
+grant execute on function public.log_app_open(text, text) to authenticated;
+create or replace function public.app_usage(p_days int default 30) returns table (person_id text, opened_at timestamptz, kind text, device text) language plpgsql stable security definer set search_path = public as '
+begin
+  if not exists (select 1 from public.people p where lower(p.email) = public.current_email() and public.current_email() <> '''' and p.role = ''Developer'' and p.status <> ''Inactive'') then
+    raise exception ''developers only'';
+  end if;
+  return query select o.person_id, o.opened_at, o.kind, o.device from public.app_opens o
+    where o.opened_at > now() - make_interval(days => least(greatest(coalesce(p_days, 30), 1), 400)) order by o.opened_at;
+end';
+revoke all on function public.app_usage(int) from public, anon;
+grant execute on function public.app_usage(int) to authenticated;
