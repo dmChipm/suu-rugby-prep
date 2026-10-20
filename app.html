@@ -2734,6 +2734,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-20", "A project's Purpose prompt is shorter: it now just reads \"We are doing this to achieve...\""],
     ["2026-10-20", "The Pikachu celebration is archived: it no longer plays when a sheet or project hits 100%. The other four piñata shows still do."],
     ["2026-10-20", "The loading screen loop is a little faster: 0.9 seconds instead of 1."],
     ["2026-10-20", "The loading screen is back to the original: Ilona runs in, scores the try and kicks the conversion, on a one second loop."],
@@ -5154,7 +5155,7 @@ table.a-grid td:first-child { min-width: 170px; }
       (pd ? '<span class="pj-due-left">' + esc(pd.text) + "</span>" : mgr ? '<span class="muted small">No due date yet</span>' : "") + "</div>";
     // Purpose: why the project exists, so everyone working on it knows the goal.
     if (pj.description || mgr) h += '<section class="card pj-purpose"><div class="row spread"><h2>Purpose</h2>' + (mgr ? '<button type="button" class="btn ghost" data-act="edit-project">' + (pj.description ? "Edit" : "+ Add") + "</button>" : "") + "</div>" +
-      (pj.description ? '<p>' + esc(pj.description) + "</p>" : '<p class="muted">Why are we doing this project, and what does success look like? Add it so everyone knows the goal.</p>') + "</section>";
+      (pj.description ? '<p>' + esc(pj.description) + "</p>" : '<p class="muted">We are doing this to achieve...</p>') + "</section>";
     var mem = pj.members || [], canMem = canEditMembers(pj);
     // People: the chips when someone's been added; otherwise just the add button for those who can edit it.
     if (mem.length || canMem) h += '<div class="pj-people">' + (mem.length ? '<span class="muted small">People</span>' + mem.map(function (n) { return '<span class="chip ro">' + esc(n) + "</span>"; }).join("") : "") +
@@ -5177,7 +5178,7 @@ table.a-grid td:first-child { min-width: 170px; }
     var isNew = !pj; pj = pj || { name: "", description: "", lead: "", due: "" };
     openModal("<h1>" + (isNew ? "New project" : "Project details") + '</h1><form id="f-project" style="display:flex;flex-direction:column;gap:12px">' +
       fld("Name", "pj-name", pj.name, true, "text", ' required placeholder="e.g. Spring fundraiser"') +
-      fld("Purpose <span class=\"muted small\" style=\"font-weight:400\">why we're doing it and what success looks like</span>", "pj-desc", pj.description, true, "area", ' rows="4" placeholder="e.g. Raise $3,000 for the spring tour so travel costs don\'t fall on players."') +
+      fld("Purpose", "pj-desc", pj.description, true, "area", ' rows="3" placeholder="We are doing this to achieve..."') +
       '<div class="grid2">' + ownerCombo("pj-lead", pj.lead) + fld("Due Date", "pj-due", pj.due, true, "date") + "</div>" +
       (isNew ? '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary">Create project</button></div>'
         : '<div class="row" style="justify-content:flex-end"><span class="muted small">Changes save automatically</span><button type="button" class="btn primary" data-close>Done</button></div>') + "</form>",
