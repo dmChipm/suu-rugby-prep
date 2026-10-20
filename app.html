@@ -116,6 +116,8 @@ label.field { display: flex; flex-direction: column; gap: 4px; font-weight: 600;
 
 .scrim { position: fixed; inset: 0; background: rgba(20, 8, 10, .55); display: grid; place-items: center; padding: 16px; z-index: 20; }
 .modal:focus { outline: none; }
+html.modal-open, html.modal-open body { overflow: hidden; overscroll-behavior: none; }
+.scrim, .modal { overscroll-behavior: contain; }
 .modal { width: 100%; max-width: 540px; background: var(--surface); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; max-height: 90vh; overflow: auto; }
 .modal h1 { font-size: 1.5rem; }
 .m-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -753,6 +755,9 @@ ul.hist li { display: flex; flex-direction: column; }
 .lb-list li.lb-me .lb-name { color: var(--red); }
 .pj-purpose { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; border-left: 4px solid var(--red); }
 .pj-purpose h2 { margin: 0; font-size: 1.05rem; }
+.pj-purpose { position: relative; }
+.pj-purpose-edit { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; }
+.pj-purpose h2 + p, .pj-purpose h2 + .pj-purpose-edit + p { padding-right: 28px; }
 .pj-purpose p { margin: 0; white-space: pre-wrap; }
 .a-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .a-tile { padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -1881,6 +1886,17 @@ table.a-grid td:first-child { min-width: 170px; }
 
   var S = window.RUGBY_CONFIG && window.supabase ? null : normalize(store.load() || seed());
   var view = { flagged: false, mine: false, expand: {}, tab: "dashboard", sheetId: null, masterId: null, projectId: null, convoId: null, drafts: {}, hideDone: false };
+  // Where you are (tab, open sheet, project or chat, and how far down), kept for this browser tab so a refresh or
+  // pull-to-refresh reopens the same page instead of My Tasks.
+  var PLACE_KEY = KEY + "-place", PLACE_FIELDS = ["tab", "sheetId", "masterId", "projectId", "convoId"], placeScroll = null;
+  try {
+    var place = JSON.parse(sessionStorage.getItem(PLACE_KEY) || "null");
+    if (place) { PLACE_FIELDS.forEach(function (k) { if (typeof place[k] === "string" || place[k] === null) view[k] = place[k] || (k === "tab" ? "dashboard" : null); }); placeScroll = place.y || 0; }
+  } catch (e) {}
+  function savePlace() {
+    try { var o = { y: Math.round(window.scrollY || 0) }; PLACE_FIELDS.forEach(function (k) { o[k] = view[k]; }); sessionStorage.setItem(PLACE_KEY, JSON.stringify(o)); } catch (e) {}
+  }
+  window.addEventListener("pagehide", function () { if (!ONLINE || auth.state === "ready") savePlace(); });
   function save(quiet) {
     if (ONLINE) { try { localStorage.setItem(KEY + "-layout", S.layout); } catch (e) {} push(quiet); return; }
     demoTrack();
@@ -2011,13 +2027,24 @@ table.a-grid td:first-child { min-width: 170px; }
     root.innerHTML = '<div class="scrim"><div class="modal" role="dialog" aria-modal="true">' + html + "</div></div>";
     var scrim = root.firstChild;
     scrim.addEventListener("click", function (e) { if (e.target === scrim || e.target.closest("[data-close]")) closeModal(); });
+    document.documentElement.classList.add("modal-open");
     if (onReady) onReady(scrim.firstChild);
     // On touch screens, focusing a text box pops up the keyboard over the pop-up, so focus the pop-up itself; forms that want typing focus their own box.
     var f = scrim.querySelector("input, select"), touch = window.matchMedia && matchMedia("(pointer: coarse)").matches;
     if (touch) { scrim.firstChild.setAttribute("tabindex", "-1"); scrim.firstChild.focus({ preventScroll: true }); } else if (f) f.focus();
   }
   var onModalClose = null;
-  function closeModal() { if (onModalClose) { var f = onModalClose; onModalClose = null; f(); } document.getElementById("modal-root").innerHTML = ""; if (typeof ONLINE !== "undefined" && ONLINE) setTimeout(flushPendingPull, 0); }
+  // While a pop-up is open, block pull-to-refresh: a downward swipe that would scroll past the top of the pop-up does nothing.
+  var modalTouchY = null;
+  document.addEventListener("touchstart", function (e) { modalTouchY = document.getElementById("modal-root").firstChild && e.touches.length === 1 ? e.touches[0].clientY : null; }, { passive: true });
+  document.addEventListener("touchmove", function (e) {
+    if (modalTouchY === null || !document.getElementById("modal-root").firstChild) return;
+    var m = e.target.closest && e.target.closest(".modal, .chat, textarea"), down = e.touches[0].clientY > modalTouchY;
+    if (!m || (down && m.scrollTop <= 0)) e.preventDefault();
+  }, { passive: false });
+  // On a computer, refreshing or closing the tab with a pop-up open asks first.
+  window.addEventListener("beforeunload", function (e) { if (document.getElementById("modal-root").firstChild) { e.preventDefault(); e.returnValue = ""; } });
+  function closeModal() { if (onModalClose) { var f = onModalClose; onModalClose = null; f(); } document.getElementById("modal-root").innerHTML = ""; document.documentElement.classList.remove("modal-open"); if (typeof ONLINE !== "undefined" && ONLINE) setTimeout(flushPendingPull, 0); }
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
 
   // ---------- header ----------
@@ -2573,6 +2600,10 @@ table.a-grid td:first-child { min-width: 170px; }
     var ae = document.activeElement, keepMsg = ae && ae.id === "msg-input" ? { a: ae.selectionStart, b: ae.selectionEnd } : null;
     renderInner();
     if (!(ONLINE && auth.state === "loading")) hideBootLoader();
+    if (!ONLINE || auth.state === "ready") {
+      if (placeScroll !== null) { var y = placeScroll; placeScroll = null; requestAnimationFrame(function () { window.scrollTo(0, y); }); }
+      savePlace();
+    }
     if (keepMsg) { var mi = document.getElementById("msg-input"); if (mi) { mi.focus(); try { mi.setSelectionRange(keepMsg.a, keepMsg.b); } catch (e) {} } }
   }
   var lastMsgRoute = "";
@@ -2734,6 +2765,9 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-20", "A project's Purpose box has a pencil icon in its top right corner. Tap it to edit the purpose right in the box, with no pop-up."],
+    ["2026-10-20", "While a pop-up is open, pulling down no longer refreshes the page, so you can't lose what you were typing. On a computer, refreshing with a pop-up open asks you first."],
+    ["2026-10-20", "Refreshing the app (including pulling down to refresh on a phone) keeps you on the page you were on, scrolled to the same spot, instead of jumping back to My Tasks."],
     ["2026-10-20", "A project's Purpose prompt is shorter: it now just reads \"We are doing this to achieve...\""],
     ["2026-10-20", "The Pikachu celebration is archived: it no longer plays when a sheet or project hits 100%. The other four piñata shows still do."],
     ["2026-10-20", "The loading screen loop is a little faster: 0.9 seconds instead of 1."],
@@ -5154,7 +5188,8 @@ table.a-grid td:first-child { min-width: 170px; }
       (mgr ? '<label for="pj-due-inline">Due</label><input type="date" id="pj-due-inline" value="' + esc(pj.due || "") + '"' + (pj.due ? "" : ' aria-label="Add a due date"') + ">" : "<b>Due " + esc(fmtDate(pj.due)) + "</b>") +
       (pd ? '<span class="pj-due-left">' + esc(pd.text) + "</span>" : mgr ? '<span class="muted small">No due date yet</span>' : "") + "</div>";
     // Purpose: why the project exists, so everyone working on it knows the goal.
-    if (pj.description || mgr) h += '<section class="card pj-purpose"><div class="row spread"><h2>Purpose</h2>' + (mgr ? '<button type="button" class="btn ghost" data-act="edit-project">' + (pj.description ? "Edit" : "+ Add") + "</button>" : "") + "</div>" +
+    // Managers edit it in place with the pencil in the corner, no pop-up.
+    if (pj.description || mgr) h += '<section class="card pj-purpose" id="pj-purpose"><h2>Purpose</h2>' + (mgr ? '<button type="button" class="icon-btn pj-purpose-edit" data-act="edit-purpose" aria-label="Edit purpose" title="Edit purpose">' + PENCIL + "</button>" : "") +
       (pj.description ? '<p>' + esc(pj.description) + "</p>" : '<p class="muted">We are doing this to achieve...</p>') + "</section>";
     var mem = pj.members || [], canMem = canEditMembers(pj);
     // People: the chips when someone's been added; otherwise just the add button for those who can edit it.
@@ -5173,6 +5208,18 @@ table.a-grid td:first-child { min-width: 170px; }
     if (!mgr) h += '<p class="muted small">Tap a task to update its status or add notes. The project owner and the presidency add tasks and assign owners.</p>';
     h += archivedBox("Archived tasks", pj.archived || [], function (t) { return t.text; }, "data-restore-ptask", mgr);
     return h;
+  }
+  var PENCIL = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  function editPurposeInline(pj) {
+    var sec = document.getElementById("pj-purpose"); if (!sec || sec.querySelector("textarea")) return;
+    sec.innerHTML = '<h2><label for="pj-purpose-text">Purpose</label></h2><textarea id="pj-purpose-text" rows="4" placeholder="We are doing this to achieve...">' + esc(pj.description || "") + "</textarea>" +
+      '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" id="pj-purpose-cancel">Cancel</button><button type="button" class="btn primary" id="pj-purpose-save">Save</button></div>';
+    var ta = sec.querySelector("textarea");
+    function done(keep) { if (keep) { var v = ta.value.trim(); if (v !== (pj.description || "")) { pj.description = v; save(); } } render(); }
+    sec.querySelector("#pj-purpose-save").addEventListener("click", function () { done(true); });
+    sec.querySelector("#pj-purpose-cancel").addEventListener("click", function () { done(false); });
+    ta.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.stopPropagation(); done(false); } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); done(true); } });
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
   }
   function projectModal(pj) {
     var isNew = !pj; pj = pj || { name: "", description: "", lead: "", due: "" };
@@ -5451,6 +5498,7 @@ table.a-grid td:first-child { min-width: 170px; }
       case "msg-media": document.getElementById("msg-media").click(); break;
       case "convo-info": convoInfoModal(byId(S.convos, view.convoId)); break;
       case "new-project": if (canManageProjects()) projectModal(null); break;
+      case "edit-purpose": var epj = byId(S.projects, view.projectId); if (epj && canManageProject(epj)) editPurposeInline(epj); break;
       case "edit-project": if (canManageProject(byId(S.projects, view.projectId))) projectModal(byId(S.projects, view.projectId)); break;
       case "psort-az": case "psort-za": case "psort-role": setPeopleSort(t.dataset.act.slice(6)); render(); break;
       case "goto-tab": view.tab = t.dataset.tab; view.sheetId = null; view.projectId = null; view.masterId = null; render(); window.scrollTo(0, 0); break;
