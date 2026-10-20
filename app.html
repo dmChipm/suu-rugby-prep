@@ -1191,7 +1191,8 @@ table.a-grid td:first-child { min-width: 170px; }
     setTimeout(function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 420); }, Math.max(0, 900 - (Date.now() - bootStart)));
   }
   bootLoader = showLoader(false);
-  var SHOWS = ["bird", "thor", "pika", "train", "ilona"];
+  // Archived shows keep their code but never play: add one back to SHOWS to bring it back. "pika" archived Oct 20, 2026.
+  var SHOWS = ["bird", "thor", "train", "ilona"], ARCHIVED_SHOWS = ["pika"];
   // The 100% show. Every version ends the same way: the piñata bursts and a red neon "Good Job!" sign lights up.
   // kind: "bird" (thunderbird lands, storm, lightning), "thor" (hammer smash), "pika" (Pikachu calls the lightning),
   // "train" (a train runs it over), "ilona" (Ilona Maher tackles it). Left out, one is picked at random.
@@ -2607,9 +2608,9 @@ table.a-grid td:first-child { min-width: 170px; }
       app.innerHTML = '<div><h1>Development</h1><div class="muted">Only people with the Developer role see this tab.</div></div>' +
         '<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px"><strong>Effects</strong>' +
         '<div class="row"><button class="btn primary" id="dev-small">💥 Task complete (cannon)</button><button class="btn" id="dev-big">🎉 Sheet or project 100% (random piñata)</button><button class="btn" id="dev-loader">🏉 Loading screen</button></div>' +
-        '<div class="row" style="flex-wrap:wrap;gap:8px"><span class="small muted">Or pick one:</span>' + [["bird", "Thunderbird"], ["thor", "Thor"], ["pika", "Pikachu"], ["train", "Train"], ["ilona", "Ilona Maher"]].map(function (x) { return '<button class="btn" data-show="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
+        '<div class="row" style="flex-wrap:wrap;gap:8px"><span class="small muted">Or pick one:</span>' + [["bird", "Thunderbird"], ["thor", "Thor"], ["pika", "Pikachu"], ["train", "Train"], ["ilona", "Ilona Maher"]].filter(function (x) { return SHOWS.indexOf(x[0]) >= 0; }).map(function (x) { return '<button class="btn" data-show="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
         '<label class="row small" style="gap:8px"><input type="checkbox" id="dev-sound"' + (soundOn() ? " checked" : "") + '> Play sounds on this device</label>' +
-        '<p class="muted small" style="margin:0">The cannon plays when a task is checked off. One of the five piñata shows plays at random when that finishes a whole game sheet or project. Tap the screen to skip either.</p></div>' +
+        '<p class="muted small" style="margin:0">The cannon plays when a task is checked off. One of the ' + ["", "one", "two", "three", "four", "five"][SHOWS.length] + ' piñata shows plays at random when that finishes a whole game sheet or project. Tap the screen to skip either.</p></div>' +
         '<h2>App usage</h2><div id="dev-usage">' + usageShell() + "</div>" +
         '<h2>Documentation</h2><div class="dev-links">' + devLink("open-devdocs", "Developer docs", "Tech stack, how it's built and where everything lives") + devLink("open-updates", "Update log", "Version " + appVersion() + " · everything that has changed") + "</div>" +
         '<h2>App info</h2><div class="card"><ul class="tasks dev-info">' + info.map(function (x) { return '<li><span class="muted small">' + esc(x[0]) + '</span><span class="dev-v">' + esc(String(x[1])) + "</span></li>"; }).join("") + "</ul></div>";
@@ -2733,6 +2734,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-20", "The Pikachu celebration is archived: it no longer plays when a sheet or project hits 100%. The other four piñata shows still do."],
     ["2026-10-20", "The loading screen loop is a little faster: 0.8 seconds instead of 1."],
     ["2026-10-20", "The loading screen is back to the original: Ilona runs in, scores the try and kicks the conversion, on a one second loop."],
     ["2026-10-20", "Development tab: a new App usage section shows how many people use the app each day on average, who has signed in, and how often each person opens it (opens a week, days used, last opened and the device they usually use). Recording starts today."],
