@@ -494,7 +494,8 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .boot-loader .ps-runner.run .rn-legf, .boot-loader .ps-runner.run .rn-legb, .boot-loader .ps-runner.run .rn-armf, .boot-loader .ps-runner.run .rn-armb { animation-duration: .18s; }
 .boot-loader .ps-runner.run .rn-bob { animation-duration: .09s; }
 .boot-loader .ps-runner svg { width: 76px; height: 95px; overflow: visible; }
-/* One 1 second loop: Ilona runs in with the ball and is tackled (0-33%), a ruck forms over her (33-50%), a teammate picks the
+/* One 1 second loop: Ilona runs in with the ball and is tackled by the one defender (0-33%), a teammate arrives and sets the
+   ruck over her (33-50%), another teammate picks the
    ball from the base of it (50-58%), runs in and dives over for the try (58-80%), places it, steps back and kicks the
    conversion through the posts (83-100%). Each player is a position group (.bl-*-pos) holding a pose group (.bl-*-pose). */
 .bl-a-pos, .bl-t-pos, .bl-r-pos, .bl-b-pos, .bl-ball { animation: 1s linear infinite; }
@@ -509,8 +510,8 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 @keyframes bl-a-pose { 0%, 26% { transform: none; } 33%, 100% { transform: rotate(80deg) scaleY(.9); } }
 @keyframes bl-t-pos { 0% { transform: translate(300px, 182px); opacity: 1; } 26% { transform: translate(178px, 182px); } 33%, 92% { transform: translate(168px, 176px); opacity: 1; } 97%, 100% { transform: translate(168px, 176px); opacity: 0; } }
 @keyframes bl-t-pose { 0%, 26% { transform: none; } 33%, 100% { transform: rotate(78deg) scaleY(.9); } }
-@keyframes bl-r-pos { 0%, 30% { transform: translate(450px, 182px); opacity: 1; } 45%, 92% { transform: translate(262px, 182px); opacity: 1; } 97%, 100% { transform: translate(262px, 182px); opacity: 0; } }
-@keyframes bl-r-pose { 0%, 44% { transform: none; } 48%, 100% { transform: rotate(-38deg) scaleY(.92); } }
+@keyframes bl-r-pos { 0% { transform: translate(-110px, 182px); opacity: 1; } 38% { transform: translate(140px, 182px); } 43%, 92% { transform: translate(158px, 182px); opacity: 1; } 97%, 100% { transform: translate(158px, 182px); opacity: 0; } }
+@keyframes bl-r-pose { 0%, 38% { transform: none; } 43%, 100% { transform: rotate(40deg) scaleY(.92); } }
 @keyframes bl-b-pos { 0% { transform: translate(-60px, 182px); opacity: 0; } 5% { opacity: 1; } 50%, 57% { transform: translate(116px, 182px); } 74% { transform: translate(250px, 182px); }
   79%, 82% { transform: translate(262px, 182px); } 85% { transform: translate(282px, 182px); } 88% { transform: translate(268px, 182px); } 91% { transform: translate(288px, 182px); }
   96% { transform: translate(318px, 182px); opacity: 1; } 100% { transform: translate(330px, 182px); opacity: 0; } }
@@ -1171,8 +1172,8 @@ table.a-grid td:first-child { min-width: 170px; }
       // Goal posts in the in-goal area, drawn with a little perspective.
       '<g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M352 186 V36"/><path d="M380 172 V24"/><path d="M352 120 L380 108"/></g>' +
       '<path d="M352 186 l-4 4 M380 172 l-4 4" stroke="#c8102e" stroke-width="8"/>' +
-      // Ilona (red SUU kit) is tackled by a player in the other team's navy kit, a second one joins the ruck, and a teammate scores.
-      blPlayer("a", true, false) + blPlayer("t", false, true) + blPlayer("r", false, true) + blPlayer("b", true, false) +
+      // Four players: Ilona (SUU red) is tackled by the one defender (blue), a teammate sets the ruck over her, and another teammate scores.
+      blPlayer("a", true, false) + blPlayer("t", false, true) + blPlayer("r", true, false) + blPlayer("b", true, false) +
       '<g class="bl-ball">' + BL_BALL + '</g>' +
       '</svg>';
   }
@@ -2748,7 +2749,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
-    ["2026-10-20", "New loading screen, still one second: Ilona is tackled, a ruck forms, a teammate picks the ball from the base, dives over for the try and kicks the conversion through the posts."],
+    ["2026-10-20", "New loading screen, still one second: Ilona is tackled by a defender, a teammate sets the ruck over her, another teammate picks the ball from the base, dives over for the try, steps back and kicks the conversion through the posts."],
     ["2026-10-20", "Development tab: a new App usage section shows how many people use the app each day on average, who has signed in, and how often each person opens it (opens a week, days used, last opened and the device they usually use). Recording starts today."],
     ["2026-10-19", "Connect an AI assistant in your profile settings: add the team app to Claude or ChatGPT as a connector, sign in, and ask it about your tasks, update them, add tasks or send messages. It acts as you, with the same access you have in the app."],
     ["2026-10-19", "Fixes from a full walkthrough: opening a task on a phone no longer pops up the keyboard; the header is much shorter on phones, with the tabs on one row you can swipe; the Game Prep page lists each task once instead of up to three times; My progress on Projects shows only project work; and tasks on a game sheet are sorted with overdue and blocked first, then by due date."],
