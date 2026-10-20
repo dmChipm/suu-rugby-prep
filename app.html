@@ -494,36 +494,31 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .boot-loader .ps-runner.run .rn-legf, .boot-loader .ps-runner.run .rn-legb, .boot-loader .ps-runner.run .rn-armf, .boot-loader .ps-runner.run .rn-armb { animation-duration: .18s; }
 .boot-loader .ps-runner.run .rn-bob { animation-duration: .09s; }
 .boot-loader .ps-runner svg { width: 76px; height: 95px; overflow: visible; }
-/* One 1 second loop: Ilona runs in with the ball and is tackled by the one defender (0-33%), a teammate arrives and sets the
-   ruck over her (33-50%), another teammate picks the
-   ball from the base of it (50-58%), runs in and dives over for the try (58-80%), places it, steps back and kicks the
-   conversion through the posts (83-100%) while the ruck gets up and clears out to the left. Each player is a position group (.bl-*-pos) holding a pose group (.bl-*-pose). */
-.bl-a-pos, .bl-t-pos, .bl-r-pos, .bl-b-pos, .bl-ball { animation: 1s linear infinite; }
-.bl-a-pose, .bl-t-pose, .bl-r-pose, .bl-b-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: 1s linear infinite; }
-.bl-ball { transform-box: fill-box; transform-origin: center; }
-.bl-a-pos { animation-name: bl-a-pos; } .bl-a-pose { animation-name: bl-a-pose; }
-.bl-t-pos { animation-name: bl-t-pos; } .bl-t-pose { animation-name: bl-t-pose; }
-.bl-r-pos { animation-name: bl-r-pos; } .bl-r-pose { animation-name: bl-r-pose; }
-.bl-b-pos { animation-name: bl-b-pos; } .bl-b-pose { animation-name: bl-b-pose; }
-.bl-ball { animation-name: bl-ball; }
-@keyframes bl-a-pos { 0% { transform: translate(-30px, 182px); } 26% { transform: translate(150px, 182px); } 33%, 80% { transform: translate(156px, 182px); } 89%, 100% { transform: translate(-70px, 182px); } }
-@keyframes bl-a-pose { 0%, 26% { transform: none; } 33%, 79% { transform: rotate(80deg) scaleY(.9); } 82%, 99% { transform: scaleX(-1); } 100% { transform: none; } }
-@keyframes bl-t-pos { 0% { transform: translate(300px, 182px); opacity: 0; } 4% { opacity: 1; } 26% { transform: translate(178px, 182px); } 33%, 80% { transform: translate(168px, 176px); } 89% { transform: translate(-70px, 182px); opacity: 1; } 100% { transform: translate(-70px, 182px); opacity: 0; } }
-@keyframes bl-t-pose { 0%, 26% { transform: none; } 33%, 79% { transform: rotate(78deg) scaleY(.9); } 82%, 100% { transform: none; } }
-@keyframes bl-r-pos { 0% { transform: translate(-110px, 182px); } 38% { transform: translate(140px, 182px); } 43%, 80% { transform: translate(158px, 182px); } 89%, 100% { transform: translate(-110px, 182px); } }
-@keyframes bl-r-pose { 0%, 38% { transform: none; } 43%, 79% { transform: rotate(40deg) scaleY(.92); } 82%, 99% { transform: scaleX(-1); } 100% { transform: none; } }
-@keyframes bl-b-pos { 0% { transform: translate(-60px, 182px); opacity: 0; } 5% { opacity: 1; } 50%, 57% { transform: translate(116px, 182px); } 74% { transform: translate(250px, 182px); }
-  79%, 82% { transform: translate(262px, 182px); } 85% { transform: translate(282px, 182px); } 88% { transform: translate(268px, 182px); } 91% { transform: translate(288px, 182px); }
-  96% { transform: translate(318px, 182px); opacity: 1; } 100% { transform: translate(330px, 182px); opacity: 0; } }
-@keyframes bl-b-pose { 0%, 50% { transform: none; } 52%, 56% { transform: rotate(22deg) scaleY(.9); } 58%, 74% { transform: none; } 78%, 82% { transform: rotate(78deg) scaleY(.9); }
-  85%, 89% { transform: none; } 91% { transform: rotate(-14deg); } 94%, 100% { transform: none; } }
-@keyframes bl-ball {
-  0% { transform: translate(-10px, 132px) rotate(-20deg); opacity: 1; } 26% { transform: translate(170px, 132px) rotate(-20deg); }
-  31% { transform: translate(214px, 168px) rotate(40deg); } 35% { transform: translate(196px, 178px) rotate(90deg); } 42%, 57% { transform: translate(134px, 178px) rotate(0deg); }
-  58% { transform: translate(136px, 132px) rotate(-20deg); } 74% { transform: translate(270px, 132px) rotate(-20deg); } 79%, 82% { transform: translate(344px, 177px) rotate(0deg); }
-  86%, 90% { transform: translate(300px, 178px) rotate(-30deg); } 93.5% { transform: translate(330px, 96px) rotate(150deg) scale(.9); } 96.5% { transform: translate(352px, 56px) rotate(330deg) scale(.7); }
-  99% { transform: translate(366px, 44px) rotate(520deg) scale(.35); opacity: 1; } 100% { transform: translate(370px, 42px) rotate(560deg) scale(0); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .bl-cloud, .bl-a-pos, .bl-t-pos, .bl-r-pos, .bl-b-pos, .bl-ball, .bl-a-pose, .bl-t-pose, .bl-r-pose, .bl-b-pose, .boot-loader .ps-runner * { animation: none !important; } .bl-a-pos, .bl-t-pos, .bl-r-pos, .bl-ball { opacity: 0; } .bl-b-pos { transform: translate(150px, 182px); } }
+.bl-pos { animation: bl-pos 1s linear infinite; }
+.bl-pose { transform-box: fill-box; transform-origin: 50% 100%; animation: bl-pose 1s linear infinite; }
+.bl-carry { transform: translate(20px, -50px) rotate(-20deg); animation: bl-carry 1s ease-in-out infinite; }
+.bl-kick { transform-box: fill-box; transform-origin: center; animation: bl-kick 1s linear infinite; }
+/* One continuous 4 second loop with no fades: she runs in from the left (0-43%), bends to score (43-54%), carries the ball
+   back round (54-73%), bends to set it down (73-77%), steps back (77-82%), kicks (82-88%) and runs off to the right while the
+   ball sails through the posts, so the next loop picks up as she runs in again. */
+@keyframes bl-pos {
+  0% { transform: translate(-40px, 182px); } 34% { transform: translate(266px, 182px); } 38% { transform: translate(298px, 182px); } 41% { transform: translate(312px, 182px); } 43%, 54% { transform: translate(316px, 182px); }
+  59% { transform: translate(345px, 160px); } 64% { transform: translate(260px, 150px); } 69% { transform: translate(160px, 165px); }
+  72% { transform: translate(190px, 182px); } 74%, 77% { transform: translate(206px, 182px); } 80%, 82% { transform: translate(184px, 182px); }
+  86% { transform: translate(206px, 182px); } 89% { transform: translate(214px, 182px); } 100% { transform: translate(440px, 182px); } }
+@keyframes bl-pose {
+  0%, 39% { transform: none; } 43%, 52% { transform: rotate(22deg) scaleY(.9); } 56%, 59% { transform: none; } 60%, 70% { transform: scaleX(-1); }
+  71.5%, 73% { transform: none; } 74.5%, 76.5% { transform: rotate(22deg) scaleY(.9); } 78.5%, 85.5% { transform: none; }
+  87.5% { transform: rotate(-14deg); } 90%, 100% { transform: none; } }
+@keyframes bl-carry {
+  0%, 38% { transform: translate(20px, -50px) rotate(-20deg); opacity: 1; } 44%, 52% { transform: translate(24px, -6px) rotate(0deg); }
+  57%, 72.5% { transform: translate(20px, -50px) rotate(-20deg); } 76.9% { transform: translate(20px, -4px) rotate(-30deg); opacity: 1; }
+  77%, 100% { transform: translate(20px, -4px) rotate(-30deg); opacity: 0; } }
+@keyframes bl-kick {
+  0%, 76.9% { transform: translate(226px, 178px) rotate(-30deg); opacity: 0; } 77%, 87% { transform: translate(226px, 178px) rotate(-30deg); opacity: 1; }
+  90.5% { transform: translate(278px, 96px) rotate(150deg) scale(.9); } 93.5% { transform: translate(324px, 56px) rotate(330deg) scale(.7); }
+  97% { transform: translate(366px, 44px) rotate(520deg) scale(.35); opacity: 1; } 99%, 100% { transform: translate(376px, 42px) rotate(560deg) scale(0); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bl-cloud, .bl-pos, .bl-pose, .bl-carry, .bl-kick, .boot-loader .ps-runner * { animation: none !important; } .bl-pos { transform: translate(150px, 182px); } .bl-kick { opacity: 0; } }
 .ps-skip { position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: .78rem; color: rgba(255, 255, 255, .55); }
 @keyframes ps-neon-on { 0% { opacity: 0; } 8% { opacity: 1; } 14% { opacity: .15; } 22% { opacity: 1; } 30% { opacity: .35; } 36%, 70% { opacity: 1; } 74% { opacity: .55; } 78%, 100% { opacity: 1; } }
 @keyframes np-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1165,28 +1160,17 @@ table.a-grid td:first-child { min-width: 170px; }
     '<g mask="url(#bl-cut)" fill="#fff">' + [[52, 92, 34], [92, 70, 42], [140, 52, 48], [196, 44, 52], [252, 54, 46], [300, 70, 42], [342, 90, 34], [120, 100, 36], [200, 104, 40], [280, 100, 36]].map(function (c) { return '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="' + c[2] + '"/>'; }).join("") +
     '<rect x="52" y="90" width="290" height="42" rx="21"/></g></svg>';
   function loaderHtml(preview) {
-    return '<svg class="bl-scene" viewBox="0 0 400 220" role="img" aria-label="An SUU player is tackled, a teammate takes the ball from the ruck, scores a try and kicks the conversion">' +
+    return '<svg class="bl-scene" viewBox="0 0 400 220" role="img" aria-label="An SUU player scores a try and kicks the conversion">' +
       // The sky and field are the loading screen's own background, so lines run on past the drawing to the bottom of the screen.
       '<circle cx="70" cy="40" r="22" fill="#ffd166" opacity=".9"/>' +
       '<path d="M330 151 V2000" stroke="#fff" stroke-width="4"/><path d="M200 151 V2000" stroke="#fff" stroke-width="2" stroke-dasharray="6 6" opacity=".8"/>' +
       // Goal posts in the in-goal area, drawn with a little perspective.
       '<g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M352 186 V36"/><path d="M380 172 V24"/><path d="M352 120 L380 108"/></g>' +
       '<path d="M352 186 l-4 4 M380 172 l-4 4" stroke="#c8102e" stroke-width="8"/>' +
-      // Four players: Ilona (SUU red) is tackled by the one defender (blue), a teammate sets the ruck over her, and another teammate scores.
-      blPlayer("a", true, false) + blPlayer("t", false, true) + blPlayer("r", true, false) + blPlayer("b", true, false) +
-      '<g class="bl-ball">' + BL_BALL + '</g>' +
+      '<g class="bl-pos"><g class="bl-pose"><g class="ps-runner run"><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' + suuKit(RUNNER_SVG.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")) + '</svg></g>' +
+      '<g class="bl-carry">' + BL_BALL + '</g></g></g>' +
+      '<g class="bl-kick">' + BL_BALL + '</g>' +
       '</svg>';
-  }
-  // One loading screen player: SUU (red kit) or the other team (navy), facing left when flip is set.
-  function blPlayer(k, suu, flip) {
-    var body = RUNNER_SVG.replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "");
-    return '<g class="bl-' + k + '-pos"><g class="bl-' + k + '-pose"><g class="ps-runner run"><g' + (flip ? ' transform="scale(-1 1)"' : "") + '><svg x="-38" y="-95" width="76" height="95" viewBox="0 0 160 200" overflow="visible">' +
-      (suu ? suuKit(body) : rivalKit(body)) + "</svg></g></g></g></g>";
-  }
-  // The other team: blue shirt, white shorts, blonde hair and no headband, so they read as opponents at a glance.
-  function rivalKit(svg) {
-    return svg.replace(">USA<", "><").replace(/#c8102e/g, "#1f6fd1").replace(/#a80d26/g, "#1756a3").replace(/#1d2b5c/g, "#f2f4f7")
-      .replace(/#3b2416/g, "#d9a63a").replace("#ff2bd6", "#d9a63a").replace(/#e9b48f/g, "#f0c39f").replace(/#d29c78/g, "#d9a885");
   }
   // The loading screen player is Ilona Maher (dark bun, pink headband, red lipstick) in an all-red SUU kit with short socks.
   function suuKit(svg) {
@@ -2749,7 +2733,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
-    ["2026-10-20", "New loading screen, still one second: Ilona is tackled by a defender, a teammate sets the ruck over her, another teammate picks the ball from the base, dives over for the try, steps back and kicks the conversion through the posts while the ruck clears out."],
+    ["2026-10-20", "The loading screen is back to the original: Ilona runs in, scores the try and kicks the conversion, on a one second loop."],
     ["2026-10-20", "Development tab: a new App usage section shows how many people use the app each day on average, who has signed in, and how often each person opens it (opens a week, days used, last opened and the device they usually use). Recording starts today."],
     ["2026-10-19", "Connect an AI assistant in your profile settings: add the team app to Claude or ChatGPT as a connector, sign in, and ask it about your tasks, update them, add tasks or send messages. It acts as you, with the same access you have in the app."],
     ["2026-10-19", "Fixes from a full walkthrough: opening a task on a phone no longer pops up the keyboard; the header is much shorter on phones, with the tabs on one row you can swipe; the Game Prep page lists each task once instead of up to three times; My progress on Projects shows only project work; and tasks on a game sheet are sorted with overdue and blocked first, then by due date."],
