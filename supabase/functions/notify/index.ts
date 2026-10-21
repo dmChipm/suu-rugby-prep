@@ -100,6 +100,9 @@ async function messages(body: { ids: string[] }) {
   const { data: convs } = await admin.from("conversations").select("id,name,member_ids").in("id", convIds);
   const people = await activePeople();
   const nameOf = (id: string) => (people.find((p) => p.id === id) || { name: "" }).name;
+  // Messages is admin-only in the app, so only admins hear about new messages.
+  const { data: ra } = await admin.from("role_access").select("role,admin");
+  const adminRoles = new Set((ra || []).filter((r) => r.admin).map((r) => r.role));
   let devices = 0;
   for (const c of convs || []) {
     const ms = msgs.filter((m) => m.conversation_id === c.id), last = ms[ms.length - 1];
@@ -108,7 +111,7 @@ async function messages(body: { ids: string[] }) {
     const text = String(last.body || "").trim() || (files ? (files === 1 ? "Sent a file" : "Sent " + files + " files") : "New message");
     const members: string[] = c.member_ids || [];
     const group = c.name || (members.length > 2 ? "Group chat" : "");
-    const to = members.filter((id) => !ms.every((m) => m.author_id === id) && people.some((p) => p.id === id));
+    const to = members.filter((id) => !ms.every((m) => m.author_id === id) && people.some((p) => p.id === id && adminRoles.has(p.role)));
     const msg = { title: group ? who + " in " + group : who, body: (ms.length > 1 ? ms.length + " messages. " : "") + text.slice(0, 180), tag: "chat-" + c.id, kind: "message" };
     devices += (await deliver(to, msg)).devices;
   }

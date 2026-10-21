@@ -624,7 +624,7 @@ main.convo-mode { padding-bottom: 12px; }
 .convo-wrap .chat { flex: 1; min-height: 0; max-height: none; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .convo-wrap .composer { position: static; }
 /* Typing on a phone: the header tucks away so the chat and the message box fill the space above the keyboard. */
-html.typing header.top, html.typing .convo-wrap > .row.spread { display: none; }
+html.typing header.top { display: none; }
 html.typing main.convo-mode { padding-top: 10px; padding-bottom: 8px; }
 html.typing .convo-wrap { height: calc(var(--vvh, 100dvh) - 34px - env(safe-area-inset-top, 0px)); min-height: 0; gap: 8px; animation: fade-in .18s ease-out; }
 /* An open chat fills the whole screen under the header: no box around the messages, the composer pinned to the bottom edge.
@@ -633,14 +633,16 @@ main.convo-mode { --cg: max(16px, calc((100% - 728px) / 2)); max-width: none; pa
 main.convo-mode .convo-wrap { height: calc(100dvh - var(--head-h, 200px) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); min-height: 360px; gap: 0; }
 body:has(main.convo-mode) { background: var(--surface); }
 main.convo-mode .convo-wrap > * { padding-inline: var(--cg); }
-main.convo-mode .convo-wrap > .row.spread { padding-top: 24px; }
-main.convo-mode .convo-wrap > h1 { padding-block: 6px 10px; border-bottom: 1px solid var(--line); }
+.convo-head { display: flex; align-items: center; gap: 8px; }
+.convo-head h1 { flex: 1; min-width: 0; margin: 0; font-size: 1.3rem; }
+.convo-head .convo-back { width: 40px; height: 40px; margin-left: -8px; display: grid; place-items: center; color: var(--ink); }
+main.convo-mode .convo-wrap > .convo-head { padding-block: 22px 10px; border-bottom: 1px solid var(--line); }
 main.convo-mode .convo-wrap .chat { border: 0; border-radius: 0; box-shadow: none; background: transparent; padding-block: 12px; }
 main.convo-mode .convo-wrap > .replying, main.convo-mode .convo-wrap > .pending { padding-block: 6px; }
 main.convo-mode .convo-wrap > .composer { padding-block: 10px; border-top: 1px solid var(--line); }
 html.typing main.convo-mode { padding: 0; }
 html.typing main.convo-mode .convo-wrap { height: calc(var(--vvh, 100dvh) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
-html.typing main.convo-mode .convo-wrap > h1 { padding-top: 10px; }
+html.typing main.convo-mode .convo-wrap > .convo-head { padding-top: 8px; padding-bottom: 6px; }
 /* The message box is one line tall, the same height as the photo and file buttons, until what's typed needs more room. */
 .composer .attach-btn, .composer .send-btn { height: 44px; }
 .composer textarea { height: 44px; min-height: 44px; line-height: 20px; padding-block: 10px; }
@@ -2077,7 +2079,10 @@ table.a-grid td:first-child { min-width: 170px; }
     document.getElementById("tab-analytics").hidden = !(isAdmin() && analyticsTabOn());
     if (view.tab === "analytics" && !isAdmin()) view.tab = "dashboard";
     if ((view.tab === "dev" || view.tab === "updates" || view.tab === "devdocs") && !isDev()) view.tab = "dashboard";
-    var unread = unreadTotal(), badge = document.getElementById("msg-badge");
+    // Messages is for admins only: everyone else doesn't see the tab or its unread count.
+    document.getElementById("tab-messages").hidden = !isAdmin();
+    if (view.tab === "messages" && !isAdmin()) { view.tab = "dashboard"; view.convoId = null; }
+    var unread = isAdmin() ? unreadTotal() : 0, badge = document.getElementById("msg-badge");
     badge.hidden = !unread; badge.textContent = unread > 99 ? "99+" : unread;
     // Templates and Projects live inside the "Game Prep & Projects" tab, so that tab stays highlighted there.
     ["dashboard", "sheets", "projects", "people", "docs", "messages", "analytics", "dev"].forEach(function (k) { document.getElementById("tab-" + k).setAttribute("aria-selected", String(view.tab === k || (k === "sheets" && (view.tab === "masters" || view.tab === "projects")) || (k === "dev" && (view.tab === "updates" || view.tab === "devdocs")))); });
@@ -2783,6 +2788,8 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-21", "An open chat has a back arrow in its top left corner, next to the chat's name, and it stays there while you type."],
+    ["2026-10-21", "Messages is now for admins only. Everyone else no longer sees the Messages tab or gets message notifications, and new chats can only include admins."],
     ["2026-10-20", "An open chat fills the whole screen instead of sitting in a box, and the message box stays the same height as the photo and file buttons until you type more than one line."],
     ["2026-10-20", "The loading screen sits lower: the cloud, the field and the player all moved down 18% of the screen."],
     ["2026-10-20", "A project's Purpose box has a pencil icon in its top right corner. Tap it to edit the purpose right in the box, with no pop-up."],
@@ -4760,8 +4767,10 @@ table.a-grid td:first-child { min-width: 170px; }
   }
   function convoView(c) {
     var grp = isGroup(c), pend = (view.pending || {})[c.id] || [];
-    var h = '<div class="convo-wrap" data-convo="' + c.id + '"><div class="row spread"><button class="btn ghost" data-act="back">‹ Messages</button><button class="btn" data-act="convo-info" id="convo-info">' + (grp ? c.members.length + (c.members.length === 1 ? " person" : " people") : "Details") + "</button></div>";
-    h += '<h1 class="clip2" id="convo-title">' + esc(convoTitle(c)) + "</h1>";
+    // Header: a back arrow in the top left corner, the chat's name, and its details button on the right.
+    var h = '<div class="convo-wrap" data-convo="' + c.id + '"><div class="convo-head"><button type="button" class="icon-btn convo-back" data-act="back" aria-label="Back to Messages" title="Back to Messages">' +
+      '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>' +
+      '<h1 class="clip2" id="convo-title">' + esc(convoTitle(c)) + '</h1><button class="btn" data-act="convo-info" id="convo-info">' + (grp ? c.members.length + (c.members.length === 1 ? " person" : " people") : "Details") + "</button></div>";
     h += '<div class="chat card" id="chat">' + chatHtml(c) + "</div>";
     var rep = replyingHtml(c);
     h += '<div class="replying" id="replying"' + (rep ? "" : " hidden") + ">" + rep + "</div>";
@@ -4883,14 +4892,14 @@ table.a-grid td:first-child { min-width: 170px; }
   }
   // Pick people one by one, or add a whole group (everyone, or everyone in a role) with one tap.
   function pickerHtml(picked, exclude) {
-    var people = S.people.filter(function (p) { return p.status !== "Inactive" && p.id !== "_" && exclude.indexOf(p.id) < 0; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+    var people = S.people.filter(function (p) { return p.status !== "Inactive" && p.id !== "_" && exclude.indexOf(p.id) < 0 && !!S.roleAccess[p.role]; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
     var roles = ROLES.filter(function (r) { return people.some(function (p) { return p.role === r; }); });
     return '<div class="field"><span>Add a group</span><div class="chips">' + '<button type="button" class="chip-btn" data-grp="*">Everyone</button>' +
       roles.map(function (r) { return '<button type="button" class="chip-btn" data-grp="' + esc(r) + '">All ' + esc(r) + (/s$/.test(r) ? "" : "s") + "</button>"; }).join("") + "</div></div>" +
       '<div class="field"><label for="pk-q">People</label><input type="search" id="pk-q" placeholder="Search names"></div>' +
       '<ul class="pick-list" id="pk-list">' + people.map(function (p) {
         return '<li data-name="' + esc(p.name.toLowerCase()) + '"><label class="chk"><input type="checkbox" value="' + p.id + '" data-role="' + esc(p.role) + '"' + (picked.indexOf(p.id) >= 0 ? " checked" : "") + '><span><b>' + esc(p.name) + '</b> <span class="muted small">' + esc(p.role) + "</span></span></label></li>";
-      }).join("") + (people.length ? "" : '<li class="muted small">No one else to add yet. Invite people on the People tab.</li>') + "</ul>";
+      }).join("") + (people.length ? "" : '<li class="muted small">No other admins to add yet. Messages is only for admins.</li>') + "</ul>";
   }
   function wirePicker(el, onChange) {
     var list = el.querySelector("#pk-list");
