@@ -606,6 +606,50 @@ nav.tabs .badge { margin-left: 6px; }
 .pending { display: flex; flex-wrap: wrap; gap: 6px; }
 .pending[hidden] { display: none; }
 
+/* Calendar tab: month grid with dots on phones and short labels on wider screens, then the picked day's list. */
+.cal-bar-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.cal-nav { display: flex; align-items: center; gap: 2px; }
+.cal-nav .icon-btn { width: 40px; height: 40px; color: var(--ink); display: grid; place-items: center; }
+.cal-month { font-family: var(--display); font-weight: 700; font-size: 1.3rem; min-width: 8.5em; text-align: center; }
+.seg { display: inline-flex; border: 2px solid var(--line); border-radius: 999px; padding: 2px; gap: 2px; }
+.seg button { border: 0; background: transparent; border-radius: 999px; padding: 5px 12px; font: inherit; font-weight: 700; font-size: .85rem; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--red); color: #fff; }
+.k-game { --k: var(--red); } .k-proj { --k: var(--hold); } .k-task { --k: var(--muted); } .k-late { --k: var(--warn); } .k-done { --k: var(--done); }
+.cal-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.cal-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.cal-legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--k); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); overflow: hidden; }
+.cal-wd { font-size: .72rem; font-weight: 800; color: var(--muted); text-align: center; padding: 8px 0 6px; letter-spacing: .06em; text-transform: uppercase; }
+.cal-cell { border: 0; border-top: 1px solid var(--line); background: transparent; min-height: 58px; padding: 4px 2px 6px; display: flex; flex-direction: column; align-items: center; gap: 3px; font: inherit; color: inherit; min-width: 0; cursor: pointer; }
+.cal-cell:hover { background: var(--bg); }
+.cal-cell.out .cal-num { opacity: .4; }
+.cal-num { font-weight: 700; font-size: .92rem; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; font-variant-numeric: tabular-nums; }
+.cal-cell.today .cal-num { background: var(--red); color: #fff; opacity: 1; }
+.cal-cell.sel { background: var(--red-soft); }
+.cal-cell.sel .cal-num { box-shadow: 0 0 0 2px var(--red); }
+.cal-dots { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; max-width: 100%; }
+.cal-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--k); }
+.cal-evs { display: none; }
+@media (min-width: 700px) {
+  .cal-cell { min-height: 104px; align-items: stretch; padding: 4px 4px 6px; text-align: left; }
+  .cal-num { align-self: flex-start; }
+  .cal-dots { display: none; }
+  .cal-evs { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .cal-ev { font-size: .74rem; line-height: 1.3; padding: 1px 5px; border-radius: 4px; border-left: 3px solid var(--k); background: var(--bg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-ev.k-game { background: var(--red-soft); font-weight: 700; }
+  .cal-ev.k-done { color: var(--muted); text-decoration: line-through; }
+  .cal-more { font-size: .72rem; color: var(--muted); padding-left: 5px; }
+}
+.cal-day { padding: 14px 16px; display: flex; flex-direction: column; }
+.cal-day h2 { margin: 0 0 6px; font-size: 1.15rem; }
+.cal-row { display: flex; gap: 12px; align-items: center; width: 100%; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; padding: 10px 2px; font: inherit; color: inherit; cursor: pointer; }
+.cal-row:hover { background: var(--bg); }
+.cal-k { width: 4px; align-self: stretch; border-radius: 2px; background: var(--k); flex: none; }
+.cal-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cal-txt b { overflow-wrap: anywhere; }
+.cal-txt small { color: var(--muted); font-size: .82rem; }
+.cal-row.k-done b { text-decoration: line-through; color: var(--muted); }
+
 /* Messages: smoother motion */
 @keyframes view-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 @keyframes view-in-back { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
@@ -960,6 +1004,7 @@ table.a-grid td:first-child { min-width: 170px; }
   <nav class="tabs" role="tablist">
     <button id="tab-messages" role="tab" data-tab="messages">Messages<span class="badge" id="msg-badge" hidden></span></button>
     <button id="tab-dashboard" role="tab" data-tab="dashboard">My Tasks</button>
+    <button id="tab-calendar" role="tab" data-tab="calendar">Calendar</button>
     <button id="tab-sheets" role="tab" data-tab="sheets">Game Prep &amp; Projects</button>
     <button id="tab-projects" role="tab" data-tab="projects" hidden>Projects</button>
     <button id="tab-people" role="tab" data-tab="people">People</button>
@@ -2085,7 +2130,7 @@ table.a-grid td:first-child { min-width: 170px; }
     var unread = isAdmin() ? unreadTotal() : 0, badge = document.getElementById("msg-badge");
     badge.hidden = !unread; badge.textContent = unread > 99 ? "99+" : unread;
     // Templates and Projects live inside the "Game Prep & Projects" tab, so that tab stays highlighted there.
-    ["dashboard", "sheets", "projects", "people", "docs", "messages", "analytics", "dev"].forEach(function (k) { document.getElementById("tab-" + k).setAttribute("aria-selected", String(view.tab === k || (k === "sheets" && (view.tab === "masters" || view.tab === "projects")) || (k === "dev" && (view.tab === "updates" || view.tab === "devdocs")))); });
+    ["dashboard", "calendar", "sheets", "projects", "people", "docs", "messages", "analytics", "dev"].forEach(function (k) { document.getElementById("tab-" + k).setAttribute("aria-selected", String(view.tab === k || (k === "sheets" && (view.tab === "masters" || view.tab === "projects")) || (k === "dev" && (view.tab === "updates" || view.tab === "devdocs")))); });
     var onTab = document.querySelector('nav.tabs button[aria-selected="true"]'), nav = onTab && onTab.parentNode;
     if (nav && nav.scrollWidth > nav.clientWidth) { var l = onTab.offsetLeft - nav.offsetLeft, r = l + onTab.offsetWidth; if (l < nav.scrollLeft || r > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = Math.max(0, l - 24); }
   }
@@ -2641,6 +2686,7 @@ table.a-grid td:first-child { min-width: 170px; }
     else if (view.tab === "people") app.innerHTML = peopleView();
     else if (view.tab === "analytics") app.innerHTML = analyticsView();
     else if (view.tab === "docs") app.innerHTML = docsView();
+    else if (view.tab === "calendar") { app.innerHTML = calendarView(); app.classList.add("wide"); }
     else if (view.tab === "messages") {
       var cv = view.convoId && byId(S.convos, view.convoId), wrap = app.querySelector(".convo-wrap");
       if (cv && wrap && wrap.dataset.convo === cv.id && updateConvo(cv)) return;
@@ -2788,6 +2834,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-21", "New Calendar tab: a month view of game days, project due dates and task due dates. Tap a day to see everything on it and open any task, sheet or project. Switch between Everyone and Just mine, and use Add to my calendar app to put it in Google or Apple Calendar."],
     ["2026-10-21", "An open chat has a back arrow in its top left corner, next to the chat's name, and it stays there while you type."],
     ["2026-10-21", "Messages is now for admins only. Everyone else no longer sees the Messages tab or gets message notifications, and new chats can only include admins."],
     ["2026-10-20", "An open chat fills the whole screen instead of sitting in a box, and the message box stays the same height as the photo and file buttons until you type more than one line."],
@@ -5394,6 +5441,62 @@ table.a-grid td:first-child { min-width: 170px; }
   }
 
   function tierShort(t) { return { 1: "admins only", 2: "developers and up", 3: "players and up", 4: "everyone" }[t || 3]; }
+  // ---------- calendar ----------
+  // A month grid of game days, project due dates and task due dates; tap a day to see what's on it and open any item.
+  function calMonth() { return view.calMonth || todayIso().slice(0, 7); }
+  var CAL_ORDER = { game: 0, proj: 1, late: 2, task: 3, done: 4 };
+  function calItems(mine) {
+    var by = {};
+    function add(d, it) { (by[d] = by[d] || []).push(it); }
+    function mineT(t) { return isMine(t) || isSupporting(t); }
+    function taskKind(t) { return isDone(t) ? "done" : isLate(t) ? "late" : "task"; }
+    S.sheets.forEach(function (sh) {
+      if (sh.date) add(sh.date, { k: "game", label: sheetTitle(sh), sub: sh.gameInfo ? "Game day" : "Event day", attrs: 'data-open-sheet="' + sh.id + '"' });
+      sh.tasks.forEach(function (t) {
+        if (!t.due || (mine && !mineT(t))) return;
+        add(t.due, { k: taskKind(t), label: t.text, sub: sheetTitle(sh) + (t.owner ? " · " + t.owner : ""), attrs: 'data-open-sheet="' + sh.id + '" data-focus-task="' + t.id + '"' });
+      });
+    });
+    (S.projects || []).forEach(function (pj) {
+      if (pj.due && (!mine || nameIsMe(pj.lead) || pj.tasks.some(mineT))) add(pj.due, { k: "proj", label: pj.name, sub: "Project due" + (pj.lead ? " · " + pj.lead : ""), attrs: 'data-open-project="' + pj.id + '"' });
+      pj.tasks.forEach(function (t) {
+        if (!t.due || (mine && !mineT(t))) return;
+        add(t.due, { k: taskKind(t), label: t.text, sub: pj.name + (t.owner ? " · " + t.owner : ""), attrs: 'data-open-project="' + pj.id + '" data-focus-ptask="' + t.id + '"' });
+      });
+    });
+    Object.keys(by).forEach(function (d) { by[d].sort(function (a, b) { return CAL_ORDER[a.k] - CAL_ORDER[b.k]; }); });
+    return by;
+  }
+  function calendarView() {
+    var mine = !!view.calMine, by = calItems(mine), ym = calMonth().split("-"), y = +ym[0], m = +ym[1] - 1;
+    var first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay()), last = new Date(y, m + 1, 0);
+    var weeks = Math.ceil((first.getDay() + last.getDate()) / 7), tdy = todayIso(), sel = view.calDay || (calMonth() === tdy.slice(0, 7) ? tdy : isoOf(first));
+    var h = '<div class="row spread"><h1>Calendar</h1><button type="button" class="btn" data-act="cal-subscribe">Add to my calendar app</button></div>';
+    h += '<div class="cal-bar-top"><div class="cal-nav"><button type="button" class="icon-btn" data-act="cal-prev" aria-label="Previous month"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>' +
+      '<div class="cal-month" aria-live="polite">' + esc(first.toLocaleDateString(undefined, { month: "long", year: "numeric" })) + '</div><button type="button" class="icon-btn" data-act="cal-next" aria-label="Next month"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>' +
+      '<button type="button" class="btn ghost" data-act="cal-today">Today</button></div>' +
+      '<div class="seg" role="group" aria-label="Whose tasks"><button type="button" data-act="cal-who" data-who="all" aria-pressed="' + !mine + '">Everyone</button><button type="button" data-act="cal-who" data-who="mine" aria-pressed="' + mine + '">Just mine</button></div></div>';
+    h += '<div class="cal-legend muted small"><span class="k-game"><i></i>Game or event</span><span class="k-proj"><i></i>Project due</span><span class="k-task"><i></i>Task due</span><span class="k-late"><i></i>Overdue</span><span class="k-done"><i></i>Done</span></div>';
+    h += '<div class="card cal-grid">' + ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(function (d) { return '<div class="cal-wd">' + d + "</div>"; }).join("");
+    for (var i = 0; i < weeks * 7; i++) {
+      var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), iso = isoOf(d), its = by[iso] || [];
+      var kinds = []; its.forEach(function (it) { if (kinds.indexOf(it.k) < 0) kinds.push(it.k); });
+      h += '<button type="button" class="cal-cell' + (d.getMonth() !== m ? " out" : "") + (iso === tdy ? " today" : "") + (iso === sel ? " sel" : "") + (its.some(function (it) { return it.k === "game"; }) ? " has-game" : "") +
+        '" data-act="cal-day" data-day="' + iso + '" aria-label="' + esc(fmtDate(iso)) + (its.length ? ", " + its.length + (its.length === 1 ? " item" : " items") : "") + '"' + (iso === sel ? ' aria-current="date"' : "") + '>' +
+        '<span class="cal-num">' + d.getDate() + "</span>" +
+        '<span class="cal-dots" aria-hidden="true">' + kinds.map(function (k) { return '<i class="k-' + k + '"></i>'; }).join("") + "</span>" +
+        '<span class="cal-evs" aria-hidden="true">' + its.slice(0, 3).map(function (it) { return '<span class="cal-ev k-' + it.k + '">' + esc(it.label) + "</span>"; }).join("") +
+        (its.length > 3 ? '<span class="cal-more">+' + (its.length - 3) + " more</span>" : "") + "</span></button>";
+    }
+    h += "</div>";
+    var dayIts = by[sel] || [];
+    h += '<section class="card cal-day" id="cal-daylist"><h2>' + esc(fmtDate(sel)) + (sel === tdy ? ' <span class="muted small">Today</span>' : "") + "</h2>" +
+      (dayIts.length ? dayIts.map(function (it) {
+        return '<button type="button" class="cal-row k-' + it.k + '" ' + it.attrs + '><span class="cal-k" aria-hidden="true"></span><span class="cal-txt"><b>' + esc(it.label) + "</b><small>" + esc(it.sub) +
+          (it.k === "late" ? " · Overdue" : it.k === "done" ? " · Done" : "") + "</small></span><span aria-hidden=\"true\" class=\"muted\">›</span></button>";
+      }).join("") : '<p class="muted" style="margin:0">Nothing on this day' + (mine ? " for you" : "") + ".</p>") + "</section>";
+    return h;
+  }
   function docsView() {
     var admin = isAdmin();
     var h = '<div class="row spread"><h1>Documents</h1>' + (admin ? '<button class="btn" data-act="upload-docs">+ Upload</button>' : "") + "</div>";
@@ -5521,6 +5624,11 @@ table.a-grid td:first-child { min-width: 170px; }
       return;
     }
     switch (t.dataset.act) {
+      case "cal-prev": case "cal-next": var cm = calMonth().split("-"), nd = new Date(+cm[0], +cm[1] - 1 + (t.dataset.act === "cal-next" ? 1 : -1), 1); view.calMonth = isoOf(nd).slice(0, 7); view.calDay = view.calDay && view.calDay.slice(0, 7) === view.calMonth ? view.calDay : isoOf(nd); render(); break;
+      case "cal-today": view.calMonth = todayIso().slice(0, 7); view.calDay = todayIso(); render(); break;
+      case "cal-day": view.calDay = t.dataset.day; if (t.dataset.day.slice(0, 7) !== calMonth()) view.calMonth = t.dataset.day.slice(0, 7); render(); var dl = document.getElementById("cal-daylist"); if (dl && window.matchMedia("(max-width: 699px)").matches) scrollBelowHeader(dl); break;
+      case "cal-who": view.calMine = t.dataset.who === "mine"; render(); break;
+      case "cal-subscribe": calendarModal(); break;
       case "back": view.sheetId = null; view.masterId = null; view.projectId = null; view.convoId = null; view.sf = ""; render(); break;
       case "new-convo": newConvoModal(); break;
       case "msg-attach": document.getElementById("msg-file").click(); break;
