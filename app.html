@@ -562,6 +562,10 @@ h2 { width: fit-content; max-width: 100%; align-self: flex-start; }
 .mine-row .sheet-link { width: 100%; margin: 0; font-size: .8rem; justify-self: end; }
 @media (max-width: 560px) { .mine-row .tcol { grid-template-columns: minmax(0, 1fr); } }
 /* Readiness rules */
+.sheet-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sheet-title h1 { margin: 0; min-width: 0; }
+.rd-pill { border: 0; cursor: pointer; }
+.rd-pill span { opacity: .7; }
 .rules-card summary { flex-wrap: wrap; }
 .rules { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 4px 0 12px; }
 .rules dt { font-weight: 800; }
@@ -2911,6 +2915,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-22", "A game sheet's readiness (Ready, On track, At risk, Behind) now sits next to its name. Tap it to see the rules behind it. Admins change them from the ⋯ menu under Readiness rules."],
     ["2026-10-22", "The task pop-up is easier to scan: under the basics it has Work, How to do it and Notes sections. Instructions and links each sit in their own box, admins can edit them (and any note) right there with the pencil, an empty Notes list no longer shows a box, and Archive and Remove are quiet links at the bottom (Remove asks you to tap twice)."],
     ["2026-10-22", "Opening a task from the Calendar now opens it right on the calendar, and tapping Done keeps you there instead of jumping to Game Prep & Projects."],
     ["2026-10-22", "The Calendar's color key is shorter (Game, Event, Practice, Due, Overdue, Done) and sits under the calendar. Project and task due dates share one color."],
@@ -3606,11 +3611,12 @@ table.a-grid td:first-child { min-width: 170px; }
     var p = pct(s), admin = isAdmin();
     var tasks = s.tasks, table = S.layout === "table" && wideScreen(), fil = view.flagged ? "flagged" : view.mine ? "mine" : "all";
     var h = '<div class="row spread"><button class="btn ghost" data-act="back">‹ All sheets</button>' +
-      (admin ? kebab("sheet-menu", [["edit-sheet", "Edit details"], ["archive-sheet", "Archive"], ["delete-sheet", "Delete"]]) : "") + "</div>";
+      (admin ? kebab("sheet-menu", [["edit-sheet", "Edit details"], ["rules-sheet", "Readiness rules"], ["archive-sheet", "Archive"], ["delete-sheet", "Delete"]]) : "") + "</div>";
     h += '<div class="row"><span class="kind">' + esc(s.masterName) + "</span>" + (s.example ? '<span class="kind example">Example</span>' : "") + "</div>";
-    h += "<h1>" + esc(sheetTitle(s)) + "</h1>";
+    // Readiness sits beside the title; tapping it shows the rules behind it.
+    var rd = readiness(s);
+    h += '<div class="sheet-title"><h1>' + esc(sheetTitle(s)) + '</h1><button type="button" class="pill rd-pill ' + rd.cls + '" data-act="rules-view" aria-label="Readiness: ' + rd.label + '. See the rules">' + rd.label + ' <span aria-hidden="true">ⓘ</span></button></div>';
     if (s.date) h += '<div class="muted">' + esc(fmtDate(s.date)) + "</div>";
-    h += rulesCard(s, true);
     h += '<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">' +
       '<div class="row spread"><strong>' + doneCount(s) + " of " + req(s).length + " tasks done" + (optCount(s) ? ' <span class="muted small" style="font-weight:400">+ ' + optCount(s) + " optional</span>" : "") + '</strong><span class="muted small" style="font-variant-numeric:tabular-nums">' + p + "%</span></div>" +
       '<div class="bar"><i style="width:' + p + '%"></i></div>' + sfChips(tasks, view.sf) +
@@ -3703,6 +3709,18 @@ table.a-grid td:first-child { min-width: 170px; }
       '<dl class="rules">' + rulesSummary(r).map(function (x) { return "<dt>" + x[0] + "</dt><dd>" + esc(x[1]) + "</dd>"; }).join("") + "</dl>" +
       (isAdmin() ? '<div class="row"><button class="btn" data-act="' + (isSheet ? "rules-sheet" : "rules-master") + '">Adjust rules</button></div>' : "") +
       '<p class="muted small" style="margin:0">' + (isSheet ? "These started as a copy of the template's rules." : "New sheets copy these rules. Admins can change them on any sheet afterward.") + "</p></div></details>";
+  }
+  // Read-only view of a sheet's readiness rules, opened from the pill next to its title.
+  function rulesInfoModal(s) {
+    var r = rulesOf(s), rd = readiness(s), m = s.masterId && byId(S.masters, s.masterId);
+    var custom = m && JSON.stringify(r) !== JSON.stringify(cleanRules(m.rules));
+    openModal('<div class="m-head"><h1>Readiness rules</h1><button type="button" class="btn primary" data-close>Done</button></div>' +
+      '<div class="row"><span class="pill ' + rd.cls + '">' + rd.label + '</span><span class="muted small">' + esc(sheetTitle(s)) + "</span>" + (custom ? '<span class="tag">Changed for this sheet</span>' : "") + "</div>" +
+      '<dl class="rules">' + rulesSummary(r).map(function (x) { return "<dt>" + x[0] + "</dt><dd>" + esc(x[1]) + "</dd>"; }).join("") + "</dl>" +
+      '<p class="muted small" style="margin:0">' + (rd.late || rd.blocked ? "Right now: " + [rd.late ? rd.late + " overdue" : "", rd.blocked ? rd.blocked + " blocked" : ""].filter(Boolean).join(", ") + ". " : "") +
+      "These started as a copy of the template's rules.</p>" +
+      (isAdmin() ? '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" id="ri-adjust">Adjust rules</button></div>' : ""),
+      function (el) { var b = el.querySelector("#ri-adjust"); if (b) b.addEventListener("click", function () { closeModal(); rulesModal(s, true); }); });
   }
   function rulesModal(obj, isSheet) {
     var r = isSheet ? rulesOf(obj) : cleanRules(obj.rules);
@@ -6040,6 +6058,7 @@ table.a-grid td:first-child { min-width: 170px; }
       case "edit-master": masterModal(master); break;
       case "rules-master": if (isAdmin()) rulesModal(master, false); break;
       case "rules-sheet": if (isAdmin()) rulesModal(sheet, true); break;
+      case "rules-view": rulesInfoModal(sheet); break;
       case "delete-master": deleteMasterModal(master); break;
       case "invite": personModal(null); break;
       case "upload-docs": document.getElementById("doc-file").click(); break;
