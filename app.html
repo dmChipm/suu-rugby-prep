@@ -2893,6 +2893,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-22", "Opening a task from the Calendar now opens it right on the calendar, and tapping Done keeps you there instead of jumping to Game Prep & Projects."],
     ["2026-10-22", "The Calendar's color key is shorter (Game, Event, Practice, Due, Overdue, Done) and sits under the calendar. Project and task due dates share one color."],
     ["2026-10-22", "Admins add anything to the Calendar with the red + above it: a game, an event, a practice, a team night, a project due date or a task. A game or event added this way also gets its prep checklist in Game Prep, and a project shows up in Projects, just as if you'd made it there."],
     ["2026-10-22", "Only admins can add, change or delete practices and team nights on the Calendar. Everyone else can still open them to see the details."],
@@ -5533,14 +5534,14 @@ table.a-grid td:first-child { min-width: 170px; }
       if (sh.date) add(sh.date, { k: sh.gameInfo ? "game" : "night", label: sheetTitle(sh), sub: sh.gameInfo ? "Game day" : "Event day", attrs: 'data-open-sheet="' + sh.id + '"' });
       sh.tasks.forEach(function (t) {
         if (!t.due || (mine && !mineT(t))) return;
-        add(t.due, { k: taskKind(t), label: t.text, sub: sheetTitle(sh) + (t.owner ? " · " + t.owner : ""), attrs: 'data-open-sheet="' + sh.id + '" data-focus-task="' + t.id + '"' });
+        add(t.due, { k: taskKind(t), label: t.text, sub: sheetTitle(sh) + (t.owner ? " · " + t.owner : ""), attrs: 'data-act="cal-task" data-sheet="' + sh.id + '" data-task="' + t.id + '"' });
       });
     });
     (S.projects || []).forEach(function (pj) {
       if (pj.due && (!mine || nameIsMe(pj.lead) || pj.tasks.some(mineT))) add(pj.due, { k: "proj", label: pj.name, sub: "Project due" + (pj.lead ? " · " + pj.lead : ""), attrs: 'data-open-project="' + pj.id + '"' });
       pj.tasks.forEach(function (t) {
         if (!t.due || (mine && !mineT(t))) return;
-        add(t.due, { k: taskKind(t), label: t.text, sub: pj.name + (t.owner ? " · " + t.owner : ""), attrs: 'data-open-project="' + pj.id + '" data-focus-ptask="' + t.id + '"' });
+        add(t.due, { k: taskKind(t), label: t.text, sub: pj.name + (t.owner ? " · " + t.owner : ""), attrs: 'data-act="cal-task" data-proj="' + pj.id + '" data-task="' + t.id + '"' });
       });
     });
     (S.events || []).forEach(function (e) {
@@ -5943,6 +5944,11 @@ table.a-grid td:first-child { min-width: 170px; }
       case "cal-who": view.calMine = t.dataset.who === "mine"; render(); break;
       case "cal-subscribe": calendarModal(); break;
       case "cal-add": calAddModal(); break;
+      // A task opened from the calendar opens right here; closing it keeps you on the calendar.
+      case "cal-task":
+        if (t.dataset.sheet) { var csh = byId(S.sheets, t.dataset.sheet), cst = csh && byId(csh.tasks, t.dataset.task); if (cst) sheetTaskModal(csh, cst); }
+        else { var cpj = byId(S.projects || [], t.dataset.proj), cpt = cpj && byId(cpj.tasks, t.dataset.task); if (cpt) projectTaskModal(cpj, cpt); }
+        break;
       case "cal-event": var cev = byId(S.events || [], t.dataset.ev); if (cev) eventModal(cev); break;
       case "back": view.sheetId = null; view.masterId = null; view.projectId = null; view.convoId = null; view.sf = ""; render(); break;
       case "new-convo": newConvoModal(); break;
