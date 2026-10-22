@@ -165,6 +165,7 @@ create policy "members add" on public.task_notes for insert to authenticated wit
 create policy "author or admin delete" on public.task_notes for delete to authenticated using (public.is_admin() or author_email = public.current_email());
 alter table public.master_tasks add column optional boolean not null default false;
 alter table public.master_tasks add column needs_confirmation boolean not null default false;
+alter table public.master_tasks add column confirm_offset integer; -- follow-up: confirm this many days before the game
 alter table public.sheet_tasks add column optional boolean not null default false;
 alter table public.sheet_tasks add column confirmation text not null default '';
 -- guard_sheet_task() also blocks non-admins from changing optional and master_task_id.

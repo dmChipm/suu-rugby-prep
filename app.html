@@ -194,6 +194,7 @@ nav.tabs button { white-space: nowrap; }
 .combo-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(20, 8, 10, .18); max-height: 230px; overflow: auto; font-weight: 400; font-size: 1rem; }
 .combo-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 6px; cursor: pointer; }
 .combo-list li.active, .combo-list li[data-i]:hover { background: var(--red-soft); }
+.link-ins { display: flex; flex-direction: column; gap: 6px; }
 .mention-list { position: fixed; right: auto; z-index: 1000; }
 .combo-list li.none { cursor: default; color: var(--muted); font-size: .9rem; }
 .sheet-link { flex: none; max-width: 45%; font-size: .82rem; padding: 6px 10px; text-align: right; overflow-wrap: anywhere; }
@@ -2090,13 +2091,29 @@ table.a-grid td:first-child { min-width: 170px; }
   function optCount(s) { return s.tasks.length - req(s).length; }
   function mtById(id) { if (!id) return null; for (var i = 0; i < S.masters.length; i++) { var x = byId(S.masters[i].tasks, id); if (x) return x; } return null; }
   function needsConfirm(t) { var m = mtById(t.mtId); return m ? !!m.needsConfirm : !!t.needsConfirm; }
+  // Follow-up: a template task can ask for a confirmation a set number of days before the game. Returns that date for a sheet task, or "".
+  function sheetOfTask(t) { for (var i = 0; i < S.sheets.length; i++) if (S.sheets[i].tasks.indexOf(t) >= 0) return S.sheets[i]; return null; }
+  function confirmDue(t, sh) {
+    var m = mtById(t.mtId); if (!m || !m.needsConfirm || m.confirmOffset === null || m.confirmOffset === undefined || m.confirmOffset === "") return "";
+    sh = sh || sheetOfTask(t); return sh && sh.date ? addDays(sh.date, -Number(m.confirmOffset)) : "";
+  }
+  function followUpFlag(t) {
+    if ((t.confirmation || "").trim() || !needsConfirm(t)) return null;
+    var cd = confirmDue(t);
+    if (!cd) return isDone(t) ? { lv: "warn", k: "confirm", tx: "Missing confirmation" } : null;
+    var left = daysBetween(todayIso(), cd);
+    if (left < 0) return { lv: "bad", k: "confirm", tx: "Follow-up overdue" };
+    if (left <= 2) return { lv: "warn", k: "confirm", tx: left === 0 ? "Follow up today" : "Follow up by " + fmtShort(cd) };
+    return null;
+  }
   function fmtShort(iso) { if (!iso) return ""; var p = iso.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
   function isLate(t) { return !t.optional && !isDone(t) && t.due && t.due < todayIso(); }
   // Warning flags. "bad" needs action now; "warn" is an early warning.
   function flagsOf(t) {
     if (t.optional) return [];
-    if (isDone(t)) return needsConfirm(t) && !(t.confirmation || "").trim() ? [{ lv: "warn", k: "confirm", tx: "Missing confirmation" }] : [];
-    var f = [], left = t.due ? daysBetween(todayIso(), t.due) : null;
+    var fu = followUpFlag(t);
+    if (isDone(t)) return fu ? [fu] : [];
+    var f = fu ? [fu] : [], left = t.due ? daysBetween(todayIso(), t.due) : null;
     if (left !== null && left < 0) f.push({ lv: "bad", k: "late", tx: "Overdue " + -left + (left === -1 ? " day" : " days") });
     if (t.status === "Blocked") f.push({ lv: "bad", k: "blocked", tx: "Blocked" });
     if (left !== null && left >= 0 && left <= 2 && t.status === "Not Started") f.push({ lv: "warn", k: "soon", tx: (left === 0 ? "Due today" : left === 1 ? "Due tomorrow" : "Due in 2 days") + ", not started" });
@@ -2259,7 +2276,7 @@ table.a-grid td:first-child { min-width: 170px; }
       r.masters[m.id] = { id: m.id, name: m.name, game_info: !!m.gameInfo, position: mi, rules: m.rules ? cleanRules(m.rules) : null };
       m.tasks.forEach(function (t, i) {
         r.master_tasks[t.id] = { id: t.id, master_id: m.id, text: t.text, owner: t.owner || "", details: t.details || "", links: t.links || "", notes: t.notes || "",
-          due_offset: t.dueOffset === null || t.dueOffset === "" || t.dueOffset === undefined ? null : Number(t.dueOffset), position: i, supporters: t.supporters || [], optional: !!t.optional, needs_confirmation: !!t.needsConfirm, importance: imp(t),
+          due_offset: t.dueOffset === null || t.dueOffset === "" || t.dueOffset === undefined ? null : Number(t.dueOffset), position: i, supporters: t.supporters || [], optional: !!t.optional, needs_confirmation: !!t.needsConfirm, confirm_offset: t.needsConfirm && t.confirmOffset !== null && t.confirmOffset !== "" && t.confirmOffset !== undefined ? Number(t.confirmOffset) : null, importance: imp(t),
           subtasks: (t.subtasks || []).map(function (q) { return { id: q.id, text: q.text, owner: q.owner || "" }; }) };
       });
     });
@@ -2313,7 +2330,7 @@ table.a-grid td:first-child { min-width: 170px; }
       .sort(function (a, b) { return a.name.localeCompare(b.name); });
     function byPos(a, b) { return a.position - b.position; }
     var mt = {}; d.master_tasks.slice().sort(byPos).forEach(function (t) {
-      (mt[t.master_id] = mt[t.master_id] || []).push({ id: t.id, text: t.text, owner: t.owner, details: t.details, links: t.links, notes: t.notes, dueOffset: t.due_offset, supporters: t.supporters || [], optional: t.optional, needsConfirm: t.needs_confirmation, subtasks: t.subtasks || [], importance: t.importance || "" });
+      (mt[t.master_id] = mt[t.master_id] || []).push({ id: t.id, text: t.text, owner: t.owner, details: t.details, links: t.links, notes: t.notes, dueOffset: t.due_offset, supporters: t.supporters || [], optional: t.optional, needsConfirm: t.needs_confirmation, confirmOffset: t.confirm_offset === undefined ? null : t.confirm_offset, subtasks: t.subtasks || [], importance: t.importance || "" });
     });
     st.masters = d.masters.slice().sort(byPos).map(function (m) { return { id: m.id, name: m.name, gameInfo: m.game_info, rules: m.rules || null, tasks: mt[m.id] || [] }; });
     var notes = {}; d.task_notes.slice().sort(function (a, b) { return a.created_at.localeCompare(b.created_at); }).forEach(function (n) {
@@ -2920,6 +2937,8 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-22", "Links are added one at a time: type or paste a link and a fresh box for the next one appears right under it."],
+    ["2026-10-22", "Template tasks can require a follow-up: tick Requires a follow-up confirmation and set how many days before the game it should be confirmed. Each sheet shows the follow-up date on the task, flags it when it's close or overdue and no confirmation is entered, and puts it on the Calendar."],
     ["2026-10-22", "Type @ and a name to assign someone as you add a task or subtask, e.g. \"Book the bus @Kaylee\". Pick them from the list that pops up. The first person named owns it and anyone else named becomes a helper. The Owner and Helpers boxes also accept @names."],
     ["2026-10-22", "A game sheet's readiness (Ready, On track, At risk, Behind) now sits next to its name. Tap it to see the rules behind it. Admins change them from the ⋯ menu under Readiness rules."],
     ["2026-10-22", "The task pop-up is easier to scan: under the basics it has Work, How to do it and Notes sections. The Work section is trimmed down (no empty \"none yet\" lines, assign and Add show once you type a subtask, files sit with the attach buttons), instructions and links share one box, admins can edit it (and any note) right there with the pencil, an empty Notes list no longer shows a box, and Archive and Remove are quiet links at the bottom (Remove asks you to tap twice)."],
@@ -3768,7 +3787,7 @@ table.a-grid td:first-child { min-width: 170px; }
       if (t.owner) meta.push("<span>" + esc(t.owner) + "</span>");
       if (t.dueOffset !== null && t.dueOffset !== "") meta.push("<span>Due " + esc(dueOffsetText(t.dueOffset, m)) + "</span>");
       if (t.optional) meta.push('<span class="tag">Optional</span>');
-      if (t.needsConfirm) meta.push('<span class="tag">Confirmation</span>');
+      if (t.needsConfirm) meta.push('<span class="tag">' + (t.confirmOffset === null || t.confirmOffset === undefined || t.confirmOffset === "" ? "Follow-up" : "Follow-up " + esc(dueOffsetText(t.confirmOffset, m))) + "</span>");
       h += '<li><span class="num">' + (i + 1) + '</span><button class="tmain" data-open-mtask="' + t.id + '"><span class="txt">' + ttl(t.text, t) + "</span>" +
         (meta.length || extras(t) ? '<span class="meta">' + meta.join("") + extras(t) + "</span>" : "") + "</button>" +
         (admin ? '<button class="icon-btn" aria-label="Move up" title="Move up" data-move="' + t.id + '" data-dir="-1" ' + (i === 0 ? "disabled" : "") + '>↑</button>' +
@@ -3950,9 +3969,9 @@ table.a-grid td:first-child { min-width: 170px; }
       var body = sec.querySelector(".ref-body");
       sec.querySelector(".ref-head").hidden = true;
       body.innerHTML = '<label class="field">Instructions<textarea rows="5" data-k="how" placeholder="Explain the steps, who to contact, and anything to watch out for."></textarea></label>' +
-        '<label class="field">Links <span class="muted small" style="font-weight:400">one per line</span><textarea rows="3" data-k="links" placeholder="https://"></textarea></label>' +
+        '<div class="field"><span>Links</span>' + linksInput("", get("links"), ' data-k="links"') + "</div>" +
         '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-ref-cancel>Cancel</button><button type="button" class="btn primary" data-ref-save>Save</button></div>';
-      var tas = body.querySelectorAll("textarea"); tas.forEach(function (ta) { ta.value = get(ta.dataset.k); }); tas[0].focus();
+      var tas = body.querySelectorAll("textarea"); body.querySelector('[data-k="how"]').value = get("how"); tas[0].focus();
       body.querySelector("[data-ref-cancel]").addEventListener("click", redraw);
       body.querySelector("[data-ref-save]").addEventListener("click", function () { tas.forEach(function (ta) { put(ta.dataset.k, ta.value.trim()); }); redraw(); });
     });
@@ -3969,6 +3988,28 @@ table.a-grid td:first-child { min-width: 170px; }
       (text ? esc(text) : '<span class="muted">No instructions yet. An admin can add them on the template.</span>') + "</div></details>";
   }
 
+  // Links are typed one per box; filling the last box adds a fresh empty one. A hidden textarea (one link per line) holds the value for saving.
+  function linksInput(id, value, attr) {
+    var ls = String(value || "").split(/\n+/).map(function (l) { return l.trim(); }).filter(Boolean).concat([""]);
+    return '<div class="link-ins">' + ls.map(function (l) { return '<input type="text" class="link-in" inputmode="url" autocomplete="off" placeholder="' + (l || ls.length === 1 ? "https://" : "") + '" value="' + esc(l) + '" aria-label="Link">'; }).join("") +
+      '<textarea hidden ' + (id ? 'id="' + id + '"' : "") + (attr || "") + ">" + esc(value || "") + "</textarea></div>";
+  }
+  function linksSync(box, focusLast) {
+    var ins = Array.prototype.slice.call(box.querySelectorAll(".link-in")), last = ins[ins.length - 1];
+    if (last && last.value.trim()) {
+      var n = document.createElement("input"); n.type = "text"; n.className = "link-in"; n.setAttribute("inputmode", "url"); n.autocomplete = "off"; n.placeholder = "Add another link"; n.setAttribute("aria-label", "Link");
+      box.insertBefore(n, box.querySelector("textarea"));
+    }
+    var ta = box.querySelector("textarea"), v = ins.map(function (i) { return i.value.trim(); }).filter(Boolean).join("\n");
+    if (ta.value !== v) { ta.value = v; ta.dispatchEvent(new Event("input", { bubbles: true })); }
+  }
+  document.addEventListener("input", function (e) { var b = e.target.classList && e.target.classList.contains("link-in") && e.target.closest(".link-ins"); if (b) linksSync(b); });
+  document.addEventListener("focusout", function (e) {
+    var t = e.target, b = t.classList && t.classList.contains("link-in") && t.closest(".link-ins"); if (!b) return;
+    var ins = b.querySelectorAll(".link-in");
+    if (!t.value.trim() && t !== ins[ins.length - 1]) { t.remove(); linksSync(b); }
+    var ta = b.querySelector("textarea"); if (ta.id) ta.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   function fld(label, id, value, editable, kind, extra) {
     var inner;
     if (!editable) {
@@ -3976,7 +4017,8 @@ table.a-grid td:first-child { min-width: 170px; }
       inner = '<div class="ro">' + (shown || '<span class="muted">None</span>') + "</div>";
       return '<div class="field"><span>' + label + "</span>" + inner + "</div>";
     }
-    if (kind === "area" || kind === "links") inner = '<textarea id="' + id + '"' + (/rows=/.test(extra || "") ? "" : ' rows="3"') + (extra || "") + ">" + esc(value) + "</textarea>";
+    if (kind === "links") inner = linksInput(id, value);
+    else if (kind === "area") inner = '<textarea id="' + id + '"' + (/rows=/.test(extra || "") ? "" : ' rows="3"') + (extra || "") + ">" + esc(value) + "</textarea>";
     else inner = '<input type="' + (kind || "text") + '" id="' + id + '" value="' + esc(value) + '"' + (extra || "") + ">";
     return '<label class="field">' + label + inner + "</label>";
   }
@@ -4157,7 +4199,7 @@ table.a-grid td:first-child { min-width: 170px; }
       (picks.length ? '<div class="chips nt-picks">' + picks.map(function (x) { return '<button type="button" class="chip-btn" data-off="' + x[0] + '">' + x[1] + "</button>"; }).join("") + '</div><div class="muted small" id="nt-rel"></div>' : "") +
       prioField("nt", {}, true, "doesn't count toward this sheet's progress") +
       supportersField("nt-sup", [], true) +
-      fld("Helpful links <span class=\"muted small\" style=\"font-weight:400\">one per line</span>", "nt-links", "", true, "links", ' rows="2" placeholder="https://"') +
+      fld("Helpful links", "nt-links", "", true, "links") +
       '<div id="nt-msg" class="small" style="color:var(--red)" hidden></div>' +
       '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary">Done</button></div></form>',
       function (el) {
@@ -4195,7 +4237,7 @@ table.a-grid td:first-child { min-width: 170px; }
       supportersField("tk-sup", t.supporters || [], canSup) +
       // Below the basics: the work (subtasks, files), how to do it, notes, then history and the footer.
       '<section class="tk-sec"><h2>Work <span class="h2-count" id="tk-subcount"></span></h2>' + workBlock("tk", admin || isMine(t) || isSupporting(t)) +
-      (needsConfirm(t) ? fld("Confirmation <span class=\"muted small\" style=\"font-weight:400\">confirmation number, who confirmed, or other proof</span>", "tk-confirm", t.confirmation || "", true, "text") : "") + "</section>" +
+      (needsConfirm(t) ? fld("Confirmation <span class=\"muted small\" style=\"font-weight:400\">" + (confirmDue(t, s) ? "follow up by " + esc(fmtShort(confirmDue(t, s))) + ". " : "") + "Confirmation number, who confirmed, or other proof</span>", "tk-confirm", t.confirmation || "", true, "text") : "") + "</section>" +
       '<section class="tk-sec" id="tk-how"><h2>How to do it</h2>' + howSec() + "</section>" +
       '<section class="tk-sec"><h2>Notes</h2><ul class="notes" id="tk-notes-list"></ul>' +
       '<div class="note-add"><textarea id="tk-note-new" rows="2" placeholder="Add a note for everyone working on this task" aria-label="New note"></textarea><button type="button" class="btn" id="tk-note-add">Add</button></div></section>' +
@@ -4276,9 +4318,10 @@ table.a-grid td:first-child { min-width: 170px; }
         '<div class="combo"><input type="text" id="mt-subwho" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="mt-subwho-list" placeholder="Assign to (optional)" aria-label="Assign the new subtask to">' +
         '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="mt-subwho-list" role="listbox" hidden></ul></div>' +
         '<button type="button" class="btn" id="mt-subadd">Add</button></div>' : "") + "</div>" +
-      '<div class="opts"><label class="chk small"><input type="checkbox" id="mt-confirm"' + (t.needsConfirm ? " checked" : "") + (admin ? "" : " disabled") + "> Add a Confirmation box to this task</label></div>" +
+      '<div class="opts"><label class="chk small"><input type="checkbox" id="mt-confirm"' + (t.needsConfirm ? " checked" : "") + (admin ? "" : " disabled") + "> Requires a follow-up confirmation</label>" +
+        '<label class="row small fu-days" id="mt-fu-row"' + (t.needsConfirm ? "" : " hidden") + ' style="gap:8px;flex-wrap:nowrap">Confirm<input type="number" id="mt-fu" min="0" max="365" step="1" style="width:5em" value="' + (t.confirmOffset === null || t.confirmOffset === undefined ? "" : esc(t.confirmOffset)) + '"' + (admin ? "" : " disabled") + '><span class="muted">days before the ' + what + " (0 = " + what + " day)</span></label></div>" +
       (admin ? fld("Details <span class=\"muted small\" style=\"font-weight:400\">how to do this task</span>", "mt-details", t.details, true, "area", ' rows="6" placeholder="Explain the steps, who to contact, and anything to watch out for."') : howToBlock(t.details, true)) +
-      fld("Links <span class=\"muted small\" style=\"font-weight:400\">" + (admin ? "one per line" : "") + "</span>", "mt-links", t.links, admin, "links", ' placeholder="https://"') +
+      fld("Links", "mt-links", t.links, admin, "links", ' placeholder="https://"') +
       '<p class="muted small" style="margin:0">Status, Date Completed and Other Notes are tracked on each game sheet. The due date is worked out from the ' + what + ' date when a sheet is created.</p>' +
       (admin ? '<div class="row spread"><button type="button" class="btn danger" id="mt-remove">Remove task</button><div class="row"><span class="muted small">Changes save automatically</span><button type="button" class="btn primary" data-close>Done</button></div></div>'
         : '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Close</button></div>') + "</form>",
@@ -4295,7 +4338,8 @@ table.a-grid td:first-child { min-width: 170px; }
           var name = el.querySelector("#mt-text").value.trim(); if (name) t.text = name;
           t.owner = el.querySelector("#mt-owner").value.trim(); prioRead(el, "mt", t);
           t.supporters = msup.filter(function (n) { return n.toLowerCase() !== t.owner.toLowerCase(); });
-          t.needsConfirm = el.querySelector("#mt-confirm").checked;
+          t.needsConfirm = el.querySelector("#mt-confirm").checked; el.querySelector("#mt-fu-row").hidden = !t.needsConfirm;
+          var fu = el.querySelector("#mt-fu").value.trim(); t.confirmOffset = fu === "" || isNaN(fu) ? null : Math.max(0, Math.round(Number(fu)));
           var off = el.querySelector("#mt-off").value.trim(); t.dueOffset = off === "" || isNaN(off) ? null : Math.round(Number(off));
           t.details = el.querySelector("#mt-details").value.trim(); t.links = el.querySelector("#mt-links").value.trim();
           save(); render();
@@ -5684,6 +5728,11 @@ table.a-grid td:first-child { min-width: 170px; }
       sh.tasks.forEach(function (t) {
         if (!t.due || (mine && !mineT(t))) return;
         add(t.due, { k: taskKind(t), label: t.text, sub: sheetTitle(sh) + (t.owner ? " · " + t.owner : ""), attrs: 'data-act="cal-task" data-sheet="' + sh.id + '" data-task="' + t.id + '"' });
+      });
+      sh.tasks.forEach(function (t) {
+        var cd = confirmDue(t, sh); if (!cd || (mine && !mineT(t))) return;
+        var got = !!(t.confirmation || "").trim();
+        add(cd, { k: got ? "done" : cd < todayIso() ? "late" : "task", label: "Follow up: " + t.text, sub: sheetTitle(sh) + (t.owner ? " · " + t.owner : ""), attrs: 'data-act="cal-task" data-sheet="' + sh.id + '" data-task="' + t.id + '"' });
       });
     });
     (S.projects || []).forEach(function (pj) {
