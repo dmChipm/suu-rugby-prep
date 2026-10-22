@@ -645,6 +645,18 @@ nav.tabs .badge { margin-left: 6px; }
   .cal-ev.k-done { color: var(--muted); text-decoration: line-through; }
   .cal-more { font-size: .72rem; color: var(--muted); padding-left: 5px; }
 }
+.cal-corner { display: flex; align-items: center; gap: 8px; }
+.kebab.cal-mode-btn { width: auto; flex-direction: row; gap: 4px; padding: 0 10px 0 14px; font: inherit; font-weight: 700; color: var(--ink); }
+#cal-mode-items { min-width: 150px; }
+.cal-cols { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 10px; align-items: start; }
+.cal-col { padding: 8px 10px 10px; display: flex; flex-direction: column; min-width: 0; }
+.cal-col-head { display: flex; align-items: center; gap: 6px; border: 0; background: transparent; font: inherit; color: inherit; padding: 2px 0 8px; cursor: pointer; text-align: left; }
+.cal-col-wd { font-size: .78rem; font-weight: 800; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.cal-col.today .cal-num { background: var(--red); color: #fff; }
+.cal-col .cal-row { padding: 8px 0; gap: 8px; }
+.cal-col .cal-row > .muted { display: none; }
+.cal-none { margin: 0; padding: 8px 0 2px; border-top: 1px solid var(--line); font-size: .9rem; }
+@media (max-width: 699px) { .cal-cols.n7 { grid-template-columns: 1fr; gap: 8px; } .cal-cols.n3 { gap: 6px; } .cal-cols.n3 .cal-col { padding: 6px 6px 8px; } .cal-cols.n3 .cal-txt small { display: none; } .cal-cols.n3 .cal-txt b { font-size: .86rem; font-weight: 700; } }
 .cal-day { padding: 14px 16px; display: flex; flex-direction: column; }
 .cal-day h2 { margin: 0 0 6px; font-size: 1.15rem; }
 .cal-row { display: flex; gap: 12px; align-items: center; width: 100%; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; padding: 10px 2px; font: inherit; color: inherit; cursor: pointer; }
@@ -2839,6 +2851,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-22", "The Calendar has a view button next to its ☰ menu: switch between Month, Week, 3 days and Day. In Week or 3 days, tap a day's heading to open just that day."],
     ["2026-10-22", "On the Calendar tab, the month and its arrows are centered, and the Today button sits next to the Everyone / Just mine switch."],
     ["2026-10-22", "On the Calendar tab, Add to my calendar app moved into the ☰ menu in the top right corner."],
     ["2026-10-21", "New Calendar tab: a month view of game days, project due dates and task due dates. Tap a day to see everything on it and open any task, sheet or project. Switch between Everyone and Just mine, and use the menu in the corner to add it to Google or Apple Calendar."],
@@ -5475,16 +5488,51 @@ table.a-grid td:first-child { min-width: 170px; }
     Object.keys(by).forEach(function (d) { by[d].sort(function (a, b) { return CAL_ORDER[a.k] - CAL_ORDER[b.k]; }); });
     return by;
   }
+  var CAL_MODES = [["month", "Month"], ["week", "Week"], ["3day", "3 days"], ["day", "Day"]];
+  function calMode() { return view.calMode || "month"; }
+  function calSel() { var tdy = todayIso(); return view.calDay || (calMonth() === tdy.slice(0, 7) ? tdy : calMonth() + "-01"); }
+  // The days a week, 3-day or single-day view shows: the week (Sunday first) holding the picked day, or the picked day onward.
+  function calSpan() {
+    var sel = calSel(), mode = calMode(), p = sel.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]);
+    if (mode === "week") return [0, 1, 2, 3, 4, 5, 6].map(function (i) { return addDays(sel, i - d.getDay()); });
+    if (mode === "3day") return [sel, addDays(sel, 1), addDays(sel, 2)];
+    return [sel];
+  }
+  function calRow(it) {
+    return '<button type="button" class="cal-row k-' + it.k + '" ' + it.attrs + '><span class="cal-k" aria-hidden="true"></span><span class="cal-txt"><b>' + esc(it.label) + "</b><small>" + esc(it.sub) +
+      (it.k === "late" ? " · Overdue" : it.k === "done" ? " · Done" : "") + "</small></span><span aria-hidden=\"true\" class=\"muted\">›</span></button>";
+  }
   function calendarView() {
-    var mine = !!view.calMine, by = calItems(mine), ym = calMonth().split("-"), y = +ym[0], m = +ym[1] - 1;
+    var mine = !!view.calMine, mode = calMode(), by = calItems(mine), ym = calMonth().split("-"), y = +ym[0], m = +ym[1] - 1;
     var first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay()), last = new Date(y, m + 1, 0);
-    var weeks = Math.ceil((first.getDay() + last.getDate()) / 7), tdy = todayIso(), sel = view.calDay || (calMonth() === tdy.slice(0, 7) ? tdy : isoOf(first));
-    var h = '<div class="row spread"><h1>Calendar</h1>' + kebab("cal-menu", [["cal-subscribe", "Add to my calendar app"]], true) + '</div>';
-    h += '<div class="cal-bar-top"><div class="cal-nav"><button type="button" class="icon-btn" data-act="cal-prev" aria-label="Previous month"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>' +
-      '<div class="cal-month" aria-live="polite">' + esc(first.toLocaleDateString(undefined, { month: "long", year: "numeric" })) + '</div><button type="button" class="icon-btn" data-act="cal-next" aria-label="Next month"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button></div>' +
+    var weeks = Math.ceil((first.getDay() + last.getDate()) / 7), tdy = todayIso(), sel = calSel(), span = mode === "month" ? null : calSpan();
+    var unit = { month: "month", week: "week", "3day": "3 days", day: "day" }[mode];
+    function md(iso, opts) { var p = iso.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, opts); }
+    var title = mode === "month" ? first.toLocaleDateString(undefined, { month: "long", year: "numeric" })
+      : mode === "day" ? md(sel, { weekday: "short", month: "short", day: "numeric" })
+      : md(span[0], { month: "short", day: "numeric" }) + " – " + md(span[span.length - 1], span[0].slice(0, 7) === span[span.length - 1].slice(0, 7) ? { day: "numeric" } : { month: "short", day: "numeric" });
+    var chev = function (d) { return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; };
+    var modeLabel = CAL_MODES.filter(function (x) { return x[0] === mode; })[0][1];
+    var h = '<div class="row spread"><h1>Calendar</h1><div class="cal-corner"><div class="menu-wrap"><button class="kebab cal-mode-btn" id="cal-mode" aria-label="Calendar view: ' + esc(modeLabel) + '" aria-haspopup="true" aria-expanded="false" data-menu="cal-mode">' + esc(modeLabel) +
+      ' <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>' +
+      '<div class="menu" role="menu" id="cal-mode-items" hidden>' + CAL_MODES.map(function (x) { return '<button role="menuitemradio" aria-checked="' + (x[0] === mode) + '" data-act="cal-mode" data-mode="' + x[0] + '">' + (x[0] === mode ? "✓ " : "") + esc(x[1]) + "</button>"; }).join("") + "</div></div>" +
+      kebab("cal-menu", [["cal-subscribe", "Add to my calendar app"]], true) + "</div></div>";
+    h += '<div class="cal-bar-top"><div class="cal-nav"><button type="button" class="icon-btn" data-act="cal-prev" aria-label="Previous ' + unit + '">' + chev("M15 18l-6-6 6-6") + "</button>" +
+      '<div class="cal-month" aria-live="polite">' + esc(title) + '</div><button type="button" class="icon-btn" data-act="cal-next" aria-label="Next ' + unit + '">' + chev("M9 18l6-6-6-6") + "</button></div>" +
       '<div class="cal-tools"><div class="seg" role="group" aria-label="Whose tasks"><button type="button" data-act="cal-who" data-who="all" aria-pressed="' + !mine + '">Everyone</button><button type="button" data-act="cal-who" data-who="mine" aria-pressed="' + mine + '">Just mine</button></div>' +
       '<button type="button" class="btn" data-act="cal-today">Today</button></div></div>';
     h += '<div class="cal-legend muted small"><span class="k-game"><i></i>Game or event</span><span class="k-proj"><i></i>Project due</span><span class="k-task"><i></i>Task due</span><span class="k-late"><i></i>Overdue</span><span class="k-done"><i></i>Done</span></div>';
+    var none = '<p class="muted cal-none">Nothing' + (mine ? " for you" : "") + ".</p>";
+    if (span) {
+      // Week, 3 days or one day: a column per day with everything on it (a week stacks into a list on phones).
+      h += '<div class="cal-cols n' + span.length + '" style="--n:' + span.length + '">' + span.map(function (iso) {
+        var its = by[iso] || [];
+        return '<section class="card cal-col' + (iso === tdy ? " today" : "") + '"><button type="button" class="cal-col-head" data-act="cal-day" data-day="' + iso + '" data-to-day="1" aria-label="' + esc(fmtDate(iso)) + ', open this day">' +
+          '<span class="cal-col-wd">' + esc(md(iso, { weekday: "short" })) + '</span><span class="cal-num">' + +iso.slice(8) + "</span>" + (span.length > 1 && iso.slice(0, 7) !== span[0].slice(0, 7) || span.length === 1 ? '<span class="muted small">' + esc(md(iso, { month: "short" })) + "</span>" : "") + "</button>" +
+          (its.length ? its.map(calRow).join("") : none) + "</section>";
+      }).join("") + "</div>";
+      return h;
+    }
     h += '<div class="card cal-grid">' + ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(function (d) { return '<div class="cal-wd">' + d + "</div>"; }).join("");
     for (var i = 0; i < weeks * 7; i++) {
       var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), iso = isoOf(d), its = by[iso] || [];
@@ -5499,10 +5547,7 @@ table.a-grid td:first-child { min-width: 170px; }
     h += "</div>";
     var dayIts = by[sel] || [];
     h += '<section class="card cal-day" id="cal-daylist"><h2>' + esc(fmtDate(sel)) + (sel === tdy ? ' <span class="muted small">Today</span>' : "") + "</h2>" +
-      (dayIts.length ? dayIts.map(function (it) {
-        return '<button type="button" class="cal-row k-' + it.k + '" ' + it.attrs + '><span class="cal-k" aria-hidden="true"></span><span class="cal-txt"><b>' + esc(it.label) + "</b><small>" + esc(it.sub) +
-          (it.k === "late" ? " · Overdue" : it.k === "done" ? " · Done" : "") + "</small></span><span aria-hidden=\"true\" class=\"muted\">›</span></button>";
-      }).join("") : '<p class="muted" style="margin:0">Nothing on this day' + (mine ? " for you" : "") + ".</p>") + "</section>";
+      (dayIts.length ? dayIts.map(calRow).join("") : '<p class="muted" style="margin:0">Nothing on this day' + (mine ? " for you" : "") + ".</p>") + "</section>";
     return h;
   }
   function docsView() {
@@ -5632,9 +5677,15 @@ table.a-grid td:first-child { min-width: 170px; }
       return;
     }
     switch (t.dataset.act) {
-      case "cal-prev": case "cal-next": var cm = calMonth().split("-"), nd = new Date(+cm[0], +cm[1] - 1 + (t.dataset.act === "cal-next" ? 1 : -1), 1); view.calMonth = isoOf(nd).slice(0, 7); view.calDay = view.calDay && view.calDay.slice(0, 7) === view.calMonth ? view.calDay : isoOf(nd); render(); break;
+      case "cal-prev": case "cal-next":
+        var dir = t.dataset.act === "cal-next" ? 1 : -1;
+        if (calMode() === "month") { var cm = calMonth().split("-"), nd = new Date(+cm[0], +cm[1] - 1 + dir, 1); view.calMonth = isoOf(nd).slice(0, 7); view.calDay = view.calDay && view.calDay.slice(0, 7) === view.calMonth ? view.calDay : isoOf(nd); }
+        else { view.calDay = addDays(calSel(), dir * { week: 7, "3day": 3, day: 1 }[calMode()]); view.calMonth = view.calDay.slice(0, 7); }
+        render(); break;
+      case "cal-mode": view.calDay = calSel(); view.calMode = t.dataset.mode; closeMenus(); render(); break;
       case "cal-today": view.calMonth = todayIso().slice(0, 7); view.calDay = todayIso(); render(); break;
-      case "cal-day": view.calDay = t.dataset.day; if (t.dataset.day.slice(0, 7) !== calMonth()) view.calMonth = t.dataset.day.slice(0, 7); render(); var dl = document.getElementById("cal-daylist"); if (dl && window.matchMedia("(max-width: 699px)").matches) scrollBelowHeader(dl); break;
+      case "cal-day": if (t.dataset.toDay) { view.calDay = t.dataset.day; view.calMonth = t.dataset.day.slice(0, 7); view.calMode = "day"; render(); break; }
+        view.calDay = t.dataset.day; if (t.dataset.day.slice(0, 7) !== calMonth()) view.calMonth = t.dataset.day.slice(0, 7); render(); var dl = document.getElementById("cal-daylist"); if (dl && window.matchMedia("(max-width: 699px)").matches) scrollBelowHeader(dl); break;
       case "cal-who": view.calMine = t.dataset.who === "mine"; render(); break;
       case "cal-subscribe": calendarModal(); break;
       case "back": view.sheetId = null; view.masterId = null; view.projectId = null; view.convoId = null; view.sf = ""; render(); break;
