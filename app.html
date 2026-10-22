@@ -610,8 +610,10 @@ nav.tabs .badge { margin-left: 6px; }
 .pending[hidden] { display: none; }
 
 /* Calendar tab: month grid with dots on phones and short labels on wider screens, then the picked day's list. */
-.cal-bar-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.cal-nav { display: flex; align-items: center; gap: 2px; }
+.cal-bar-top { display: flex; flex-direction: column; gap: 10px; }
+.cal-nav { display: flex; align-items: center; justify-content: center; gap: 2px; }
+.cal-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cal-tools .btn { padding-block: 5px; }
 .cal-nav .icon-btn { width: 40px; height: 40px; color: var(--ink); display: grid; place-items: center; }
 .cal-month { font-family: var(--display); font-weight: 700; font-size: 1.3rem; min-width: 8.5em; text-align: center; }
 .seg { display: inline-flex; border: 2px solid var(--line); border-radius: 999px; padding: 2px; gap: 2px; }
@@ -2837,6 +2839,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-22", "On the Calendar tab, the month and its arrows are centered, and the Today button sits next to the Everyone / Just mine switch."],
     ["2026-10-22", "On the Calendar tab, Add to my calendar app moved into the ☰ menu in the top right corner."],
     ["2026-10-21", "New Calendar tab: a month view of game days, project due dates and task due dates. Tap a day to see everything on it and open any task, sheet or project. Switch between Everyone and Just mine, and use the menu in the corner to add it to Google or Apple Calendar."],
     ["2026-10-21", "An open chat has a back arrow in its top left corner, next to the chat's name, and it stays there while you type."],
@@ -5478,9 +5481,9 @@ table.a-grid td:first-child { min-width: 170px; }
     var weeks = Math.ceil((first.getDay() + last.getDate()) / 7), tdy = todayIso(), sel = view.calDay || (calMonth() === tdy.slice(0, 7) ? tdy : isoOf(first));
     var h = '<div class="row spread"><h1>Calendar</h1>' + kebab("cal-menu", [["cal-subscribe", "Add to my calendar app"]], true) + '</div>';
     h += '<div class="cal-bar-top"><div class="cal-nav"><button type="button" class="icon-btn" data-act="cal-prev" aria-label="Previous month"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>' +
-      '<div class="cal-month" aria-live="polite">' + esc(first.toLocaleDateString(undefined, { month: "long", year: "numeric" })) + '</div><button type="button" class="icon-btn" data-act="cal-next" aria-label="Next month"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>' +
-      '<button type="button" class="btn ghost" data-act="cal-today">Today</button></div>' +
-      '<div class="seg" role="group" aria-label="Whose tasks"><button type="button" data-act="cal-who" data-who="all" aria-pressed="' + !mine + '">Everyone</button><button type="button" data-act="cal-who" data-who="mine" aria-pressed="' + mine + '">Just mine</button></div></div>';
+      '<div class="cal-month" aria-live="polite">' + esc(first.toLocaleDateString(undefined, { month: "long", year: "numeric" })) + '</div><button type="button" class="icon-btn" data-act="cal-next" aria-label="Next month"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button></div>' +
+      '<div class="cal-tools"><div class="seg" role="group" aria-label="Whose tasks"><button type="button" data-act="cal-who" data-who="all" aria-pressed="' + !mine + '">Everyone</button><button type="button" data-act="cal-who" data-who="mine" aria-pressed="' + mine + '">Just mine</button></div>' +
+      '<button type="button" class="btn" data-act="cal-today">Today</button></div></div>';
     h += '<div class="cal-legend muted small"><span class="k-game"><i></i>Game or event</span><span class="k-proj"><i></i>Project due</span><span class="k-task"><i></i>Task due</span><span class="k-late"><i></i>Overdue</span><span class="k-done"><i></i>Done</span></div>';
     h += '<div class="card cal-grid">' + ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(function (d) { return '<div class="cal-wd">' + d + "</div>"; }).join("");
     for (var i = 0; i < weeks * 7; i++) {
