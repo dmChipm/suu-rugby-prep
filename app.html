@@ -194,6 +194,7 @@ nav.tabs button { white-space: nowrap; }
 .combo-list { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; margin: 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(20, 8, 10, .18); max-height: 230px; overflow: auto; font-weight: 400; font-size: 1rem; }
 .combo-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 6px; cursor: pointer; }
 .combo-list li.active, .combo-list li[data-i]:hover { background: var(--red-soft); }
+.mention-list { position: fixed; right: auto; z-index: 1000; }
 .combo-list li.none { cursor: default; color: var(--muted); font-size: .9rem; }
 .sheet-link { flex: none; max-width: 45%; font-size: .82rem; padding: 6px 10px; text-align: right; overflow-wrap: anywhere; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -2919,6 +2920,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-22", "Type @ and a name to assign someone as you add a task or subtask, e.g. \"Book the bus @Kaylee\". Pick them from the list that pops up. The first person named owns it and anyone else named becomes a helper. The Owner and Helpers boxes also accept @names."],
     ["2026-10-22", "A game sheet's readiness (Ready, On track, At risk, Behind) now sits next to its name. Tap it to see the rules behind it. Admins change them from the ⋯ menu under Readiness rules."],
     ["2026-10-22", "The task pop-up is easier to scan: under the basics it has Work, How to do it and Notes sections. The Work section is trimmed down (no empty \"none yet\" lines, assign and Add show once you type a subtask, files sit with the attach buttons), instructions and links share one box, admins can edit it (and any note) right there with the pencil, an empty Notes list no longer shows a box, and Archive and Remove are quiet links at the bottom (Remove asks you to tap twice)."],
     ["2026-10-22", "Opening a task from the Calendar now opens it right on the calendar, and tapping Done keeps you there instead of jumping to Game Prep & Projects."],
@@ -3774,7 +3776,7 @@ table.a-grid td:first-child { min-width: 170px; }
     });
     if (!m.tasks.length) h += '<li class="muted">No tasks yet.</li>';
     h += "</ul>";
-    if (admin) h += '<form class="add" data-form="add-master-task"><input type="text" id="new-master-task" placeholder="Add a task to this template" aria-label="New task"><button class="btn primary">Add</button></form>';
+    if (admin) h += '<form class="add" data-form="add-master-task"><input type="text" id="new-master-task" placeholder="Add a task to this template (type @ to assign)" aria-label="New task" autocomplete="off" data-mention><button class="btn primary">Add</button></form>';
     h += "</div>";
     h += tip("About this template", admin ? "Tap a task to set its default Owner, Due Date, Details, Links and Notes. Edits here apply to new sheets copied from this template. Sheets already created keep their own tasks." : "Only admins can change templates.");
     return h;
@@ -3794,6 +3796,61 @@ table.a-grid td:first-child { min-width: 170px; }
       '" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + id + '-list" placeholder="Type a name or pick from the list">' +
       '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="' + id + '-list" role="listbox" hidden></ul></div></div>';
   }
+  // @mentions: in any box marked data-mention, typing @ and a few letters lists matching people; picking one writes "@Full Name".
+  // takeMentions pulls those names back out, so "Book the bus @Kaylee Tanaka" adds a task "Book the bus" for Kaylee.
+  var mention = { el: null, input: null, items: [], active: 0, skip: false };
+  function mentionQuery(inp) {
+    var v = inp.value.slice(0, inp.selectionStart == null ? inp.value.length : inp.selectionStart), m = /(^|\s)@([^@\n]{0,30})$/.exec(v);
+    return m ? { start: v.length - m[2].length - 1, q: m[2].toLowerCase().replace(/^\s+/, "") } : null;
+  }
+  function mentionHide() { if (mention.el) mention.el.hidden = true; mention.input = null; }
+  function mentionDraw() {
+    mention.el.innerHTML = mention.items.map(function (p, i) { return '<li role="option" data-i="' + i + '"' + (i === mention.active ? ' class="active" aria-selected="true"' : "") + "><span>" + esc(p.name) + '</span><span class="muted small">' + esc(p.role) + "</span></li>"; }).join("");
+  }
+  function mentionShow(inp) {
+    var mq = mentionQuery(inp); if (!mq) return mentionHide();
+    var items = S.people.filter(function (p) {
+      if (p.status === "Inactive") return false;
+      var n = p.name.toLowerCase(); return !mq.q || n.indexOf(mq.q) === 0 || n.split(/\s+/).some(function (w) { return w.indexOf(mq.q) === 0; });
+    }).sort(function (a, b) { return a.name.localeCompare(b.name); }).slice(0, 6);
+    if (!items.length) return mentionHide();
+    if (!mention.el) {
+      mention.el = document.createElement("ul"); mention.el.className = "combo-list mention-list"; mention.el.setAttribute("role", "listbox"); document.body.appendChild(mention.el);
+      mention.el.addEventListener("mousedown", function (e) { e.preventDefault(); var li = e.target.closest("li[data-i]"); if (li) mentionPick(+li.dataset.i); });
+    }
+    mention.input = inp; mention.items = items; mention.active = 0; mentionDraw();
+    var r = inp.getBoundingClientRect();
+    mention.el.style.left = Math.max(8, r.left) + "px"; mention.el.style.top = (r.bottom + 4) + "px"; mention.el.style.width = Math.min(r.width, 320) + "px";
+    mention.el.hidden = false;
+  }
+  function mentionPick(i) {
+    var inp = mention.input, p = mention.items[i], mq = inp && mentionQuery(inp); if (!p || !mq) return mentionHide();
+    var end = inp.selectionStart == null ? inp.value.length : inp.selectionStart, ins = "@" + p.name + " ";
+    inp.value = inp.value.slice(0, mq.start) + ins + inp.value.slice(end);
+    var at = mq.start + ins.length; try { inp.setSelectionRange(at, at); } catch (e) {}
+    mentionHide(); mention.skip = true; inp.dispatchEvent(new Event("input", { bubbles: true })); mention.skip = false; inp.focus();
+  }
+  document.addEventListener("input", function (e) { if (!mention.skip && e.target.matches && e.target.matches("[data-mention]")) mentionShow(e.target); }, true);
+  document.addEventListener("keydown", function (e) {
+    if (!mention.input || e.target !== mention.input || mention.el.hidden) return;
+    var n = mention.items.length;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); mention.active = (mention.active + (e.key === "ArrowDown" ? 1 : -1) + n) % n; mentionDraw(); }
+    else if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); e.stopImmediatePropagation(); mentionPick(mention.active); }
+    else if (e.key === "Escape") { e.stopImmediatePropagation(); mentionHide(); }
+  }, true);
+  document.addEventListener("focusout", function (e) { if (e.target === mention.input) setTimeout(function () { if (document.activeElement !== mention.input) mentionHide(); }, 150); }, true);
+  window.addEventListener("scroll", function (e) { if (mention.input && e.target !== mention.input) mentionHide(); }, true); // a long name scrolls the box itself; that's fine
+  function takeMentions(text) {
+    var names = [], out = String(text || "");
+    S.people.filter(function (p) { return p.status !== "Inactive" && p.name; }).sort(function (a, b) { return b.name.length - a.name.length; }).forEach(function (p) {
+      var re = new RegExp("(^|\\s)@" + p.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?=\\s|$|[.,;:!?])", "i");
+      if (re.test(out)) { names.push(p.name); out = out.replace(re, "$1"); }
+    });
+    // Keep the order they were typed in, so the first @name becomes the owner.
+    names.sort(function (a, b) { return String(text).toLowerCase().indexOf("@" + a.toLowerCase()) - String(text).toLowerCase().indexOf("@" + b.toLowerCase()); });
+    return { text: out.replace(/\s{2,}/g, " ").trim(), names: names };
+  }
+
   function attachCombo(root, id, opts) {
     opts = opts || {};
     var source = opts.people || function () { return S.people.filter(function (p) { return p.status !== "Inactive"; }); };
@@ -3804,7 +3861,7 @@ table.a-grid td:first-child { min-width: 170px; }
       return i < 0 ? esc(name) : esc(name.slice(0, i)) + "<b>" + esc(name.slice(i, i + q.length)) + "</b>" + esc(name.slice(i + q.length));
     }
     function show(all) {
-      var q = all ? "" : input.value.trim().toLowerCase();
+      var q = all ? "" : input.value.trim().replace(/^@/, "").toLowerCase();
       items = source().filter(function (p) { return !q || p.name.toLowerCase().indexOf(q) >= 0 || p.role.toLowerCase().indexOf(q) >= 0; })
         .sort(function (a, b) { var sa = a.name.toLowerCase().indexOf(q) === 0 ? 0 : 1, sb = b.name.toLowerCase().indexOf(q) === 0 ? 0 : 1; return sa - sb || a.name.localeCompare(b.name); });
       active = items.length ? 0 : -1;
@@ -3953,7 +4010,7 @@ table.a-grid td:first-child { min-width: 170px; }
   // Subtasks list, then one add row (who to assign appears once you start typing), then the task's files and the attach buttons.
   function workBlock(px, canWork) {
     return '<ul class="subs" id="' + px + '-subs"></ul>' +
-      (canWork ? '<div class="sub-add"><input type="text" id="' + px + '-subnew" placeholder="+ Add a subtask" autocomplete="off" aria-label="New subtask">' +
+      (canWork ? '<div class="sub-add"><input type="text" id="' + px + '-subnew" placeholder="+ Add a subtask (type @ to assign)" autocomplete="off" aria-label="New subtask" data-mention>' +
         '<div class="combo" hidden><input type="text" id="' + px + '-subwho" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + px + '-subwho-list" placeholder="Assign to (optional)" aria-label="Assign the new subtask to">' +
         '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="' + px + '-subwho-list" role="listbox" hidden></ul></div>' +
         '<button type="button" class="btn" id="' + px + '-subadd" hidden>Add</button></div>' : "") +
@@ -4071,8 +4128,8 @@ table.a-grid td:first-child { min-width: 170px; }
       attachCombo(el, px + "-subwho");
       var nIn = el.querySelector("#" + px + "-subnew"), wIn = el.querySelector("#" + px + "-subwho");
       var add = function () {
-        var v = nIn.value.trim(); if (!v) { nIn.focus(); return; }
-        (t.subtasks = t.subtasks || []).push({ id: uid(), text: v, owner: wIn.value.trim(), done: false, by: "", files: [] });
+        var tm = takeMentions(nIn.value), v = tm.text; if (!v) { nIn.focus(); return; }
+        (t.subtasks = t.subtasks || []).push({ id: uid(), text: v, owner: wIn.value.trim() || tm.names[0] || "", done: false, by: "", files: [] });
         nIn.value = ""; wIn.value = ""; drawSubs(); changed(); nIn.focus(); showWho();
       };
       // The assign box and Add button only show once there's a subtask name to add.
@@ -4093,7 +4150,7 @@ table.a-grid td:first-child { min-width: 170px; }
     openModal('<div class="m-head"><h1 style="font-size:1.3rem">New task</h1><button type="submit" form="nt-form" class="btn primary">Done</button></div><p class="muted small" style="margin:-4px 0 0">For ' + esc(sheetTitle(s)) + (s.date ? " · " + esc(fmtDate(s.date)) : "") +
       ". Only this sheet gets it. To add it to every future " + what + ", add it to the template instead.</p>" +
       '<form id="nt-form" style="display:flex;flex-direction:column;gap:12px">' +
-      fld("Task", "nt-text", name || "", true, "text", ' placeholder="e.g. Book the referee" required') +
+      fld("Task", "nt-text", name || "", true, "text", ' placeholder="e.g. Book the referee @Kaylee" autocomplete="off" required data-mention') +
       fld("What needs to be done <span class=\"muted small\" style=\"font-weight:400\">steps, contacts, anything the owner should know</span>", "nt-details", "", true, "area", ' rows="3" placeholder="Call the referee society, confirm kickoff time and send directions to the field."') +
       '<div class="grid2">' + ownerCombo("nt-owner", "") +
       '<label class="field">Due Date<input type="date" id="nt-due"' + (s.date ? ' max="' + esc(s.date) + '"' : "") + "></label></div>" +
@@ -4113,7 +4170,8 @@ table.a-grid td:first-child { min-width: 170px; }
         var txt = el.querySelector("#nt-text"); setTimeout(function () { (txt.value ? el.querySelector("#nt-details") : txt).focus(); }, 50);
         el.querySelector("#nt-form").addEventListener("submit", function (e) {
           e.preventDefault(); e.stopPropagation();
-          var text = txt.value.trim(), msg = el.querySelector("#nt-msg");
+          var ntm = takeMentions(txt.value), text = ntm.text, msg = el.querySelector("#nt-msg"), ow = el.querySelector("#nt-owner");
+          if (ntm.names.length) { if (!ow.value.trim()) ow.value = ntm.names[0]; ntm.names.forEach(function (n) { if (n.toLowerCase() !== ow.value.trim().toLowerCase() && sup.indexOf(n) < 0) sup.push(n); }); }
           if (!text) { msg.hidden = false; msg.textContent = "Give the task a name first."; txt.focus(); return; }
           s.tasks.push({ id: uid(), text: text, supporters: sup.slice(), owner: el.querySelector("#nt-owner").value.trim(), details: el.querySelector("#nt-details").value.trim(),
             links: el.querySelector("#nt-links").value.trim(), notes: "", due: due.value, status: "Not Started", done: false, completed: "",
@@ -4214,7 +4272,7 @@ table.a-grid td:first-child { min-width: 170px; }
       prioField("mt", t, admin, "doesn't count toward progress; admins can change it on each sheet") +
       supportersField("mt-sup", t.supporters || [], admin) +
       '<div class="field"><span>Subtasks <span class="muted small" style="font-weight:400">copied onto every new sheet</span></span><ul class="subs" id="mt-subs"></ul>' +
-      (admin ? '<div class="sub-add"><input type="text" id="mt-subnew" placeholder="Add a subtask" autocomplete="off" aria-label="New subtask">' +
+      (admin ? '<div class="sub-add"><input type="text" id="mt-subnew" placeholder="Add a subtask (type @ to assign)" autocomplete="off" aria-label="New subtask" data-mention>' +
         '<div class="combo"><input type="text" id="mt-subwho" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="mt-subwho-list" placeholder="Assign to (optional)" aria-label="Assign the new subtask to">' +
         '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="mt-subwho-list" role="listbox" hidden></ul></div>' +
         '<button type="button" class="btn" id="mt-subadd">Add</button></div>' : "") + "</div>" +
@@ -4282,8 +4340,8 @@ table.a-grid td:first-child { min-width: 170px; }
       attachCombo(el, "mt-subwho");
       var nIn = el.querySelector("#mt-subnew"), wIn = el.querySelector("#mt-subwho");
       var add = function () {
-        var v = nIn.value.trim(); if (!v) { nIn.focus(); return; }
-        (t.subtasks = t.subtasks || []).push({ id: uid(), text: v, owner: wIn.value.trim() });
+        var tm = takeMentions(nIn.value), v = tm.text; if (!v) { nIn.focus(); return; }
+        (t.subtasks = t.subtasks || []).push({ id: uid(), text: v, owner: wIn.value.trim() || tm.names[0] || "" });
         nIn.value = ""; wIn.value = ""; draw(); save(); render(); nIn.focus();
       };
       el.querySelector("#mt-subadd").addEventListener("click", add);
@@ -5447,7 +5505,7 @@ table.a-grid td:first-child { min-width: 170px; }
         '<button class="tmain" data-open-ptask="' + t.id + '"><span class="txt">' + ttl(t.text, t) + '</span><span class="meta">' + statusPill(t) + flagChips(t) + (t.optional ? '<span class="tag">Optional</span>' : "") + (t.owner ? "<span>" + esc(t.owner) + ((t.supporters || []).length ? " +" + t.supporters.length : "") + "</span>" : noOwnerTag()) + (workTags(t).length ? '<span class="tag">' + workTags(t).join(" · ") + "</span>" : "") +
         (t.due ? '<span class="' + (isLate(t) ? "late" : "") + '">Due ' + esc(fmtShort(t.due)) + "</span>" : "") + "</span></button></li>";
     }).join("") : '<li class="muted">No tasks yet.</li>') + "</ul>" +
-      (mgr ? '<form class="add" id="f-add-ptask"><input type="text" id="new-ptask" placeholder="Add a task" aria-label="New task" autocomplete="off"><button class="btn primary">Add</button></form>' : "") + "</div>";
+      (mgr ? '<form class="add" id="f-add-ptask"><input type="text" id="new-ptask" placeholder="Add a task (type @ to assign)" aria-label="New task" autocomplete="off" data-mention><button class="btn primary">Add</button></form>' : "") + "</div>";
     if (!mgr) h += '<p class="muted small">Tap a task to update its status or add notes. The project owner and the presidency add tasks and assign owners.</p>';
     h += archivedBox("Archived tasks", pj.archived || [], function (t) { return t.text; }, "data-restore-ptask", mgr);
     return h;
@@ -6119,16 +6177,16 @@ table.a-grid td:first-child { min-width: 170px; }
     if (e.target.id === "f-msg") { sendMessage(); return; }
     if (e.target.id === "f-add-ptask") {
       if (!canManageProject(byId(S.projects, view.projectId))) return;
-      var pin = e.target.querySelector("input"), pv = pin.value.trim(); if (!pv) return;
-      // Add it, then open its full pop-up so the owner, due date and the rest can be filled in right away.
-      var pj = byId(S.projects, view.projectId), nt = { id: uid(), text: pv, owner: "", due: "", status: "Not Started", done: false, completed: "", notes: "" };
+      var pin = e.target.querySelector("input"), ptm = takeMentions(pin.value), pv = ptm.text; if (!pv) return;
+      // Add it, then open its full pop-up so the due date and the rest can be filled in right away. The first @name owns it, any others help.
+      var pj = byId(S.projects, view.projectId), nt = { id: uid(), text: pv, owner: ptm.names[0] || "", supporters: ptm.names.slice(1), due: "", status: "Not Started", done: false, completed: "", notes: "" };
       pj.tasks.push(nt); save(); render(); projectTaskModal(pj, nt); return;
     }
     if (!isAdmin()) return;
     var f = e.target, input = f.querySelector("input"), v = input.value.trim();
     if (f.dataset.form === "add-sheet-task") { newSheetTaskModal(byId(S.sheets, view.sheetId), v); input.value = ""; return; }
     if (!v) return;
-    if (f.dataset.form === "add-master-task") { var tm = byId(S.masters, view.masterId), mt = mkTask(v); tm.tasks.push(mt); save(); render(); masterTaskModal(tm, mt); return; }
+    if (f.dataset.form === "add-master-task") { var tm = byId(S.masters, view.masterId), mtm = takeMentions(v), mt = mkTask(mtm.text || v); mt.owner = mtm.names[0] || ""; mt.supporters = mtm.names.slice(1); tm.tasks.push(mt); save(); render(); masterTaskModal(tm, mt); return; }
     save(); render();
     var again = app.querySelector("#" + input.id); if (again) again.focus();
   });
