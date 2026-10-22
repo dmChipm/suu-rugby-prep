@@ -838,8 +838,9 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
 .ref-box { border: 2px solid var(--line); border-radius: 12px; background: var(--bg); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
 .ref-head { display: flex; align-items: center; gap: 8px; min-height: 28px; }
 .ref-head .ref-edit { margin-left: auto; width: 30px; height: 30px; display: grid; place-items: center; }
-.ref-body { white-space: pre-wrap; overflow-wrap: anywhere; display: flex; flex-direction: column; gap: 8px; }
-.ref-links { gap: 4px; }
+.ref-text { white-space: pre-wrap; }
+.ref-body { overflow-wrap: anywhere; display: flex; flex-direction: column; gap: 8px; }
+.ref-links { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
 .ref-from { margin-top: -4px; }
 .note-acts { margin-left: auto; display: flex; gap: 4px; }
 .note-acts .icon-btn { width: 26px; height: 26px; display: grid; place-items: center; }
@@ -2916,7 +2917,7 @@ table.a-grid td:first-child { min-width: 170px; }
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
     ["2026-10-22", "A game sheet's readiness (Ready, On track, At risk, Behind) now sits next to its name. Tap it to see the rules behind it. Admins change them from the ⋯ menu under Readiness rules."],
-    ["2026-10-22", "The task pop-up is easier to scan: under the basics it has Work, How to do it and Notes sections. Instructions and links each sit in their own box, admins can edit them (and any note) right there with the pencil, an empty Notes list no longer shows a box, and Archive and Remove are quiet links at the bottom (Remove asks you to tap twice)."],
+    ["2026-10-22", "The task pop-up is easier to scan: under the basics it has Work, How to do it and Notes sections. Instructions and links share one box, admins can edit it (and any note) right there with the pencil, an empty Notes list no longer shows a box, and Archive and Remove are quiet links at the bottom (Remove asks you to tap twice)."],
     ["2026-10-22", "Opening a task from the Calendar now opens it right on the calendar, and tapping Done keeps you there instead of jumping to Game Prep & Projects."],
     ["2026-10-22", "The Calendar's color key is shorter (Game, Event, Practice, Due, Overdue, Done) and sits under the calendar. Project and task due dates share one color."],
     ["2026-10-22", "Admins add anything to the Calendar with the red + above it: a game, an event, a practice, a team night, a project due date or a task. A game or event added this way also gets its prep checklist in Game Prep, and a project shows up in Projects, just as if you'd made it there."],
@@ -3874,26 +3875,26 @@ table.a-grid td:first-child { min-width: 170px; }
   function addNote(t, text) { (t.notesLog = t.notesLog || []).push({ id: uid(), by: currentUser().name, at: Date.now(), text: text }); }
   function fmtStamp(ms) { var d = new Date(ms); return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
 
-  // Instructions and links, each in its own box. Admins get a pencil on each box to edit it in place.
+  // Instructions and links together in one box. Admins get one pencil to edit both in place.
   function refBlock(text, links, from, canEdit) {
-    var pen = function (k, what) { return canEdit ? '<button type="button" class="icon-btn ref-edit" data-ref-edit="' + k + '" aria-label="Edit ' + what + '" title="Edit ' + what + '">' + PENCIL + "</button>" : ""; };
-    return '<div class="ref-box" data-ref="how"><div class="ref-head"><b>Instructions</b>' + pen("how", "instructions") + '</div><div class="ref-body">' +
-      (text ? esc(text) : '<span class="muted">No instructions yet.</span>') + "</div></div>" +
-      (links.length || canEdit ? '<div class="ref-box" data-ref="links"><div class="ref-head"><b>Links</b>' + pen("links", "links") + '</div><div class="ref-body ref-links">' +
-        (links.length ? links.map(function (l) { return "<div>" + l + "</div>"; }).join("") : '<span class="muted">No links yet.</span>') + "</div></div>" : "") +
-      (from ? '<div class="muted small ref-from">' + esc(from) + "</div>" : "");
+    return '<div class="ref-box" data-ref="how"><div class="ref-head"><b>Instructions</b>' +
+      (canEdit ? '<button type="button" class="icon-btn ref-edit" data-ref-edit aria-label="Edit instructions and links" title="Edit">' + PENCIL + "</button>" : "") +
+      '</div><div class="ref-body"><div class="ref-text">' + (text ? esc(text) : '<span class="muted">No instructions yet.</span>') + "</div>" +
+      (links.length || canEdit ? '<div class="ref-links"><b class="small">Links</b>' + (links.length ? links.map(function (l) { return "<div>" + l + "</div>"; }).join("") : '<span class="muted">No links yet.</span>') + "</div>" : "") +
+      "</div></div>" + (from ? '<div class="muted small ref-from">' + esc(from) + "</div>" : "");
   }
-  // Turns a box's pencil into a text box with Cancel and Save. get() returns the current text, put(v) stores it, then the section redraws.
+  // Turns the pencil into two text boxes (instructions, links) with Cancel and Save. get(k)/put(k, v) read and store "how" and "links".
   function wireRefEdit(sec, get, put, redraw) {
     sec.addEventListener("click", function (e) {
       var b = e.target.closest("[data-ref-edit]"); if (!b) return;
-      var k = b.dataset.refEdit, box = sec.querySelector('[data-ref="' + k + '"]'), body = box.querySelector(".ref-body");
-      b.hidden = true;
-      body.innerHTML = '<textarea rows="' + (k === "how" ? 5 : 3) + '" aria-label="' + (k === "how" ? "Instructions" : "Links, one per line") + '" placeholder="' + (k === "how" ? "Explain the steps, who to contact, and anything to watch out for." : "One link per line, e.g. https://") + '"></textarea>' +
+      var body = sec.querySelector(".ref-body");
+      sec.querySelector(".ref-head").hidden = true;
+      body.innerHTML = '<label class="field">Instructions<textarea rows="5" data-k="how" placeholder="Explain the steps, who to contact, and anything to watch out for."></textarea></label>' +
+        '<label class="field">Links <span class="muted small" style="font-weight:400">one per line</span><textarea rows="3" data-k="links" placeholder="https://"></textarea></label>' +
         '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-ref-cancel>Cancel</button><button type="button" class="btn primary" data-ref-save>Save</button></div>';
-      var ta = body.querySelector("textarea"); ta.value = get(k); ta.focus();
+      var tas = body.querySelectorAll("textarea"); tas.forEach(function (ta) { ta.value = get(ta.dataset.k); }); tas[0].focus();
       body.querySelector("[data-ref-cancel]").addEventListener("click", redraw);
-      body.querySelector("[data-ref-save]").addEventListener("click", function () { put(k, ta.value.trim()); redraw(); });
+      body.querySelector("[data-ref-save]").addEventListener("click", function () { tas.forEach(function (ta) { put(ta.dataset.k, ta.value.trim()); }); redraw(); });
     });
   }
   // Task pop-up footer: quiet Archive and Remove on the left (Remove asks for a second tap), Done on the right.
