@@ -2884,6 +2884,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-22", "Only admins can add, change or delete practices and team nights on the Calendar. Everyone else can still open them to see the details."],
     ["2026-10-22", "On the Calendar, events and team nights now share one color (pink). Game days have a red outline around the day's box, and event and team night days a pink one."],
     ["2026-10-22", "The Calendar's ☰ menu is now just the three lines, with no box around it."],
     ["2026-10-22", "Practices and team nights can repeat every day, every week (on the weekdays you pick, like Tue and Thu), every 2 weeks or every month, with an end date. Change a series' end date any time to cut it short or keep it going, and apply time or place changes to all later days at once."],
@@ -5545,7 +5546,7 @@ table.a-grid td:first-child { min-width: 170px; }
   }
   // ---------- practices and team nights ----------
   // Team events on the calendar: { id, kind: "practice" | "team_night", title, date, start, end, location, notes, seriesId, by, created }.
-  // The project managers (admins and the presidency) add them; everyone sees them. "Repeat every week" adds one per week, sharing a seriesId.
+  // Admins add them; everyone sees them. "Repeat every week" adds one per week, sharing a seriesId.
   var EV_KINDS = { practice: "Practice", team_night: "Team night" };
   function evName(e) { return e.title || EV_KINDS[e.kind] || "Event"; }
   function fmtTime(hm) {
@@ -5553,7 +5554,7 @@ table.a-grid td:first-child { min-width: 170px; }
     return (h % 12 || 12) + (m === "00" ? "" : ":" + m) + (h < 12 ? " AM" : " PM");
   }
   function evWhen(e) { return e.start ? fmtTime(e.start) + (e.end ? " – " + fmtTime(e.end) : "") : "Time not set"; }
-  function canEditEvents() { return canManageProjects(); }
+  function canEditEvents() { return isAdmin(); }
   // Repeating events: rule { freq: "day" | "week" | "month", every, days (weekdays, 0 = Sunday, for weekly), start, until }.
   // Each day in the series is its own row sharing a seriesId and a copy of the rule, so one day can be changed or deleted on its own.
   var WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
