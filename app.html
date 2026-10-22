@@ -260,6 +260,9 @@ body.signed-out nav.tabs, body.signed-out #me-btn { visibility: hidden; }
 .menu-wrap { position: relative; }
 .kebab { width: 40px; height: 40px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
 .kebab span { width: 4px; height: 4px; border-radius: 50%; background: var(--ink); }
+.kebab.hamb { gap: 4px; }
+#cal-menu-items { min-width: 240px; }
+.kebab.hamb span { width: 18px; height: 2.5px; border-radius: 2px; }
 .kebab:hover, .kebab[aria-expanded="true"] { border-color: var(--red); }
 .menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 10; min-width: 200px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 28px rgba(20, 8, 10, .18); padding: 6px; display: flex; flex-direction: column; }
 .menu[hidden] { display: none; }
@@ -2834,7 +2837,8 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
-    ["2026-10-21", "New Calendar tab: a month view of game days, project due dates and task due dates. Tap a day to see everything on it and open any task, sheet or project. Switch between Everyone and Just mine, and use Add to my calendar app to put it in Google or Apple Calendar."],
+    ["2026-10-22", "On the Calendar tab, Add to my calendar app moved into the ☰ menu in the top right corner."],
+    ["2026-10-21", "New Calendar tab: a month view of game days, project due dates and task due dates. Tap a day to see everything on it and open any task, sheet or project. Switch between Everyone and Just mine, and use the menu in the corner to add it to Google or Apple Calendar."],
     ["2026-10-21", "An open chat has a back arrow in its top left corner, next to the chat's name, and it stays there while you type."],
     ["2026-10-21", "Messages is now for admins only. Everyone else no longer sees the Messages tab or gets message notifications, and new chats can only include admins."],
     ["2026-10-20", "An open chat fills the whole screen instead of sitting in a box, and the message box stays the same height as the photo and file buttons until you type more than one line."],
@@ -3570,8 +3574,9 @@ table.a-grid td:first-child { min-width: 170px; }
   // Small "ⓘ" toggle for explanations people need once, instead of a paragraph that's always on screen.
   function tip(label, html) { return '<details class="tip"><summary><i class="i" aria-hidden="true">i</i>' + esc(label) + '</summary><div class="tip-body">' + html + "</div></details>"; }
   function wideScreen() { try { return window.matchMedia("(min-width: 700px)").matches; } catch (e) { return true; } }
-  function kebab(id, items) {
-    return '<div class="menu-wrap"><button class="kebab" id="' + id + '" aria-label="More options" aria-haspopup="true" aria-expanded="false" data-menu="' + id + '"><span></span><span></span><span></span></button>' +
+  // The ⋮ menu; with hamburger set, the same menu behind a ☰ button.
+  function kebab(id, items, hamburger) {
+    return '<div class="menu-wrap"><button class="kebab' + (hamburger ? " hamb" : "") + '" id="' + id + '" aria-label="' + (hamburger ? "Menu" : "More options") + '" aria-haspopup="true" aria-expanded="false" data-menu="' + id + '"><span></span><span></span><span></span></button>' +
       '<div class="menu" role="menu" id="' + id + '-items" hidden>' + items.map(function (it) { return '<button role="menuitem" data-act="' + it[0] + '">' + esc(it[1]) + "</button>"; }).join("") + "</div></div>";
   }
   app.addEventListener("click", function (e) {
@@ -5471,7 +5476,7 @@ table.a-grid td:first-child { min-width: 170px; }
     var mine = !!view.calMine, by = calItems(mine), ym = calMonth().split("-"), y = +ym[0], m = +ym[1] - 1;
     var first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay()), last = new Date(y, m + 1, 0);
     var weeks = Math.ceil((first.getDay() + last.getDate()) / 7), tdy = todayIso(), sel = view.calDay || (calMonth() === tdy.slice(0, 7) ? tdy : isoOf(first));
-    var h = '<div class="row spread"><h1>Calendar</h1><button type="button" class="btn" data-act="cal-subscribe">Add to my calendar app</button></div>';
+    var h = '<div class="row spread"><h1>Calendar</h1>' + kebab("cal-menu", [["cal-subscribe", "Add to my calendar app"]], true) + '</div>';
     h += '<div class="cal-bar-top"><div class="cal-nav"><button type="button" class="icon-btn" data-act="cal-prev" aria-label="Previous month"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>' +
       '<div class="cal-month" aria-live="polite">' + esc(first.toLocaleDateString(undefined, { month: "long", year: "numeric" })) + '</div><button type="button" class="icon-btn" data-act="cal-next" aria-label="Next month"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>' +
       '<button type="button" class="btn ghost" data-act="cal-today">Today</button></div>' +
