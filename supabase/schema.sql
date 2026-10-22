@@ -316,3 +316,22 @@ begin
 end';
 revoke all on function public.app_usage(int) from public, anon;
 grant execute on function public.app_usage(int) to authenticated;
+
+-- Calendar: practices and team nights (team_events). Members read; can_manage_projects() (admins and the presidency) add, change and delete.
+-- A repeating series is one row per day sharing series_id, each with a copy of the rule in repeat (jsonb):
+-- { freq: "day" | "week" | "month", every, days: [weekday 0 = Sunday], start, until }.
+create table public.team_events (
+  id text primary key default gen_random_uuid()::text,
+  kind text not null check (kind in ('practice','team_night')),
+  title text not null default '', date date not null,
+  start_time text not null default '', end_time text not null default '',
+  location text not null default '', notes text not null default '',
+  series_id text, repeat jsonb, created_by text not null default '', created_at timestamptz not null default now()
+);
+alter table public.team_events enable row level security;
+create policy "members read" on public.team_events for select to authenticated using (public.is_member());
+create policy "managers insert" on public.team_events for insert to authenticated with check (public.can_manage_projects());
+create policy "managers update" on public.team_events for update to authenticated using (public.can_manage_projects()) with check (public.can_manage_projects());
+create policy "managers delete" on public.team_events for delete to authenticated using (public.can_manage_projects());
+alter publication supabase_realtime add table public.team_events;
+-- The calendar feed function lists team_events too, with their times (America/Denver).

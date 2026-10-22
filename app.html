@@ -107,7 +107,7 @@ li.is-done .txt { color: var(--muted); text-decoration: line-through; text-decor
 .icon-btn:disabled { opacity: .25; background: transparent; color: var(--muted); }
 
 .add { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--line); }
-input[type=text], input[type=date], select { width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+input[type=text], input[type=date], input[type=time], select { width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
 .add input { flex: 1; }
 label.field { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: .9rem; }
 
@@ -260,7 +260,9 @@ body.signed-out nav.tabs, body.signed-out #me-btn { visibility: hidden; }
 .menu-wrap { position: relative; }
 .kebab { width: 40px; height: 40px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
 .kebab span { width: 4px; height: 4px; border-radius: 50%; background: var(--ink); }
-.kebab.hamb { gap: 4px; }
+.kebab.hamb { gap: 4px; border: 0; background: transparent; box-shadow: none; border-radius: 8px; }
+.kebab.hamb:hover, .kebab.hamb[aria-expanded="true"] { background: var(--red-soft); }
+.kebab.hamb span { background: var(--ink); }
 #cal-menu-items { min-width: 240px; }
 .kebab.hamb span { width: 18px; height: 2.5px; border-radius: 2px; }
 .kebab:hover, .kebab[aria-expanded="true"] { border-color: var(--red); }
@@ -358,7 +360,7 @@ h2 { font-size: 1.25rem; font-weight: 600; color: var(--ink); letter-spacing: 0;
 .menu, .combo-list { border: 2px solid var(--pop); border-radius: 14px; box-shadow: 4px 4px 0 var(--shade); }
 .modal { border: 2px solid var(--pop); border-radius: 22px; box-shadow: 6px 6px 0 rgba(200, 16, 46, .35); animation: pop-in .22s cubic-bezier(.2, 1.4, .4, 1); }
 @keyframes pop-in { from { transform: scale(.92) rotate(-1deg); opacity: 0; } to { transform: none; opacity: 1; } }
-input[type=text], input[type=date], input[type=email], input[type=password], input[type=tel], select, textarea, .search input { border: 2px solid var(--line); border-radius: 12px; }
+input[type=text], input[type=date], input[type=time], input[type=email], input[type=password], input[type=tel], select, textarea, .search input { border: 2px solid var(--line); border-radius: 12px; }
 input:focus, select:focus, textarea:focus { border-color: var(--red); outline: none; box-shadow: 0 0 0 3px var(--red-soft); }
 
 .pill, .kind, .flag { font-family: var(--display); font-weight: 600; text-transform: none; letter-spacing: 0; font-size: .8rem; padding: 2px 10px; }
@@ -645,18 +647,27 @@ nav.tabs .badge { margin-left: 6px; }
   .cal-ev.k-done { color: var(--muted); text-decoration: line-through; }
   .cal-more { font-size: .72rem; color: var(--muted); padding-left: 5px; }
 }
-.cal-corner { display: flex; align-items: center; gap: 8px; }
+.cal-corner { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.k-practice { --k: #7a52d1; } .k-night { --k: #c77d00; }
+.wd-pick { display: flex; gap: 6px; flex-wrap: wrap; }
+.wd { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); font: inherit; font-weight: 800; color: var(--muted); }
+.wd.on { background: var(--red); border-color: var(--red); color: #fff; }
+.ev-series { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; background: var(--bg); }
+.ev-kind { display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.ev-kind i { width: 9px; height: 9px; border-radius: 50%; background: var(--k); }
 .kebab.cal-mode-btn { width: auto; flex-direction: row; gap: 4px; padding: 0 10px 0 14px; font: inherit; font-weight: 700; color: var(--ink); }
 #cal-mode-items { min-width: 150px; }
-.cal-cols { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 10px; align-items: start; }
+.cal-cols { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); overflow: hidden; }
 .cal-col { padding: 8px 10px 10px; display: flex; flex-direction: column; min-width: 0; }
+.cal-col + .cal-col { border-left: 1px solid var(--line); }
+.cal-col.today { background: var(--red-soft); }
 .cal-col-head { display: flex; align-items: center; gap: 6px; border: 0; background: transparent; font: inherit; color: inherit; padding: 2px 0 8px; cursor: pointer; text-align: left; }
 .cal-col-wd { font-size: .78rem; font-weight: 800; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
 .cal-col.today .cal-num { background: var(--red); color: #fff; }
 .cal-col .cal-row { padding: 8px 0; gap: 8px; }
 .cal-col .cal-row > .muted { display: none; }
 .cal-none { margin: 0; padding: 8px 0 2px; border-top: 1px solid var(--line); font-size: .9rem; }
-@media (max-width: 699px) { .cal-cols.n7 { grid-template-columns: 1fr; gap: 8px; } .cal-cols.n3 { gap: 6px; } .cal-cols.n3 .cal-col { padding: 6px 6px 8px; } .cal-cols.n3 .cal-txt small { display: none; } .cal-cols.n3 .cal-txt b { font-size: .86rem; font-weight: 700; } }
+@media (max-width: 699px) { .cal-cols.n7 { grid-template-columns: 1fr; } .cal-cols.n7 .cal-col + .cal-col { border-left: 0; border-top: 2px solid var(--line); } .cal-cols.n3 .cal-col { padding: 6px 6px 8px; } .cal-cols.n3 .cal-txt small { display: none; } .cal-cols.n3 .cal-txt b { font-size: .86rem; font-weight: 700; } }
 .cal-day { padding: 14px 16px; display: flex; flex-direction: column; }
 .cal-day h2 { margin: 0 0 6px; font-size: 1.15rem; }
 .cal-row { display: flex; gap: 12px; align-items: center; width: 100%; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; padding: 10px 2px; font: inherit; color: inherit; cursor: pointer; }
@@ -1876,6 +1887,15 @@ table.a-grid td:first-child { min-width: 170px; }
     if (!Array.isArray(s.archivedSheets)) s.archivedSheets = [];
     if (!Array.isArray(s.archivedProjects)) s.archivedProjects = [];
     if (!s.reads) s.reads = {};
+    // Demo only: example practices (Tuesdays and Thursdays for four weeks) and a team night on Friday.
+    if (!Array.isArray(s.events)) {
+      s.events = []; var t0 = new Date(), sid = uid(), rule0 = { freq: "week", every: 1, days: [2, 4], start: isoOf(t0), until: isoOf(new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + 27)) };
+      for (var w = 0; w < 28; w++) {
+        var dd = new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + w), wd = dd.getDay();
+        if (wd === 2 || wd === 4) s.events.push({ id: uid(), kind: "practice", title: "", date: isoOf(dd), start: "18:00", end: "20:00", location: "Practice field (example)", notes: "", seriesId: sid, repeat: rule0, by: "Coach", created: Date.now() });
+        if (wd === 5 && !s.events.some(function (e) { return e.kind === "team_night"; })) s.events.push({ id: uid(), kind: "team_night", title: "Bowling night (example)", date: isoOf(dd), start: "19:30", end: "", location: "Cedar Lanes", notes: "Bring a friend!", seriesId: null, repeat: null, by: "Coach", created: Date.now() });
+      }
+    }
     // Demo only: a few example teammates so People, owners and the progress views have someone in them. Added once; delete them any time.
     if (!s.seededPersonas) {
       s.seededPersonas = true;
@@ -2176,12 +2196,12 @@ table.a-grid td:first-child { min-width: 170px; }
   // Arriving from a "reset your password" email: show the new-password form before entering the app.
   try { auth.recovery = /type=recovery/.test(location.hash); } catch (e) { auth.recovery = false; }
   var meId = null, last = null, pushChain = Promise.resolve(), pushing = 0, pendingPull = false, pullTimer = null;
-  var TABLES = ["role_access", "people", "masters", "master_tasks", "sheets", "sheet_tasks", "task_notes", "documents", "projects", "project_tasks", "conversations", "messages", "message_reactions", "conversation_reads"];
+  var TABLES = ["role_access", "people", "masters", "master_tasks", "sheets", "sheet_tasks", "task_notes", "documents", "projects", "project_tasks", "conversations", "messages", "message_reactions", "conversation_reads", "team_events"];
   var KEYCOL = { role_access: "role" };
 
   function localLayout() { try { return localStorage.getItem(KEY + "-layout") || "list"; } catch (e) { return "list"; } }
   function emptyState() {
-    return { layout: localLayout(), roleAccess: {}, docTier: {}, masters: [], sheets: [], documents: [], projects: [], convos: [], msgs: [], reads: {}, currentUserId: "_",
+    return { layout: localLayout(), roleAccess: {}, docTier: {}, masters: [], sheets: [], documents: [], projects: [], convos: [], msgs: [], reads: {}, events: [], currentUserId: "_",
       people: [{ id: "_", name: "", email: "", phone: "", role: "Team Member", status: "Active" }] };
   }
   function nul(v) { return v ? v : null; }
@@ -2232,6 +2252,10 @@ table.a-grid td:first-child { min-width: 170px; }
         r.project_tasks[t.id] = { archived_at: arcIso(t), archived_by: t.archivedBy || "", id: t.id, project_id: pj.id, text: t.text, owner: t.owner || "", due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), notes: t.notes || "", position: i, supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [], importance: imp(t), completed_at: t.completedAt || null };
       });
     });
+    (st.events || []).forEach(function (e) {
+      r.team_events[e.id] = { id: e.id, kind: e.kind, title: e.title || "", date: e.date, start_time: e.start || "", end_time: e.end || "", location: e.location || "", notes: e.notes || "",
+        series_id: e.seriesId || null, repeat: e.repeat || null, created_by: e.by || "", created_at: new Date(e.created || Date.now()).toISOString() };
+    });
     (st.documents || []).forEach(function (d) {
       r.documents[d.id] = { id: d.id, name: d.name, notes: d.notes || "", category: d.category || "", file_path: d.path, mime: d.mime || "", size: d.size || 0,
         text_content: d.text || "", min_tier: d.tier || 3, uploaded_by: d.by || "", created_at: new Date(d.created).toISOString(), archived_at: arcIso(d), archived_by: d.archivedBy || "" };
@@ -2277,6 +2301,9 @@ table.a-grid td:first-child { min-width: 170px; }
         tasks: all.filter(function (t) { return !t.archivedAt; }), archived: all.filter(function (t) { return t.archivedAt; }) };
     });
     st.archivedProjects = st.projects.filter(function (x) { return x.archivedAt; }); st.projects = st.projects.filter(function (x) { return !x.archivedAt; });
+    st.events = (d.team_events || []).map(function (x) {
+      return { id: x.id, kind: x.kind, title: x.title || "", date: x.date, start: x.start_time || "", end: x.end_time || "", location: x.location || "", notes: x.notes || "", seriesId: x.series_id || null, repeat: x.repeat || null, by: x.created_by || "", created: Date.parse(x.created_at) };
+    });
     st.documents = (d.documents || []).map(function (x) {
       return { id: x.id, name: x.name, notes: x.notes, category: x.category, path: x.file_path, mime: x.mime, size: Number(x.size) || 0, text: x.text_content, tier: Number(x.min_tier) || 3, by: x.uploaded_by, created: Date.parse(x.created_at), archivedAt: arcMs(x), archivedBy: x.archived_by || "" };
     });
@@ -2851,6 +2878,10 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-22", "The Calendar's ☰ menu is now just the three lines, with no box around it."],
+    ["2026-10-22", "Practices and team nights can repeat every day, every week (on the weekdays you pick, like Tue and Thu), every 2 weeks or every month, with an end date. Change a series' end date any time to cut it short or keep it going, and apply time or place changes to all later days at once."],
+    ["2026-10-22", "In the Calendar's Week, 3 days and Day views, the days now sit together in one box with lines between them."],
+    ["2026-10-22", "The Calendar now shows practices and team nights. Admins and the presidency add them from the ☰ menu (with an option to repeat every week), and anyone can tap one to see the time, place and notes. The Calendar title at the top is gone to save space."],
     ["2026-10-22", "The Calendar has a view button next to its ☰ menu: switch between Month, Week, 3 days and Day. In Week or 3 days, tap a day's heading to open just that day."],
     ["2026-10-22", "On the Calendar tab, the month and its arrows are centered, and the Today button sits next to the Everyone / Just mine switch."],
     ["2026-10-22", "On the Calendar tab, Add to my calendar app moved into the ☰ menu in the top right corner."],
@@ -5465,7 +5496,7 @@ table.a-grid td:first-child { min-width: 170px; }
   // ---------- calendar ----------
   // A month grid of game days, project due dates and task due dates; tap a day to see what's on it and open any item.
   function calMonth() { return view.calMonth || todayIso().slice(0, 7); }
-  var CAL_ORDER = { game: 0, proj: 1, late: 2, task: 3, done: 4 };
+  var CAL_ORDER = { game: 0, practice: 1, night: 1, proj: 2, late: 3, task: 4, done: 5 };
   function calItems(mine) {
     var by = {};
     function add(d, it) { (by[d] = by[d] || []).push(it); }
@@ -5485,7 +5516,10 @@ table.a-grid td:first-child { min-width: 170px; }
         add(t.due, { k: taskKind(t), label: t.text, sub: pj.name + (t.owner ? " · " + t.owner : ""), attrs: 'data-open-project="' + pj.id + '" data-focus-ptask="' + t.id + '"' });
       });
     });
-    Object.keys(by).forEach(function (d) { by[d].sort(function (a, b) { return CAL_ORDER[a.k] - CAL_ORDER[b.k]; }); });
+    (S.events || []).forEach(function (e) {
+      add(e.date, { k: e.kind === "practice" ? "practice" : "night", label: evName(e), sub: evWhen(e) + (e.location ? " · " + e.location : ""), at: e.start || "", attrs: 'data-act="cal-event" data-ev="' + e.id + '"' });
+    });
+    Object.keys(by).forEach(function (d) { by[d].sort(function (a, b) { return CAL_ORDER[a.k] - CAL_ORDER[b.k] || (a.at || "").localeCompare(b.at || ""); }); });
     return by;
   }
   var CAL_MODES = [["month", "Month"], ["week", "Week"], ["3day", "3 days"], ["day", "Day"]];
@@ -5502,6 +5536,147 @@ table.a-grid td:first-child { min-width: 170px; }
     return '<button type="button" class="cal-row k-' + it.k + '" ' + it.attrs + '><span class="cal-k" aria-hidden="true"></span><span class="cal-txt"><b>' + esc(it.label) + "</b><small>" + esc(it.sub) +
       (it.k === "late" ? " · Overdue" : it.k === "done" ? " · Done" : "") + "</small></span><span aria-hidden=\"true\" class=\"muted\">›</span></button>";
   }
+  // ---------- practices and team nights ----------
+  // Team events on the calendar: { id, kind: "practice" | "team_night", title, date, start, end, location, notes, seriesId, by, created }.
+  // The project managers (admins and the presidency) add them; everyone sees them. "Repeat every week" adds one per week, sharing a seriesId.
+  var EV_KINDS = { practice: "Practice", team_night: "Team night" };
+  function evName(e) { return e.title || EV_KINDS[e.kind] || "Event"; }
+  function fmtTime(hm) {
+    if (!hm) return ""; var p = hm.split(":"), h = +p[0], m = p[1] || "00";
+    return (h % 12 || 12) + (m === "00" ? "" : ":" + m) + (h < 12 ? " AM" : " PM");
+  }
+  function evWhen(e) { return e.start ? fmtTime(e.start) + (e.end ? " – " + fmtTime(e.end) : "") : "Time not set"; }
+  function canEditEvents() { return canManageProjects(); }
+  // Repeating events: rule { freq: "day" | "week" | "month", every, days (weekdays, 0 = Sunday, for weekly), start, until }.
+  // Each day in the series is its own row sharing a seriesId and a copy of the rule, so one day can be changed or deleted on its own.
+  var WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  function wdOf(iso) { var p = iso.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]).getDay(); }
+  function repeatDates(r) {
+    var out = [], d = r.start, n = Math.max(1, +r.every || 1);
+    if (!r.until || r.until < r.start) return [r.start];
+    if (r.freq === "month") {
+      var p = r.start.split("-"), dom = +p[2];
+      for (var k = 0; out.length < 120; k += n) { var x = new Date(+p[0], +p[1] - 1 + k, dom); if (isoOf(x) > r.until) break; if (x.getDate() === dom) out.push(isoOf(x)); }
+      return out;
+    }
+    var sun = addDays(r.start, -wdOf(r.start)), days = r.freq === "week" ? (r.days && r.days.length ? r.days : [wdOf(r.start)]) : null;
+    while (d <= r.until && out.length < 370) {
+      if (r.freq === "day") { if (daysBetween(r.start, d) % n === 0) out.push(d); }
+      else if (Math.floor(daysBetween(sun, d) / 7) % n === 0 && days.indexOf(wdOf(d)) >= 0) out.push(d);
+      d = addDays(d, 1);
+    }
+    return out;
+  }
+  function repeatText(r) {
+    if (!r) return "";
+    var n = +r.every || 1, base = r.freq === "day" ? (n === 1 ? "Every day" : "Every " + n + " days") : r.freq === "month" ? (n === 1 ? "Every month" : "Every " + n + " months")
+      : (n === 1 ? "Every week" : "Every " + n + " weeks") + " on " + (r.days || []).slice().sort().map(function (i) { return WD[i]; }).join(", ");
+    return base + " until " + fmtShort(r.until);
+  }
+  function repeatFields(rule, date) {
+    var freq = rule ? (rule.freq === "week" && +rule.every === 2 ? "week2" : rule.freq) : "none", days = rule && rule.days ? rule.days : [wdOf(date)];
+    return '<label class="field">Repeats<select id="ev-freq">' + [["none", "Doesn't repeat"], ["day", "Every day"], ["week", "Every week"], ["week2", "Every 2 weeks"], ["month", "Every month on this date"]].map(function (o) {
+      return '<option value="' + o[0] + '"' + (o[0] === freq ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select></label>" +
+      '<div class="field" id="ev-days-wrap"' + (/^week/.test(freq) ? "" : " hidden") + '><span>On</span><div class="wd-pick">' + WD.map(function (w, i) {
+        return '<button type="button" class="wd' + (days.indexOf(i) >= 0 ? " on" : "") + '" data-wd="' + i + '" aria-pressed="' + (days.indexOf(i) >= 0) + '" aria-label="' + w + '">' + w.charAt(0) + "</button>"; }).join("") + "</div></div>" +
+      '<label class="field" id="ev-until-wrap"' + (freq === "none" ? " hidden" : "") + '>Ends on<input type="date" id="ev-until" value="' + esc(rule ? rule.until : addDays(date, 7 * 8)) + '"></label>';
+  }
+  function readRepeat(el, start) {
+    var f = el.querySelector("#ev-freq").value; if (f === "none") return null;
+    var days = Array.prototype.map.call(el.querySelectorAll(".wd.on"), function (b) { return +b.dataset.wd; });
+    return { freq: f === "week2" ? "week" : f, every: f === "week2" ? 2 : 1, days: /^week/.test(f) ? (days.length ? days : [wdOf(start)]) : [], start: start, until: el.querySelector("#ev-until").value || addDays(start, 7 * 8) };
+  }
+  function wireRepeat(el) {
+    var sel = el.querySelector("#ev-freq");
+    sel.addEventListener("change", function () { el.querySelector("#ev-days-wrap").hidden = !/^week/.test(sel.value); el.querySelector("#ev-until-wrap").hidden = sel.value === "none"; });
+    el.querySelectorAll(".wd").forEach(function (b) { b.addEventListener("click", function () { b.classList.toggle("on"); b.setAttribute("aria-pressed", String(b.classList.contains("on"))); }); });
+  }
+  function eventModal(e) {
+    var isNew = !e.id, edit = canEditEvents(), inSeries = !isNew && !!e.seriesId;
+    var series = inSeries ? (S.events || []).filter(function (x) { return x.seriesId === e.seriesId; }) : [];
+    if (!edit) {
+      openModal('<div class="ev-kind k-' + (e.kind === "practice" ? "practice" : "night") + '"><i></i>' + esc(EV_KINDS[e.kind]) + "</div><h1>" + esc(evName(e)) + "</h1>" +
+        '<div class="field"><span>When</span><div class="ro">' + esc(fmtDate(e.date)) + " · " + esc(evWhen(e)) + (e.repeat ? '<div class="muted small">' + esc(repeatText(e.repeat)) + "</div>" : "") + "</div></div>" +
+        (e.location ? '<div class="field"><span>Where</span><div class="ro">' + esc(e.location) + "</div></div>" : "") +
+        (e.notes ? '<div class="field"><span>Notes</span><div class="ro" style="white-space:pre-wrap">' + esc(e.notes) + "</div></div>" : "") +
+        '<div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-close>Close</button></div>');
+      return;
+    }
+    var kl = EV_KINDS[e.kind].toLowerCase();
+    openModal("<h1>" + (isNew ? "Add " : "Edit ") + kl + '</h1><form id="f-ev" style="display:flex;flex-direction:column;gap:12px">' +
+      '<label class="field">Type<select id="ev-kind"><option value="practice"' + (e.kind === "practice" ? " selected" : "") + '>Practice</option><option value="team_night"' + (e.kind === "team_night" ? " selected" : "") + ">Team night</option></select></label>" +
+      fld("Name <span class=\"muted small\" style=\"font-weight:400\">optional</span>", "ev-title", e.title || "", true, "text", ' placeholder="' + esc(EV_KINDS[e.kind]) + '"') +
+      fld(inSeries ? "Date of this one" : isNew ? "Date (first one, if it repeats)" : "Date", "ev-date", e.date || todayIso(), true, "date", " required") +
+      '<div class="grid2">' + fld("Starts", "ev-start", e.start || "", true, "time") + fld("Ends", "ev-end", e.end || "", true, "time") + "</div>" +
+      fld("Where", "ev-loc", e.location || "", true, "text", ' placeholder="e.g. Practice field"') +
+      fld("Notes", "ev-notes", e.notes || "", true, "area", ' rows="2" placeholder="What to bring, who it\'s for..."') +
+      (inSeries ? '<div class="ev-series"><div><b>' + esc(repeatText(e.repeat) || "Repeats") + '</b> <span class="muted small">' + series.length + (series.length === 1 ? " day" : " days") + "</span></div>" +
+          '<label class="field">Ends on<input type="date" id="ev-until" value="' + esc(e.repeat ? e.repeat.until : series.map(function (x) { return x.date; }).sort().pop()) + '"></label>' +
+          '<label class="chk"><input type="checkbox" id="ev-all" checked><span>Apply changes to this and all later days in the series</span></label></div>'
+        : repeatFields(null, e.date || todayIso())) +
+      '<div class="row spread"><div class="row">' + (isNew ? "" : '<button type="button" class="btn danger" id="ev-del">Delete</button>' + (series.length > 1 ? '<button type="button" class="btn danger" id="ev-del-rest">Delete this and later</button>' : "")) +
+      '</div><div class="row"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary">' + (isNew ? "Add" : "Save") + "</button></div></div></form>",
+      function (el) {
+        var q = function (id) { return el.querySelector("#" + id); };
+        var kindSel = q("ev-kind"); kindSel.addEventListener("change", function () { q("ev-title").placeholder = EV_KINDS[kindSel.value]; el.querySelector("h1").textContent = (isNew ? "Add " : "Edit ") + EV_KINDS[kindSel.value].toLowerCase(); });
+        if (!inSeries) {
+          wireRepeat(el);
+          // Until the weekdays are picked by hand, they follow the date's own weekday.
+          var wdTouched = false;
+          el.querySelectorAll(".wd").forEach(function (b) { b.addEventListener("click", function () { wdTouched = true; }); });
+          q("ev-date").addEventListener("change", function () {
+            if (wdTouched || !q("ev-date").value) return; var w = wdOf(q("ev-date").value);
+            el.querySelectorAll(".wd").forEach(function (b) { var on = +b.dataset.wd === w; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
+          });
+        }
+        function armed(b, label, go) { b.addEventListener("click", function () { if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = label; return; } go(); }); }
+        var del = q("ev-del");
+        if (del) armed(del, "Tap again to delete", function () { S.events = S.events.filter(function (x) { return x.id !== e.id; }); save(); closeModal(); render(); toast("Deleted"); });
+        var delRest = q("ev-del-rest");
+        if (delRest) armed(delRest, "Tap again to delete " + series.filter(function (x) { return x.date >= e.date; }).length, function () {
+          S.events = S.events.filter(function (x) { return !(x.seriesId === e.seriesId && x.date >= e.date); }); save(); closeModal(); render(); toast("Deleted");
+        });
+        q("f-ev").addEventListener("submit", function (ev) {
+          ev.preventDefault();
+          var date = q("ev-date").value; if (!date) return;
+          var base = { kind: kindSel.value, title: q("ev-title").value.trim(), start: q("ev-start").value, end: q("ev-end").value, location: q("ev-loc").value.trim(), notes: q("ev-notes").value.trim() };
+          S.events = S.events || [];
+          function make(d, sid, rule) { var n = { id: uid(), date: d, seriesId: sid, repeat: rule, by: currentUser().name, created: Date.now() }; Object.keys(base).forEach(function (k) { n[k] = base[k]; }); S.events.push(n); }
+          var added = 0, removed = 0;
+          if (inSeries) {
+            Object.keys(base).forEach(function (k) { e[k] = base[k]; }); e.date = date;
+            if (q("ev-all").checked) series.forEach(function (x) { if (x.date > e.date) Object.keys(base).forEach(function (k) { x[k] = base[k]; }); });
+            // A new end date trims the series or carries it on with the same pattern, copying the last day's details.
+            var until = q("ev-until").value, rule = e.repeat;
+            if (until) {
+              var keep = S.events.filter(function (x) { return !(x.seriesId === e.seriesId && x.date > until); }); removed = S.events.length - keep.length; S.events = keep;
+              var left = S.events.filter(function (x) { return x.seriesId === e.seriesId; }), lastDay = left.map(function (x) { return x.date; }).sort().pop() || e.date;
+              if (rule) {
+                rule = { freq: rule.freq, every: rule.every, days: rule.days, start: rule.start, until: until };
+                var tpl = left.filter(function (x) { return x.date === lastDay; })[0] || e;
+                repeatDates(rule).forEach(function (d) {
+                  if (d <= lastDay) return; added++;
+                  var n = { id: uid(), date: d, seriesId: e.seriesId, by: currentUser().name, created: Date.now() }; ["kind", "title", "start", "end", "location", "notes"].forEach(function (k) { n[k] = tpl[k]; }); S.events.push(n);
+                });
+                S.events.forEach(function (x) { if (x.seriesId === e.seriesId) x.repeat = rule; });
+              }
+            }
+            save(); closeModal(); render(); toast(added ? added + " more added" : removed ? removed + " removed" : "Saved"); return;
+          }
+          var rule2 = readRepeat(el, date);
+          if (!isNew) {
+            Object.keys(base).forEach(function (k) { e[k] = base[k]; }); e.date = date;
+            if (rule2) { e.seriesId = uid(); e.repeat = rule2; repeatDates(rule2).forEach(function (d) { if (d > date) { make(d, e.seriesId, rule2); added++; } }); }
+            save(); closeModal(); render(); toast(added ? "Saved, and " + added + " more added" : "Saved"); return;
+          }
+          var dates = rule2 ? repeatDates(rule2) : [date];
+          if (dates.indexOf(date) < 0) dates.unshift(date);
+          var sid = dates.length > 1 ? uid() : null;
+          dates.forEach(function (d) { make(d, sid, sid ? rule2 : null); });
+          save(); closeModal(); view.calDay = dates[0]; view.calMonth = dates[0].slice(0, 7); render(); toast(dates.length > 1 ? dates.length + " added" : "Added");
+        });
+      });
+  }
   function calendarView() {
     var mine = !!view.calMine, mode = calMode(), by = calItems(mine), ym = calMonth().split("-"), y = +ym[0], m = +ym[1] - 1;
     var first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay()), last = new Date(y, m + 1, 0);
@@ -5513,21 +5688,21 @@ table.a-grid td:first-child { min-width: 170px; }
       : md(span[0], { month: "short", day: "numeric" }) + " – " + md(span[span.length - 1], span[0].slice(0, 7) === span[span.length - 1].slice(0, 7) ? { day: "numeric" } : { month: "short", day: "numeric" });
     var chev = function (d) { return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; };
     var modeLabel = CAL_MODES.filter(function (x) { return x[0] === mode; })[0][1];
-    var h = '<div class="row spread"><h1>Calendar</h1><div class="cal-corner"><div class="menu-wrap"><button class="kebab cal-mode-btn" id="cal-mode" aria-label="Calendar view: ' + esc(modeLabel) + '" aria-haspopup="true" aria-expanded="false" data-menu="cal-mode">' + esc(modeLabel) +
+    var h = '<h1 class="sr-only">Calendar</h1><div class="cal-corner"><div class="menu-wrap"><button class="kebab cal-mode-btn" id="cal-mode" aria-label="Calendar view: ' + esc(modeLabel) + '" aria-haspopup="true" aria-expanded="false" data-menu="cal-mode">' + esc(modeLabel) +
       ' <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>' +
       '<div class="menu" role="menu" id="cal-mode-items" hidden>' + CAL_MODES.map(function (x) { return '<button role="menuitemradio" aria-checked="' + (x[0] === mode) + '" data-act="cal-mode" data-mode="' + x[0] + '">' + (x[0] === mode ? "✓ " : "") + esc(x[1]) + "</button>"; }).join("") + "</div></div>" +
-      kebab("cal-menu", [["cal-subscribe", "Add to my calendar app"]], true) + "</div></div>";
+      kebab("cal-menu", (canEditEvents() ? [["cal-add-practice", "Add practice"], ["cal-add-night", "Add team night"]] : []).concat([["cal-subscribe", "Add to my calendar app"]]), true) + "</div>";
     h += '<div class="cal-bar-top"><div class="cal-nav"><button type="button" class="icon-btn" data-act="cal-prev" aria-label="Previous ' + unit + '">' + chev("M15 18l-6-6 6-6") + "</button>" +
       '<div class="cal-month" aria-live="polite">' + esc(title) + '</div><button type="button" class="icon-btn" data-act="cal-next" aria-label="Next ' + unit + '">' + chev("M9 18l6-6-6-6") + "</button></div>" +
       '<div class="cal-tools"><div class="seg" role="group" aria-label="Whose tasks"><button type="button" data-act="cal-who" data-who="all" aria-pressed="' + !mine + '">Everyone</button><button type="button" data-act="cal-who" data-who="mine" aria-pressed="' + mine + '">Just mine</button></div>' +
       '<button type="button" class="btn" data-act="cal-today">Today</button></div></div>';
-    h += '<div class="cal-legend muted small"><span class="k-game"><i></i>Game or event</span><span class="k-proj"><i></i>Project due</span><span class="k-task"><i></i>Task due</span><span class="k-late"><i></i>Overdue</span><span class="k-done"><i></i>Done</span></div>';
+    h += '<div class="cal-legend muted small"><span class="k-game"><i></i>Game or event</span><span class="k-practice"><i></i>Practice</span><span class="k-night"><i></i>Team night</span><span class="k-proj"><i></i>Project due</span><span class="k-task"><i></i>Task due</span><span class="k-late"><i></i>Overdue</span><span class="k-done"><i></i>Done</span></div>';
     var none = '<p class="muted cal-none">Nothing' + (mine ? " for you" : "") + ".</p>";
     if (span) {
       // Week, 3 days or one day: a column per day with everything on it (a week stacks into a list on phones).
-      h += '<div class="cal-cols n' + span.length + '" style="--n:' + span.length + '">' + span.map(function (iso) {
+      h += '<div class="card cal-cols n' + span.length + '" style="--n:' + span.length + '">' + span.map(function (iso) {
         var its = by[iso] || [];
-        return '<section class="card cal-col' + (iso === tdy ? " today" : "") + '"><button type="button" class="cal-col-head" data-act="cal-day" data-day="' + iso + '" data-to-day="1" aria-label="' + esc(fmtDate(iso)) + ', open this day">' +
+        return '<section class="cal-col' + (iso === tdy ? " today" : "") + '"><button type="button" class="cal-col-head" data-act="cal-day" data-day="' + iso + '" data-to-day="1" aria-label="' + esc(fmtDate(iso)) + ', open this day">' +
           '<span class="cal-col-wd">' + esc(md(iso, { weekday: "short" })) + '</span><span class="cal-num">' + +iso.slice(8) + "</span>" + (span.length > 1 && iso.slice(0, 7) !== span[0].slice(0, 7) || span.length === 1 ? '<span class="muted small">' + esc(md(iso, { month: "short" })) + "</span>" : "") + "</button>" +
           (its.length ? its.map(calRow).join("") : none) + "</section>";
       }).join("") + "</div>";
@@ -5688,6 +5863,8 @@ table.a-grid td:first-child { min-width: 170px; }
         view.calDay = t.dataset.day; if (t.dataset.day.slice(0, 7) !== calMonth()) view.calMonth = t.dataset.day.slice(0, 7); render(); var dl = document.getElementById("cal-daylist"); if (dl && window.matchMedia("(max-width: 699px)").matches) scrollBelowHeader(dl); break;
       case "cal-who": view.calMine = t.dataset.who === "mine"; render(); break;
       case "cal-subscribe": calendarModal(); break;
+      case "cal-add-practice": case "cal-add-night": closeMenus(); if (canEditEvents()) eventModal({ kind: t.dataset.act === "cal-add-practice" ? "practice" : "team_night", date: calSel() }); break;
+      case "cal-event": var cev = byId(S.events || [], t.dataset.ev); if (cev) eventModal(cev); break;
       case "back": view.sheetId = null; view.masterId = null; view.projectId = null; view.convoId = null; view.sf = ""; render(); break;
       case "new-convo": newConvoModal(); break;
       case "msg-attach": document.getElementById("msg-file").click(); break;

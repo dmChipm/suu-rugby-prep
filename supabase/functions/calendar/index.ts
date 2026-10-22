@@ -1,6 +1,7 @@
 // A private calendar feed (iCalendar) for one person, for Google Calendar or Apple Calendar to subscribe to.
 //   GET ?t=<token>: the token comes from my_calendar_token() in the app's profile settings.
-// Holds the person's open tasks with due dates (owner or helper), their projects' due dates, and every upcoming game day.
+// Holds the person's open tasks with due dates (owner or helper), their projects' due dates, every upcoming game day,
+// and every practice and team night (with their times, in Utah time).
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const APP_URL = "https://dmchipm.github.io/suu-rugby-prep/";
@@ -28,15 +29,24 @@ function fold(line: string) {
   out.push(cur);
   return out.join("\r\n ");
 }
-type Ev = { uid: string; date: string; title: string; desc: string };
+type Ev = { uid: string; date: string; title: string; desc: string; start?: string; end?: string; where?: string };
+// "18:30" on "2026-10-22" -> "20261022T183000"; an end at or before the start, or none, means two hours later.
+function localStamp(date: string, hm: string) { return date.replace(/-/g, "") + "T" + hm.replace(":", "") + "00"; }
+function endTime(start: string, end?: string) {
+  if (end && end > start) return end;
+  const [h, m] = start.split(":").map(Number), t = Math.min(h * 60 + m + 120, 23 * 60 + 59);
+  return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+}
 function ics(name: string, evs: Ev[]) {
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
   const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//SUU Womens Rugby//Team app//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
     "X-WR-CALNAME:" + esc(name), "X-WR-TIMEZONE:America/Denver", "REFRESH-INTERVAL;VALUE=DURATION:PT1H", "X-PUBLISHED-TTL:PT1H"];
   for (const e of evs) {
-    lines.push("BEGIN:VEVENT", "UID:" + e.uid + "@suu-rugby-prep", "DTSTAMP:" + stamp,
-      "DTSTART;VALUE=DATE:" + e.date.replace(/-/g, ""), "DTEND;VALUE=DATE:" + addDays(e.date, 1).replace(/-/g, ""),
-      "SUMMARY:" + esc(e.title), "DESCRIPTION:" + esc(e.desc), "URL:" + APP_URL, "TRANSP:TRANSPARENT", "END:VEVENT");
+    const when = e.start
+      ? ["DTSTART;TZID=America/Denver:" + localStamp(e.date, e.start), "DTEND;TZID=America/Denver:" + localStamp(e.date, endTime(e.start, e.end))]
+      : ["DTSTART;VALUE=DATE:" + e.date.replace(/-/g, ""), "DTEND;VALUE=DATE:" + addDays(e.date, 1).replace(/-/g, "")];
+    lines.push("BEGIN:VEVENT", "UID:" + e.uid + "@suu-rugby-prep", "DTSTAMP:" + stamp, ...when,
+      "SUMMARY:" + esc(e.title), "DESCRIPTION:" + esc(e.desc), ...(e.where ? ["LOCATION:" + esc(e.where)] : []), "URL:" + APP_URL, e.start ? "TRANSP:OPAQUE" : "TRANSP:TRANSPARENT", "END:VEVENT");
   }
   lines.push("END:VCALENDAR");
   return lines.map(fold).join("\r\n") + "\r\n";
@@ -79,6 +89,12 @@ Deno.serve(async (req) => {
     for (const s of (sh || []) as any[]) {
       if (s.example) continue;
       evs.push({ uid: "game-" + s.id, date: s.date, title: "🏉 " + sheetName(s), desc: "Game day. Prep checklist in the team app: " + APP_URL });
+    }
+    const { data: te } = await admin.from("team_events").select("id,kind,title,date,start_time,end_time,location,notes").gte("date", since);
+    for (const x of (te || []) as any[]) {
+      const kind = x.kind === "practice" ? "Practice" : "Team night";
+      evs.push({ uid: "ev-" + x.id, date: x.date, title: (x.kind === "practice" ? "🏉 " : "🎉 ") + (x.title || kind), start: x.start_time || undefined, end: x.end_time || undefined, where: x.location || undefined,
+        desc: [x.title ? kind : "", x.notes || "", "Open the team app: " + APP_URL].filter(Boolean).join("\n") });
     }
 
     return new Response(req.method === "HEAD" ? null : ics("SUU Rugby: " + me.name, evs), {
