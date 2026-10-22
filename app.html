@@ -825,7 +825,25 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
 .free-chip { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: inherit; font: inherit; text-align: left; max-width: 100%; }
 .free-chip b { font-size: .9rem; overflow-wrap: anywhere; } .free-chip:hover { background: var(--red-soft); }
 .done-log .dl-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.task-hist summary { cursor: pointer; font-weight: 700; }
+.task-hist summary { cursor: pointer; font-weight: 700; color: var(--muted); font-size: .9rem; }
+/* Task pop-up: sections under the basics, and a quiet footer. */
+.tk-sec { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); padding-top: 14px; }
+.tk-sec > h2 { margin: 0; font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tk-sec .notes[hidden] { display: none; }
+.tk-hint { margin-top: -6px; }
+.ref-box { border: 2px solid var(--line); border-radius: 12px; background: var(--bg); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.ref-head { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.ref-head .ref-edit { margin-left: auto; width: 30px; height: 30px; display: grid; place-items: center; }
+.ref-body { white-space: pre-wrap; overflow-wrap: anywhere; display: flex; flex-direction: column; gap: 8px; }
+.ref-links { gap: 4px; }
+.ref-from { margin-top: -4px; }
+.note-acts { margin-left: auto; display: flex; gap: 4px; }
+.note-acts .icon-btn { width: 26px; height: 26px; display: grid; place-items: center; }
+.note-text textarea { width: 100%; }
+.tk-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; }
+.link-btn { border: 0; background: none; padding: 6px 8px; font: inherit; font-weight: 700; color: var(--muted); border-radius: 6px; cursor: pointer; }
+.link-btn:hover { background: var(--bg); color: var(--ink); }
+.link-btn.danger { color: var(--red); }
 .task-hist .th-body { margin-top: 8px; }
 ul.hist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 ul.hist li { display: flex; flex-direction: column; }
@@ -2893,6 +2911,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-22", "The task pop-up is easier to scan: under the basics it has Work, How to do it and Notes sections. Instructions and links each sit in their own box, admins can edit them (and any note) right there with the pencil, an empty Notes list no longer shows a box, and Archive and Remove are quiet links at the bottom (Remove asks you to tap twice)."],
     ["2026-10-22", "Opening a task from the Calendar now opens it right on the calendar, and tapping Done keeps you there instead of jumping to Game Prep & Projects."],
     ["2026-10-22", "The Calendar's color key is shorter (Game, Event, Practice, Due, Overdue, Done) and sits under the calendar. Project and task due dates share one color."],
     ["2026-10-22", "Admins add anything to the Calendar with the red + above it: a game, an event, a practice, a team night, a project due date or a task. A game or event added this way also gets its prep checklist in Game Prep, and a project shows up in Projects, just as if you'd made it there."],
@@ -3837,6 +3856,35 @@ table.a-grid td:first-child { min-width: 170px; }
   function addNote(t, text) { (t.notesLog = t.notesLog || []).push({ id: uid(), by: currentUser().name, at: Date.now(), text: text }); }
   function fmtStamp(ms) { var d = new Date(ms); return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
 
+  // Instructions and links, each in its own box. Admins get a pencil on each box to edit it in place.
+  function refBlock(text, links, from, canEdit) {
+    var pen = function (k, what) { return canEdit ? '<button type="button" class="icon-btn ref-edit" data-ref-edit="' + k + '" aria-label="Edit ' + what + '" title="Edit ' + what + '">' + PENCIL + "</button>" : ""; };
+    return '<div class="ref-box" data-ref="how"><div class="ref-head"><b>Instructions</b>' + pen("how", "instructions") + '</div><div class="ref-body">' +
+      (text ? esc(text) : '<span class="muted">No instructions yet.</span>') + "</div></div>" +
+      (links.length || canEdit ? '<div class="ref-box" data-ref="links"><div class="ref-head"><b>Links</b>' + pen("links", "links") + '</div><div class="ref-body ref-links">' +
+        (links.length ? links.map(function (l) { return "<div>" + l + "</div>"; }).join("") : '<span class="muted">No links yet.</span>') + "</div></div>" : "") +
+      (from ? '<div class="muted small ref-from">' + esc(from) + "</div>" : "");
+  }
+  // Turns a box's pencil into a text box with Cancel and Save. get() returns the current text, put(v) stores it, then the section redraws.
+  function wireRefEdit(sec, get, put, redraw) {
+    sec.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-ref-edit]"); if (!b) return;
+      var k = b.dataset.refEdit, box = sec.querySelector('[data-ref="' + k + '"]'), body = box.querySelector(".ref-body");
+      b.hidden = true;
+      body.innerHTML = '<textarea rows="' + (k === "how" ? 5 : 3) + '" aria-label="' + (k === "how" ? "Instructions" : "Links, one per line") + '" placeholder="' + (k === "how" ? "Explain the steps, who to contact, and anything to watch out for." : "One link per line, e.g. https://") + '"></textarea>' +
+        '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-ref-cancel>Cancel</button><button type="button" class="btn primary" data-ref-save>Save</button></div>';
+      var ta = body.querySelector("textarea"); ta.value = get(k); ta.focus();
+      body.querySelector("[data-ref-cancel]").addEventListener("click", redraw);
+      body.querySelector("[data-ref-save]").addEventListener("click", function () { put(k, ta.value.trim()); redraw(); });
+    });
+  }
+  // Task pop-up footer: quiet Archive and Remove on the left (Remove asks for a second tap), Done on the right.
+  function taskFoot(px, canRemove) {
+    return '<div class="tk-foot"><div class="row">' + (px ? '<button type="button" class="link-btn" id="' + px + '-archive">Archive</button>' : "") +
+      (canRemove && px ? '<button type="button" class="link-btn danger" id="' + px + '-remove">Remove</button>' : "") + "</div>" +
+      '<div class="row"><span class="muted small">Saves automatically</span><button type="button" class="btn primary" data-close>Done</button></div></div>';
+  }
+  function armTap(b, label, go) { b.addEventListener("click", function () { if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = label; return; } go(); }); }
   function howToBlock(text, open) {
     return '<details class="howto"' + (open ? " open" : "") + '><summary><span>Details</span><span class="muted small">How to do this task</span></summary><div class="howto-body">' +
       (text ? esc(text) : '<span class="muted">No instructions yet. An admin can add them on the template.</span>') + "</div></details>";
@@ -4048,40 +4096,55 @@ table.a-grid td:first-child { min-width: 170px; }
   function sheetTaskModal(s, t) {
     var admin = isAdmin();
     var statusSel = '<label class="field">Status<select id="tk-status">' + STATUSES.map(function (x) { return "<option" + (x === t.status ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></label>";
-    var mt = masterTaskOf(s, t), editHow = admin && !mt, how = howTo(s, t), links = linkList(linksOf(s, t)), canSup = admin || isMine(t), sup = (t.supporters || []).slice();
+    var mt = masterTaskOf(s, t), canSup = admin || isMine(t), sup = (t.supporters || []).slice();
+    function howSec() { return refBlock(howTo(s, t), linkList(linksOf(s, t)), mt && admin ? "From the " + s.masterName + " template, so edits here update every sheet made from it." : "", admin); }
     openModal(taskHead(t) + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") + '<form style="display:flex;flex-direction:column;gap:12px">' +
       (admin ? fld("Task", "tk-text", t.text, true) : "") +
       '<div class="grid2">' + statusSel + (admin ? ownerCombo("tk-owner", t.owner) : fld("Owner", "", t.owner, false)) +
       fld("Due Date", "tk-due", t.due, admin, "date") + fld("Date Completed", "tk-completed", t.completed, admin, "date") + "</div>" +
+      (t.due && s.date ? '<div class="muted small tk-hint" id="tk-rel">Due ' + esc(dueOffsetText(daysBetween(t.due, s.date), s)) + " (" + esc(fmtDate(s.date)) + ")</div>" : "") +
+      doneLine(t) +
       prioField("tk", t, admin, "doesn't count toward this sheet's progress") +
       supportersField("tk-sup", t.supporters || [], canSup) +
-      workBlock("tk", admin || isMine(t) || isSupporting(t)) +
-      (needsConfirm(t) ? fld("Confirmation <span class=\"muted small\" style=\"font-weight:400\">confirmation number, who confirmed, or other proof</span>", "tk-confirm", t.confirmation || "", true, "text") : "") +
-      (t.due && s.date ? '<div class="muted small" id="tk-rel">Due ' + esc(dueOffsetText(daysBetween(t.due, s.date), s)) + " (" + esc(fmtDate(s.date)) + ")</div>" : "") +
-      doneLine(t) + historyHtml() +
-      howToBlock(how, false) +
-      (editHow ? fld("Details <span class=\"muted small\" style=\"font-weight:400\">this task isn't on a template, so edit it here</span>", "tk-details", t.details, true, "area") +
-        fld("Links <span class=\"muted small\" style=\"font-weight:400\">one per line</span>", "tk-links", t.links, true, "links", ' placeholder="https://"')
-        : '<div class="field"><span>Links</span><div class="ro">' + (links.length ? links.join("<br>") : '<span class="muted">None</span>') + "</div></div>") +
-      (mt && admin ? '<p class="muted small" style="margin:0">Details and Links come from the ' + esc(s.masterName) + ' template. Change them there and every sheet picks it up.</p>' : "") +
-      '<div class="field"><span>Other Notes</span><ul class="notes" id="tk-notes-list"></ul>' +
-      '<div class="note-add"><textarea id="tk-note-new" rows="2" placeholder="Add a note for everyone working on this task"></textarea><button type="button" class="btn" id="tk-note-add">Add note</button></div></div>' +
-      '<div class="row spread">' + (admin ? '<div class="row"><button type="button" class="btn danger" id="tk-remove">Remove task</button><button type="button" class="btn" id="tk-archive">Archive</button></div>' : "<span></span>") +
-      '<div class="row"><span class="muted small">Changes save automatically</span><button type="button" class="btn primary" data-close>Done</button></div></div></form>',
+      // Below the basics: the work (subtasks, files), how to do it, notes, then history and the footer.
+      '<section class="tk-sec"><h2>Work</h2>' + workBlock("tk", admin || isMine(t) || isSupporting(t)) +
+      (needsConfirm(t) ? fld("Confirmation <span class=\"muted small\" style=\"font-weight:400\">confirmation number, who confirmed, or other proof</span>", "tk-confirm", t.confirmation || "", true, "text") : "") + "</section>" +
+      '<section class="tk-sec" id="tk-how"><h2>How to do it</h2>' + howSec() + "</section>" +
+      '<section class="tk-sec"><h2>Notes</h2><ul class="notes" id="tk-notes-list"></ul>' +
+      '<div class="note-add"><textarea id="tk-note-new" rows="2" placeholder="Add a note for everyone working on this task" aria-label="New note"></textarea><button type="button" class="btn" id="tk-note-add">Add</button></div></section>' +
+      historyHtml() +
+      taskFoot(admin ? "tk" : "", admin) + "</form>",
       function (el) {
         var st = el.querySelector("#tk-status"), comp = el.querySelector("#tk-completed");
         if (admin) attachCombo(el, "tk-owner");
+        // Template tasks keep instructions and links on the template, so an edit here reaches every sheet made from it.
+        var hs = el.querySelector("#tk-how"), src = mt || t;
+        if (admin) wireRefEdit(hs, function (k) { return (k === "how" ? src.details : src.links) || ""; },
+          function (k, v) { if (k === "how") src.details = v; else src.links = v; save(); render(); },
+          function () { hs.innerHTML = "<h2>How to do it</h2>" + howSec(); });
         var nl = el.querySelector("#tk-notes-list"), nn = el.querySelector("#tk-note-new");
         function drawNotes() {
           var log = t.notesLog || [];
           nl.innerHTML = log.length ? log.map(function (n) {
             var mine = n.by && n.by.toLowerCase() === currentUser().name.toLowerCase();
             return '<li><div class="note-head"><b>' + esc(n.by || "Someone") + '</b><span class="muted small">' + esc(fmtStamp(n.at)) + "</span>" +
-              (mine || admin ? '<button type="button" class="icon-btn" aria-label="Delete note" data-del-note="' + n.id + '">✕</button>' : "") + '</div><div class="note-text">' + esc(n.text) + "</div></li>";
-          }).join("") : '<li class="muted small">No notes yet.</li>';
+              (mine || admin ? '<span class="note-acts"><button type="button" class="icon-btn" aria-label="Edit note" data-edit-note="' + n.id + '">' + PENCIL + '</button><button type="button" class="icon-btn" aria-label="Delete note" data-del-note="' + n.id + '">✕</button></span>' : "") +
+              '</div><div class="note-text">' + esc(n.text) + "</div></li>";
+          }).join("") : "";
+          nl.hidden = !log.length;
         }
         drawNotes();
         nl.addEventListener("click", function (e) {
+          var ed = e.target.closest("[data-edit-note]");
+          if (ed) {
+            var n = byId(t.notesLog || [], ed.dataset.editNote), li = ed.closest("li"); if (!n) return;
+            li.querySelector(".note-acts").hidden = true;
+            li.querySelector(".note-text").innerHTML = '<textarea rows="3" aria-label="Edit note"></textarea><div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-note-cancel>Cancel</button><button type="button" class="btn primary" data-note-save>Save</button></div>';
+            var ta = li.querySelector("textarea"); ta.value = n.text; ta.focus();
+            li.querySelector("[data-note-cancel]").addEventListener("click", drawNotes);
+            li.querySelector("[data-note-save]").addEventListener("click", function () { var v = ta.value.trim(); if (v) { n.text = v; n.edited = Date.now(); save(); render(); } drawNotes(); });
+            return;
+          }
           var b = e.target.closest("[data-del-note]"); if (!b) return;
           t.notesLog = (t.notesLog || []).filter(function (n) { return n.id !== b.dataset.delNote; }); save(); drawNotes(); render();
         });
@@ -4095,14 +4158,13 @@ table.a-grid td:first-child { min-width: 170px; }
         if (comp) st.addEventListener("change", function () { if (st.value === "Complete" && !comp.value) comp.value = todayIso(); if (st.value !== "Complete") comp.value = ""; });
         var ar = el.querySelector("#tk-archive"); if (ar) ar.addEventListener("click", function () { if (isAdmin()) archiveTask(s, t); });
         var rm = el.querySelector("#tk-remove");
-        if (rm) rm.addEventListener("click", function () {
+        if (rm) armTap(rm, "Tap again to remove", function () {
           taskFileRemove(allTaskFiles(t)); s.tasks = s.tasks.filter(function (x) { return x.id !== t.id; }); save(); closeModal(); render(); toast("Task removed from this sheet");
         });
         autosave = wireAutosave(el, function () {
           if (admin) {
             var name = el.querySelector("#tk-text").value.trim(); if (name) t.text = name;
             t.owner = el.querySelector("#tk-owner").value.trim(); t.due = el.querySelector("#tk-due").value; prioRead(el, "tk", t);
-            if (editHow) { t.details = el.querySelector("#tk-details").value.trim(); t.links = el.querySelector("#tk-links").value.trim(); }
           }
           var cf = el.querySelector("#tk-confirm"); if (cf) t.confirmation = cf.value.trim();
           if (canSup) t.supporters = sup.filter(function (n) { return n.toLowerCase() !== (t.owner || "").toLowerCase(); });
@@ -5408,20 +5470,20 @@ table.a-grid td:first-child { min-width: 170px; }
       (mgr ? fld("Task", "pk-text", t.text, true) : "") +
       '<div class="grid2">' + statusSel + (mgr ? ownerCombo("pk-owner", t.owner) : fld("Owner", "", t.owner, false)) +
       fld("Due Date", "pk-due", t.due, mgr, "date") + fld("Date Completed", "pk-completed", t.completed, true, "date") + "</div>" +
+      doneLine(t) +
       prioField("pk", t, isAdmin(), "doesn't count toward the project's progress") +
       supportersField("pk-sup", t.supporters || [], mgr) +
-      doneLine(t) + historyHtml() +
-      workBlock("pk", canWork) +
-      fld("Notes", "pk-notes", t.notes || "", true, "area", ' placeholder="Updates, questions or links"') +
-      '<div class="row spread"><div class="row">' + (isAdmin() ? '<button type="button" class="btn danger" id="pk-remove">Remove task</button>' : "") + (mgr ? '<button type="button" class="btn" id="pk-archive">Archive</button>' : "") + "</div>" +
-      '<div class="row"><span class="muted small">Changes save automatically</span><button type="button" class="btn primary" data-close>Done</button></div></div></form>',
+      '<section class="tk-sec"><h2>Work</h2>' + workBlock("pk", canWork) + "</section>" +
+      '<section class="tk-sec"><h2>Notes</h2>' + fld("", "pk-notes", t.notes || "", true, "area", ' rows="2" placeholder="Updates, questions or links" aria-label="Notes"') + "</section>" +
+      historyHtml() +
+      taskFoot(mgr ? "pk" : "", isAdmin()) + "</form>",
       function (el) {
         var st = el.querySelector("#pk-status"), comp = el.querySelector("#pk-completed");
         if (mgr) attachCombo(el, "pk-owner", pool ? { people: pool, emptyText: POOL_EMPTY } : null);
         st.addEventListener("change", function () { if (st.value === "Complete" && !comp.value) comp.value = todayIso(); if (st.value !== "Complete") comp.value = ""; });
         var par = el.querySelector("#pk-archive"); if (par) par.addEventListener("click", function () { if (canManageProject(pj)) archiveTask(pj, t); });
         var rm = el.querySelector("#pk-remove");
-        if (rm) rm.addEventListener("click", function () { if (!isAdmin()) return; taskFileRemove(allTaskFiles(t)); pj.tasks = pj.tasks.filter(function (x) { return x.id !== t.id; }); save(); closeModal(); render(); toast("Task removed"); });
+        if (rm) armTap(rm, "Tap again to remove", function () { if (!isAdmin()) return; taskFileRemove(allTaskFiles(t)); pj.tasks = pj.tasks.filter(function (x) { return x.id !== t.id; }); save(); closeModal(); render(); toast("Task removed"); });
         wireWork(el, "pk", t, canWork, pool); wireHistory(el, t);
         var autosave = null;
         if (mgr) attachSupporters(el, "pk-sup", psup, el.querySelector("#pk-owner"), function () { if (autosave) autosave(); }, pool);
