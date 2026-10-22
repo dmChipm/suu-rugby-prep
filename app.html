@@ -851,6 +851,7 @@ details.archived .btn { padding: 5px 12px; font-size: .85rem; flex: none; }
 .note-acts .icon-btn { width: 26px; height: 26px; display: grid; place-items: center; }
 .note-text textarea { width: 100%; }
 .tk-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 14px; }
+.tk-foot > .row:last-child { margin-left: auto; }
 .link-btn { border: 0; background: none; padding: 6px 8px; font: inherit; font-weight: 700; color: var(--muted); border-radius: 6px; cursor: pointer; }
 .link-btn:hover { background: var(--bg); color: var(--ink); }
 .link-btn.danger { color: var(--red); }
@@ -953,6 +954,10 @@ table.a-grid td:first-child { min-width: 170px; }
 .ul-era { font-weight: 800; padding-top: 12px; border-top: 2px dashed var(--line); }
 .ul-ver { display: inline-block; font-size: .75rem; font-weight: 800; color: var(--red); background: var(--red-soft); border-radius: 999px; padding: 1px 8px; margin-right: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dev-links { display: flex; flex-direction: column; gap: 8px; }
+.dev-as { align-self: flex-start; }
+#dev-view-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 900; display: flex; align-items: center; gap: 10px;
+  padding: 6px 6px 6px 14px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: .85rem; font-weight: 600; box-shadow: 0 6px 20px rgba(20, 8, 10, .25); white-space: nowrap; }
+#dev-view-bar button { border: 0; border-radius: 999px; padding: 5px 12px; background: var(--red); color: #fff; font: inherit; cursor: pointer; }
 .dev-link { display: flex; align-items: center; gap: 12px; padding: 14px 16px; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .dev-link .grow { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .dev-chev { font-size: 1.4rem; color: var(--muted); }
@@ -2068,8 +2073,12 @@ table.a-grid td:first-child { min-width: 170px; }
   }
   function isDev() { return currentUser().role === "Developer"; }
   function currentUser() { return byId(S.people, S.currentUserId) || S.people[0]; }
-  function isAdmin() { return !!S.roleAccess[currentUser().role]; }
-  function myTier() { return isAdmin() ? 1 : ((S.docTier || {})[currentUser().role] || 4); }
+  // Developers can preview the app as an admin or as a regular team member (Development tab). It only changes what this screen shows;
+  // the database still checks the real role, so a change made while previewing as an admin is refused if the role isn't really an admin.
+  function devAs() { if (!isDev()) return ""; try { return sessionStorage.getItem("rugby-dev-as") || ""; } catch (e) { return ""; } }
+  function setDevAs(v) { try { if (v) sessionStorage.setItem("rugby-dev-as", v); else sessionStorage.removeItem("rugby-dev-as"); } catch (e) {} }
+  function isAdmin() { var as = devAs(); return as === "member" ? false : as === "admin" ? true : !!S.roleAccess[currentUser().role]; }
+  function myTier() { return isAdmin() ? 1 : devAs() === "member" ? ((S.docTier || {})["Team Member"] || 3) : ((S.docTier || {})[currentUser().role] || 4); }
   function canSeeDoc(d) { return myTier() <= (d.tier || 3); }
 
   // ---------- helpers ----------
@@ -2220,6 +2229,12 @@ table.a-grid td:first-child { min-width: 170px; }
     document.getElementById("tab-sheets").setAttribute("aria-selected", String(view.tab === "sheets"));
     if (view.tab === "masters" && !isAdmin()) { view.tab = "sheets"; view.masterId = null; }
     document.getElementById("tab-dev").hidden = !isDev();
+    var vb = document.getElementById("dev-view-bar"), as = devAs();
+    if (as && !vb) {
+      vb = document.createElement("div"); vb.id = "dev-view-bar"; vb.setAttribute("role", "status"); document.body.appendChild(vb);
+      vb.addEventListener("click", function (e) { if (e.target.closest("[data-dev-exit]")) { setDevAs(""); render(); } });
+    }
+    if (vb) { vb.hidden = !as; vb.innerHTML = as ? "<span>Previewing the " + (as === "member" ? "non-admin" : "admin") + ' view</span><button type="button" data-dev-exit>Exit</button>' : ""; }
     document.getElementById("tab-analytics").hidden = !(isAdmin() && analyticsTabOn());
     if (view.tab === "analytics" && !isAdmin()) view.tab = "dashboard";
     if ((view.tab === "dev" || view.tab === "updates" || view.tab === "devdocs") && !isDev()) view.tab = "dashboard";
@@ -2811,7 +2826,13 @@ table.a-grid td:first-child { min-width: 170px; }
       var info = [["Version", appVersion() + (ONLINE && CFG.build ? " (build " + CFG.build + ")" : "")], ["Mode", ONLINE ? "Online (shared database)" : "Test mode (this device only)"], ["Signed in as", me.name + " · " + me.role], ["App link", APP_LINK],
         ["People", cnt(S.people)], ["Game sheets", cnt(S.sheets) + " (+" + cnt(S.archivedSheets) + " archived)"], ["Templates", cnt(S.masters)], ["Projects", cnt(S.projects) + " (+" + cnt(S.archivedProjects) + " archived)"],
         ["Documents", cnt(S.documents)], ["Conversations", cnt(S.convos)]];
+      var as = devAs();
       app.innerHTML = '<div><h1>Development</h1><div class="muted">Only people with the Developer role see this tab.</div></div>' +
+        '<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px"><strong>View the app as</strong>' +
+        '<div class="seg dev-as" role="group" aria-label="View the app as">' + [["", "My role"], ["admin", "Admin"], ["member", "Non-admin"]].map(function (x) {
+          return '<button type="button" data-dev-as="' + x[0] + '" aria-pressed="' + (as === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div>" +
+        '<p class="muted small" style="margin:0">Non-admin shows the app the way a Team Member sees it: no admin buttons, menus or tabs. Admin shows every admin control. ' +
+        "This only changes what you see on this device until you close the app; the database still uses your real role.</p></div>" +
         '<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px"><strong>Effects</strong>' +
         '<div class="row"><button class="btn primary" id="dev-small">💥 Task complete (cannon)</button><button class="btn" id="dev-big">🎉 Sheet or project 100% (random piñata)</button><button class="btn" id="dev-loader">🏉 Loading screen</button></div>' +
         '<div class="row" style="flex-wrap:wrap;gap:8px"><span class="small muted">Or pick one:</span>' + [["bird", "Thunderbird"], ["thor", "Thor"], ["pika", "Pikachu"], ["train", "Train"], ["ilona", "Ilona Maher"]].filter(function (x) { return SHOWS.indexOf(x[0]) >= 0; }).map(function (x) { return '<button class="btn" data-show="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
@@ -2826,6 +2847,7 @@ table.a-grid td:first-child { min-width: 170px; }
       app.querySelector("#dev-loader").addEventListener("click", function () { showLoader(true); });
       app.querySelectorAll("[data-show]").forEach(function (b) { b.addEventListener("click", function () { pinataShow("Home Game is 100% ready!", b.dataset.show); }); });
       app.querySelector("#dev-sound").addEventListener("change", function (e) { setSound(e.target.checked); });
+      app.querySelectorAll("[data-dev-as]").forEach(function (b) { b.addEventListener("click", function () { setDevAs(b.dataset.devAs); render(); toast(b.dataset.devAs ? "Now viewing as " + (b.dataset.devAs === "member" ? "a non-admin" : "an admin") : "Back to your own role"); }); });
     }
     else if (view.tab === "projects") { var pj = view.projectId && byId(S.projects, view.projectId); app.innerHTML = pj ? projectDetail(pj) : projectsView(); }
     else if (view.tab === "sheets") {
@@ -2940,6 +2962,8 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-22", "Task pop-ups have a Cancel button next to Done. Changes still save as you go, but Cancel puts the task back the way it was when you opened it."],
+    ["2026-10-22", "Development tab: View the app as My role, Admin or Non-admin, to check what each kind of user sees. A small bar at the bottom shows when you're previewing, with an Exit button."],
     ["2026-10-22", "Links are checked as you type: a good link gets a green check (https:// is added for you if it's missing), and anything that isn't a web address turns red with a note and isn't saved until it's fixed."],
     ["2026-10-22", "Links are added one at a time: type or paste a link and a fresh box for the next one appears right under it."],
     ["2026-10-22", "Template tasks can require a follow-up: tick Requires a follow-up confirmation and set how many days before the game it should be confirmed. Each sheet shows the follow-up date on the task, flags it when it's close or overdue and no confirmation is entered, and puts it on the Calendar."],
@@ -3943,7 +3967,7 @@ table.a-grid td:first-child { min-width: 170px; }
   // Saves a task editor as you go: right away for dropdowns, dates and checkboxes; shortly after you stop typing in text boxes.
   function wireAutosave(el, apply, skip) {
     var timer = null;
-    function run() { clearTimeout(timer); timer = null; apply(); }
+    function run() { clearTimeout(timer); timer = null; if (el.dataset.cancelled) return; apply(); }
     function skipped(t) { return !t.id || skip.indexOf(t.id) >= 0; }
     el.addEventListener("change", function (e) { if (!skipped(e.target)) run(); });
     el.addEventListener("input", function (e) {
@@ -3984,7 +4008,17 @@ table.a-grid td:first-child { min-width: 170px; }
   function taskFoot(px, canRemove) {
     return '<div class="tk-foot"><div class="row">' + (px ? '<button type="button" class="link-btn" id="' + px + '-archive">Archive</button>' : "") +
       (canRemove && px ? '<button type="button" class="link-btn danger" id="' + px + '-remove">Remove</button>' : "") + "</div>" +
-      '<div class="row"><span class="muted small">Saves automatically</span><button type="button" class="btn primary" data-close>Done</button></div></div>';
+      '<div class="row"><button type="button" class="btn" data-cancel>Cancel</button><button type="button" class="btn primary" data-close>Done</button></div></div>';
+  }
+  // Cancel: pop-ups save as you go, so Cancel puts the task (and its template task, when it has one) back the way it was when the pop-up opened.
+  function wireCancel(el, objs) {
+    var b = el.querySelector("[data-cancel]"); if (!b) return;
+    var copies = objs.map(function (o) { return o ? JSON.parse(JSON.stringify(o)) : null; });
+    b.addEventListener("click", function () {
+      el.dataset.cancelled = "1"; onModalClose = null;
+      objs.forEach(function (o, i) { if (!o) return; Object.keys(o).forEach(function (k) { if (!(k in copies[i])) delete o[k]; }); Object.assign(o, JSON.parse(JSON.stringify(copies[i]))); });
+      save(); closeModal(); render(); toast("Changes cancelled");
+    });
   }
   function armTap(b, label, go) { b.addEventListener("click", function () { if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = label; return; } go(); }); }
   function howToBlock(text, open) {
@@ -4278,6 +4312,7 @@ table.a-grid td:first-child { min-width: 170px; }
         if (admin) attachCombo(el, "tk-owner");
         // Template tasks keep instructions and links on the template, so an edit here reaches every sheet made from it.
         var hs = el.querySelector("#tk-how"), src = mt || t;
+        wireCancel(el, [t, mt]);
         if (admin) wireRefEdit(hs, function (k) { return (k === "how" ? src.details : src.links) || ""; },
           function (k, v) { if (k === "how") src.details = v; else src.links = v; save(); render(); },
           function () { hs.innerHTML = "<h2>How to do it</h2>" + howSec(); });
@@ -4353,11 +4388,12 @@ table.a-grid td:first-child { min-width: 170px; }
       (admin ? fld("Details <span class=\"muted small\" style=\"font-weight:400\">how to do this task</span>", "mt-details", t.details, true, "area", ' rows="6" placeholder="Explain the steps, who to contact, and anything to watch out for."') : howToBlock(t.details, true)) +
       fld("Links", "mt-links", t.links, admin, "links", ' placeholder="https://"') +
       '<p class="muted small" style="margin:0">Status, Date Completed and Other Notes are tracked on each game sheet. The due date is worked out from the ' + what + ' date when a sheet is created.</p>' +
-      (admin ? '<div class="row spread"><button type="button" class="btn danger" id="mt-remove">Remove task</button><div class="row"><span class="muted small">Changes save automatically</span><button type="button" class="btn primary" data-close>Done</button></div></div>'
+      (admin ? '<div class="row spread"><button type="button" class="btn danger" id="mt-remove">Remove task</button><div class="row"><button type="button" class="btn" data-cancel>Cancel</button><button type="button" class="btn primary" data-close>Done</button></div></div>'
         : '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Close</button></div>') + "</form>",
       function (el) {
         wireTemplateSubs(el, t, admin);
         if (!admin) return;
+        wireCancel(el, [t]);
         attachCombo(el, "mt-owner");
         var autosave = null;
         attachSupporters(el, "mt-sup", msup, el.querySelector("#mt-owner"), function () { if (autosave) autosave(); });
@@ -5640,6 +5676,7 @@ table.a-grid td:first-child { min-width: 170px; }
       taskFoot(mgr ? "pk" : "", isAdmin()) + "</form>",
       function (el) {
         var st = el.querySelector("#pk-status"), comp = el.querySelector("#pk-completed");
+        wireCancel(el, [t]);
         if (mgr) attachCombo(el, "pk-owner", pool ? { people: pool, emptyText: POOL_EMPTY } : null);
         st.addEventListener("change", function () { if (st.value === "Complete" && !comp.value) comp.value = todayIso(); if (st.value !== "Complete") comp.value = ""; });
         var par = el.querySelector("#pk-archive"); if (par) par.addEventListener("click", function () { if (canManageProject(pj)) archiveTask(pj, t); });
