@@ -985,7 +985,10 @@ table.a-grid td:first-child { min-width: 170px; }
 .sub.done .sub-txt { text-decoration: line-through; color: var(--muted); }
 .sub.editing { flex-direction: column; align-items: stretch; gap: 8px; border-color: var(--red); }
 .sub-add { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tk-sec .sub-add { margin-top: 0; }
 .sub-add > input { flex: 2 1 180px; }
+.sub-add .btn { flex: none; }
+.h2-count { text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 6px; }
 .sub-add .combo { flex: 1 1 160px; }
 .tfiles { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .tfile { display: inline-flex; align-items: center; max-width: 100%; padding: 1px 2px 1px 10px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); font-size: .85rem; }
@@ -2917,7 +2920,7 @@ table.a-grid td:first-child { min-width: 170px; }
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
     ["2026-10-22", "A game sheet's readiness (Ready, On track, At risk, Behind) now sits next to its name. Tap it to see the rules behind it. Admins change them from the ⋯ menu under Readiness rules."],
-    ["2026-10-22", "The task pop-up is easier to scan: under the basics it has Work, How to do it and Notes sections. Instructions and links share one box, admins can edit it (and any note) right there with the pencil, an empty Notes list no longer shows a box, and Archive and Remove are quiet links at the bottom (Remove asks you to tap twice)."],
+    ["2026-10-22", "The task pop-up is easier to scan: under the basics it has Work, How to do it and Notes sections. The Work section is trimmed down (no empty \"none yet\" lines, assign and Add show once you type a subtask, files sit with the attach buttons), instructions and links share one box, admins can edit it (and any note) right there with the pencil, an empty Notes list no longer shows a box, and Archive and Remove are quiet links at the bottom (Remove asks you to tap twice)."],
     ["2026-10-22", "Opening a task from the Calendar now opens it right on the calendar, and tapping Done keeps you there instead of jumping to Game Prep & Projects."],
     ["2026-10-22", "The Calendar's color key is shorter (Game, Event, Practice, Due, Overdue, Done) and sits under the calendar. Project and task due dates share one color."],
     ["2026-10-22", "Admins add anything to the Calendar with the red + above it: a game, an event, a practice, a team night, a project due date or a task. A game or event added this way also gets its prep checklist in Game Prep, and a project shows up in Projects, just as if you'd made it there."],
@@ -3947,13 +3950,14 @@ table.a-grid td:first-child { min-width: 170px; }
     var paths = (list || []).filter(function (f) { return f.path; }).map(function (f) { return f.path; }); if (!paths.length) return;
     if (ONLINE) sb.storage.from("task-files").remove(paths).then(function () {}, function () {}); else paths.forEach(function (x) { idb.del("task:" + x); });
   }
+  // Subtasks list, then one add row (who to assign appears once you start typing), then the task's files and the attach buttons.
   function workBlock(px, canWork) {
-    return '<div class="field"><span>Subtasks <span class="muted small" id="' + px + '-subcount" style="font-weight:400"></span></span><ul class="subs" id="' + px + '-subs"></ul>' +
-      (canWork ? '<div class="sub-add"><input type="text" id="' + px + '-subnew" placeholder="Add a subtask" autocomplete="off" aria-label="New subtask">' +
-        '<div class="combo"><input type="text" id="' + px + '-subwho" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + px + '-subwho-list" placeholder="Assign to (optional)" aria-label="Assign the new subtask to">' +
+    return '<ul class="subs" id="' + px + '-subs"></ul>' +
+      (canWork ? '<div class="sub-add"><input type="text" id="' + px + '-subnew" placeholder="+ Add a subtask" autocomplete="off" aria-label="New subtask">' +
+        '<div class="combo" hidden><input type="text" id="' + px + '-subwho" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + px + '-subwho-list" placeholder="Assign to (optional)" aria-label="Assign the new subtask to">' +
         '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="' + px + '-subwho-list" role="listbox" hidden></ul></div>' +
-        '<button type="button" class="btn" id="' + px + '-subadd">Add</button></div>' : "") + "</div>" +
-      '<div class="field"><span>Files</span><div id="' + px + '-files"></div></div>';
+        '<button type="button" class="btn" id="' + px + '-subadd" hidden>Add</button></div>' : "") +
+      '<div id="' + px + '-files"></div>';
   }
   function workSkip(px) { return [px + "-subnew", px + "-subwho", px + "-sewho"]; }
   function wireWork(el, px, t, canWork, pool) {
@@ -3970,8 +3974,8 @@ table.a-grid td:first-child { min-width: 170px; }
         var d = f.docId && byId(S.documents || [], f.docId), name = d ? d.name : f.name;
         return '<span class="tfile"><a class="tf-link" data-tf="' + i + '" target="_blank" rel="noopener" title="Added by ' + esc(f.by || "someone") + '">' + (f.docId ? "📄" : FILE_ICON[fileKind(f)] || "📎") + " <span>" + esc(name) + "</span></a>" +
           (canRm(f) ? '<button type="button" class="icon-btn" data-tf-rm="' + i + '" aria-label="Remove ' + esc(name) + '">✕</button>' : "") + "</span>";
-      }).join("") : '<span class="muted small">' + (key === "task" ? "No files yet." : "No files on this subtask.") + "</span>") +
-        (can ? '<span class="tf-add"><button type="button" class="btn" data-tf-up>📎 Upload</button><input type="file" multiple hidden data-tf-input>' +
+      }).join("") : "") +
+        (can ? '<span class="tf-add"><button type="button" class="btn" data-tf-up>📎 Attach a file</button><input type="file" multiple hidden data-tf-input>' +
           (docs.length ? '<select data-tf-doc aria-label="Link a document from the Documents tab"><option value="">📄 Link from Documents…</option>' + docs.map(function (d) { return '<option value="' + d.id + '">' + esc(d.name) + "</option>"; }).join("") + "</select>" : "") + "</span>" : "") + "</div>";
     }
     function fill(root) {
@@ -3983,10 +3987,12 @@ table.a-grid td:first-child { min-width: 170px; }
         }).catch(function () { a.classList.add("tf-missing"); });
       });
     }
-    function drawFiles() { filesEl.innerHTML = filesArea("task"); fill(filesEl); }
+    function drawFiles() { filesEl.innerHTML = filesArea("task"); filesEl.hidden = !filesEl.textContent.trim() && !filesEl.querySelector("button,select"); fill(filesEl); hideEmpty(); }
+    // Someone who can't add anything sees no Work section at all when it has no subtasks or files.
+    function hideEmpty() { var sec = subsEl.closest(".tk-sec"); if (sec) sec.hidden = !!subsEl.hidden && !!filesEl.hidden && !el.querySelector("#" + px + "-subnew"); }
     function drawSubs() {
       var subs = t.subtasks || [];
-      cnt.textContent = subs.length ? subs.filter(function (q) { return q.done; }).length + " of " + subs.length + " done" : "";
+      if (cnt) cnt.textContent = subs.length ? subs.filter(function (q) { return q.done; }).length + " of " + subs.length + " subtasks done" : "";
       subsEl.innerHTML = subs.length ? subs.map(function (q) {
         var canCheck = canWork || nameIsMe(q.owner), nf = (q.files || []).length;
         if (editing === q.id) return '<li class="sub editing" data-sub="' + q.id + '">' +
@@ -3999,7 +4005,8 @@ table.a-grid td:first-child { min-width: 170px; }
         return '<li class="sub' + (q.done ? " done" : "") + '" data-sub="' + q.id + '"><label class="check"><input type="checkbox" data-sub-chk' + (q.done ? " checked" : "") + (canCheck ? "" : " disabled") + ' aria-label="Done: ' + esc(q.text) + '"></label>' +
           '<button type="button" class="sub-main" data-sub-open' + (canCheck ? "" : " disabled") + '><span class="sub-txt">' + esc(q.text) + '</span><span class="meta">' + (q.owner ? "<span>" + esc(q.owner) + "</span>" : '<span class="muted">Unassigned</span>') +
           (nf ? '<span class="tag">📎 ' + nf + "</span>" : "") + (q.done && q.by ? '<span class="muted">Done by ' + esc(q.by) + "</span>" : "") + "</span></button></li>";
-      }).join("") : '<li class="muted small">No subtasks yet.</li>';
+      }).join("") : "";
+      subsEl.hidden = !subs.length; hideEmpty();
       if (editing) { if (canWork) attachCombo(subsEl, px + "-sewho", pool ? { people: pool, emptyText: POOL_EMPTY } : null); fill(subsEl); }
     }
     function redraw(key) { if (key === "task") drawFiles(); else drawSubs(); }
@@ -4066,8 +4073,11 @@ table.a-grid td:first-child { min-width: 170px; }
       var add = function () {
         var v = nIn.value.trim(); if (!v) { nIn.focus(); return; }
         (t.subtasks = t.subtasks || []).push({ id: uid(), text: v, owner: wIn.value.trim(), done: false, by: "", files: [] });
-        nIn.value = ""; wIn.value = ""; drawSubs(); changed(); nIn.focus();
+        nIn.value = ""; wIn.value = ""; drawSubs(); changed(); nIn.focus(); showWho();
       };
+      // The assign box and Add button only show once there's a subtask name to add.
+      var showWho = function () { var on = !!nIn.value.trim() || !!wIn.value.trim(); wIn.closest(".combo").hidden = !on; addBtn.hidden = !on; };
+      nIn.addEventListener("input", showWho);
       addBtn.addEventListener("click", add);
       nIn.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); add(); } });
     }
@@ -4126,7 +4136,7 @@ table.a-grid td:first-child { min-width: 170px; }
       prioField("tk", t, admin, "doesn't count toward this sheet's progress") +
       supportersField("tk-sup", t.supporters || [], canSup) +
       // Below the basics: the work (subtasks, files), how to do it, notes, then history and the footer.
-      '<section class="tk-sec"><h2>Work</h2>' + workBlock("tk", admin || isMine(t) || isSupporting(t)) +
+      '<section class="tk-sec"><h2>Work <span class="h2-count" id="tk-subcount"></span></h2>' + workBlock("tk", admin || isMine(t) || isSupporting(t)) +
       (needsConfirm(t) ? fld("Confirmation <span class=\"muted small\" style=\"font-weight:400\">confirmation number, who confirmed, or other proof</span>", "tk-confirm", t.confirmation || "", true, "text") : "") + "</section>" +
       '<section class="tk-sec" id="tk-how"><h2>How to do it</h2>' + howSec() + "</section>" +
       '<section class="tk-sec"><h2>Notes</h2><ul class="notes" id="tk-notes-list"></ul>' +
@@ -5492,7 +5502,7 @@ table.a-grid td:first-child { min-width: 170px; }
       doneLine(t) +
       prioField("pk", t, isAdmin(), "doesn't count toward the project's progress") +
       supportersField("pk-sup", t.supporters || [], mgr) +
-      '<section class="tk-sec"><h2>Work</h2>' + workBlock("pk", canWork) + "</section>" +
+      '<section class="tk-sec"><h2>Work <span class="h2-count" id="pk-subcount"></span></h2>' + workBlock("pk", canWork) + "</section>" +
       '<section class="tk-sec"><h2>Notes</h2>' + fld("", "pk-notes", t.notes || "", true, "area", ' rows="2" placeholder="Updates, questions or links" aria-label="Notes"') + "</section>" +
       historyHtml() +
       taskFoot(mgr ? "pk" : "", isAdmin()) + "</form>",
