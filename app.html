@@ -636,6 +636,10 @@ nav.tabs .badge { margin-left: 6px; }
 /* Game days: the whole day's box is tinted red (a picked game day also gets a red ring). */
 .cal-cell.has-game, .cal-col.has-game { background: color-mix(in srgb, var(--red) 28%, var(--surface)); }
 .cal-cell.has-game.sel { box-shadow: inset 0 0 0 2px var(--red); }
+/* Events (non-game sheets) and team nights share one color, and their day's box is tinted with it too. */
+.cal-cell.has-night, .cal-col.has-night { background: color-mix(in srgb, #d2408f 24%, var(--surface)); }
+.cal-cell.has-night.sel { box-shadow: inset 0 0 0 2px #d2408f; }
+.cal-ev.k-night { background: color-mix(in srgb, #d2408f 18%, var(--surface)); font-weight: 700; }
 .cal-cell.has-game .cal-dots i.k-game { box-shadow: 0 0 0 1.5px var(--surface); }
 .cal-cell.sel .cal-num { box-shadow: 0 0 0 2px var(--red); }
 .cal-dots { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; max-width: 100%; }
@@ -2882,6 +2886,7 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-22", "On the Calendar, events and team nights now share one color (pink), and their day's box is tinted pink, the way game days are tinted red."],
     ["2026-10-22", "On the Calendar, game days are easy to spot: the whole day's box is tinted red, in every view."],
     ["2026-10-22", "The Calendar's ☰ menu is now just the three lines, with no box around it."],
     ["2026-10-22", "Practices and team nights can repeat every day, every week (on the weekdays you pick, like Tue and Thu), every 2 weeks or every month, with an end date. Change a series' end date any time to cut it short or keep it going, and apply time or place changes to all later days at once."],
@@ -5501,14 +5506,14 @@ table.a-grid td:first-child { min-width: 170px; }
   // ---------- calendar ----------
   // A month grid of game days, project due dates and task due dates; tap a day to see what's on it and open any item.
   function calMonth() { return view.calMonth || todayIso().slice(0, 7); }
-  var CAL_ORDER = { game: 0, practice: 1, night: 1, proj: 2, late: 3, task: 4, done: 5 };
+  var CAL_ORDER = { game: 0, night: 1, practice: 2, proj: 2, late: 3, task: 4, done: 5 };
   function calItems(mine) {
     var by = {};
     function add(d, it) { (by[d] = by[d] || []).push(it); }
     function mineT(t) { return isMine(t) || isSupporting(t); }
     function taskKind(t) { return isDone(t) ? "done" : isLate(t) ? "late" : "task"; }
     S.sheets.forEach(function (sh) {
-      if (sh.date) add(sh.date, { k: "game", label: sheetTitle(sh), sub: sh.gameInfo ? "Game day" : "Event day", attrs: 'data-open-sheet="' + sh.id + '"' });
+      if (sh.date) add(sh.date, { k: sh.gameInfo ? "game" : "night", label: sheetTitle(sh), sub: sh.gameInfo ? "Game day" : "Event day", attrs: 'data-open-sheet="' + sh.id + '"' });
       sh.tasks.forEach(function (t) {
         if (!t.due || (mine && !mineT(t))) return;
         add(t.due, { k: taskKind(t), label: t.text, sub: sheetTitle(sh) + (t.owner ? " · " + t.owner : ""), attrs: 'data-open-sheet="' + sh.id + '" data-focus-task="' + t.id + '"' });
@@ -5701,13 +5706,13 @@ table.a-grid td:first-child { min-width: 170px; }
       '<div class="cal-month" aria-live="polite">' + esc(title) + '</div><button type="button" class="icon-btn" data-act="cal-next" aria-label="Next ' + unit + '">' + chev("M9 18l6-6-6-6") + "</button></div>" +
       '<div class="cal-tools"><div class="seg" role="group" aria-label="Whose tasks"><button type="button" data-act="cal-who" data-who="all" aria-pressed="' + !mine + '">Everyone</button><button type="button" data-act="cal-who" data-who="mine" aria-pressed="' + mine + '">Just mine</button></div>' +
       '<button type="button" class="btn" data-act="cal-today">Today</button></div></div>';
-    h += '<div class="cal-legend muted small"><span class="k-game"><i></i>Game or event</span><span class="k-practice"><i></i>Practice</span><span class="k-night"><i></i>Team night</span><span class="k-proj"><i></i>Project due</span><span class="k-task"><i></i>Task due</span><span class="k-late"><i></i>Overdue</span><span class="k-done"><i></i>Done</span></div>';
+    h += '<div class="cal-legend muted small"><span class="k-game"><i></i>Game</span><span class="k-night"><i></i>Event or team night</span><span class="k-practice"><i></i>Practice</span><span class="k-proj"><i></i>Project due</span><span class="k-task"><i></i>Task due</span><span class="k-late"><i></i>Overdue</span><span class="k-done"><i></i>Done</span></div>';
     var none = '<p class="muted cal-none">Nothing' + (mine ? " for you" : "") + ".</p>";
     if (span) {
       // Week, 3 days or one day: a column per day with everything on it (a week stacks into a list on phones).
       h += '<div class="card cal-cols n' + span.length + '" style="--n:' + span.length + '">' + span.map(function (iso) {
         var its = by[iso] || [];
-        return '<section class="cal-col' + (iso === tdy ? " today" : "") + (its.some(function (it) { return it.k === "game"; }) ? " has-game" : "") + '"><button type="button" class="cal-col-head" data-act="cal-day" data-day="' + iso + '" data-to-day="1" aria-label="' + esc(fmtDate(iso)) + ', open this day">' +
+        return '<section class="cal-col' + (iso === tdy ? " today" : "") + (its.some(function (it) { return it.k === "game"; }) ? " has-game" : its.some(function (it) { return it.k === "night"; }) ? " has-night" : "") + '"><button type="button" class="cal-col-head" data-act="cal-day" data-day="' + iso + '" data-to-day="1" aria-label="' + esc(fmtDate(iso)) + ', open this day">' +
           '<span class="cal-col-wd">' + esc(md(iso, { weekday: "short" })) + '</span><span class="cal-num">' + +iso.slice(8) + "</span>" + (span.length > 1 && iso.slice(0, 7) !== span[0].slice(0, 7) || span.length === 1 ? '<span class="muted small">' + esc(md(iso, { month: "short" })) + "</span>" : "") + "</button>" +
           (its.length ? its.map(calRow).join("") : none) + "</section>";
       }).join("") + "</div>";
@@ -5717,7 +5722,7 @@ table.a-grid td:first-child { min-width: 170px; }
     for (var i = 0; i < weeks * 7; i++) {
       var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), iso = isoOf(d), its = by[iso] || [];
       var kinds = []; its.forEach(function (it) { if (kinds.indexOf(it.k) < 0) kinds.push(it.k); });
-      h += '<button type="button" class="cal-cell' + (d.getMonth() !== m ? " out" : "") + (iso === tdy ? " today" : "") + (iso === sel ? " sel" : "") + (its.some(function (it) { return it.k === "game"; }) ? " has-game" : "") +
+      h += '<button type="button" class="cal-cell' + (d.getMonth() !== m ? " out" : "") + (iso === tdy ? " today" : "") + (iso === sel ? " sel" : "") + (its.some(function (it) { return it.k === "game"; }) ? " has-game" : its.some(function (it) { return it.k === "night"; }) ? " has-night" : "") +
         '" data-act="cal-day" data-day="' + iso + '" aria-label="' + esc(fmtDate(iso)) + (its.length ? ", " + its.length + (its.length === 1 ? " item" : " items") : "") + '"' + (iso === sel ? ' aria-current="date"' : "") + '>' +
         '<span class="cal-num">' + d.getDate() + "</span>" +
         '<span class="cal-dots" aria-hidden="true">' + kinds.map(function (k) { return '<i class="k-' + k + '"></i>'; }).join("") + "</span>" +
