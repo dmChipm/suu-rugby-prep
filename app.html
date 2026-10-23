@@ -151,7 +151,7 @@ table.grid tr.is-done .tname { color: var(--muted); text-decoration: line-throug
 table.grid .tname { font-weight: 600; min-width: 180px; }
 table.grid .nowrap { white-space: nowrap; font-variant-numeric: tabular-nums; }
 table.grid .clip { max-width: 200px; overflow-wrap: anywhere; display: table-cell; }
-.props { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; padding: 2px 14px; background: var(--surface); }
+.props { display: flex; flex-direction: column; }
 .props > .prop, .props > .field, .props > .prop-due, .props > .prop-comp { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 4px 12px; padding: 10px 0; }
 .props > * + * { border-top: 1px solid var(--line); }
 .props .prop-due > .field, .props .prop-comp > .field { display: contents; }
@@ -3189,6 +3189,8 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "In the task pop-up, Status, Owner, Due and Completed no longer sit inside a box. They're plain rows with thin lines between them."],
+    ["2026-10-23", "In a task pop-up, team members no longer see an empty How to do it section when the task has no instructions or links. Admins still see it so they can add them."],
     ["2026-10-23", "On game and event sheets, each task shows its due date first, then its status. Tasks on Home now show their status too, right after the due date, and you can tap it to change the status."],
     ["2026-10-23", "The Blocked note is gentler: it asks \"What's holding it up?\" in calm colors, and Save turns on once something is typed."],
     ["2026-10-23", "Marking a task Blocked now asks why, and a reason is required (in the task pop-up and the quick status menu). The reason shows on the task, and admins can see every reason in the Status log (new Blocked reasons filter) and in each task's History. Blocked and On Hold moved below the status track, on the right."],
@@ -4731,7 +4733,8 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       // Below the basics: the work (subtasks, files), how to do it, notes, then history and the footer.
       '<section class="tk-sec"><h2>Work <span class="h2-count" id="tk-subcount"></span></h2>' + workBlock("tk", admin || isMine(t) || isSupporting(t)) +
       (needsConfirm(t) ? fld("Confirmation <span class=\"muted small\" style=\"font-weight:400\">" + (confirmDue(t, s) ? "follow up by " + esc(fmtShort(confirmDue(t, s))) + ". " : "") + "Confirmation number, who confirmed, or other proof</span>", "tk-confirm", t.confirmation || "", true, "text") : "") + "</section>" +
-      '<section class="tk-sec" id="tk-how"><h2>How to do it</h2>' + howSec() + "</section>" +
+      // Non-admins can't add instructions or links, so an empty box would only say "none yet".
+      (admin || howTo(s, t) || linkList(linksOf(s, t)).length ? '<section class="tk-sec" id="tk-how"><h2>How to do it</h2>' + howSec() + "</section>" : "") +
       '<section class="tk-sec"><h2>Notes</h2><ul class="notes" id="tk-notes-list"></ul>' +
       '<div class="note-add"><textarea id="tk-note-new" rows="2" placeholder="Add a note for everyone working on this task" aria-label="New note"></textarea><button type="button" class="btn" id="tk-note-add">Add</button></div></section>' +
       historyHtml() +
