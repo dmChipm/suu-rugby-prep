@@ -945,6 +945,11 @@ button.a-tile:hover, .a-grid tr[data-drill]:hover td { border-color: var(--red);
 .a-explain p { margin: 0 0 4px; }
 .a-drill { max-height: 55vh; overflow: auto; }
 table.grid.a-grid { min-width: 640px; }
+.th-info { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-weight: inherit; border-radius: 6px; padding: 2px 4px; margin: -2px -4px; }
+.th-info:hover, .th-info:focus-visible, .th-info[aria-expanded=true] { background: var(--red-soft); }
+.th-info .i { font-style: normal; display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--muted); color: var(--muted); font-size: .65rem; font-weight: 800; }
+#col-info { position: fixed; z-index: 60; max-width: min(300px, calc(100vw - 16px)); padding: 10px 12px; background: var(--surface); border: 2px solid var(--ink); border-radius: 12px; box-shadow: var(--shadow); font-size: .85rem; line-height: 1.45; animation: pop .16s ease-out; }
+#col-info b { display: block; margin-bottom: 2px; }
 table.a-grid td { font-variant-numeric: tabular-nums; }
 table.a-grid td:first-child { min-width: 170px; }
 #dl-q { width: 100%; }
@@ -3009,6 +3014,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Development usage table: tap any column heading (Person, Days used, Opens and the rest) to see what it counts and the exact date range it covers."],
     ["2026-10-23", "The People page opens sorted by level (Coaches, Team Members, Volunteers)."],
     ["2026-10-23", "People now have one level (Coach, Team Member or Volunteer) plus tags: Admin, President, Vice President, Secretary, Treasury, Presidency Member and Developer. The Admin tag gives admin access, Developer shows the Development tab, and President, Vice President and Presidency Member can manage projects. The People page shows each person's level and tags, filters by tag, and groups by level; tap a person to change their level or tags. Document access is set per level in People settings."],
     ["2026-10-23", "Templates no longer assign people: template tasks and subtasks have no Owner or Helpers, and new sheets start with every task unassigned so owners are picked on each sheet."],
@@ -3174,6 +3180,11 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       [7, 30, 90].map(function (n) { return '<button type="button" data-usage-days="' + n + '" aria-pressed="' + (d === n) + '">' + n + " days</button>"; }).join("") + "</div></div>" +
       '<div class="u-body muted small">' + (ONLINE ? "Loading usage…" : "Usage is recorded once the team uses the online app. Test mode doesn't record anything.") + "</div>";
   }
+  function wireColInfo(body, days) {
+    var today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Denver" }), start = addDays(today, -(days - 1)); if (start < USAGE_SINCE) start = USAGE_SINCE;
+    var cols = usageCols(start, today, Math.max(1, daysBetween(start, today) + 1));
+    body.querySelectorAll("[data-colinfo]").forEach(function (b) { b.addEventListener("click", function () { openColInfo(b, cols[Number(b.dataset.colinfo)][1]); }); });
+  }
   function loadUsage(box) {
     if (!box) return;
     box.querySelectorAll("[data-usage-days]").forEach(function (b) { b.addEventListener("click", function () { view.usageDays = Number(b.dataset.usageDays); box.innerHTML = usageShell(); loadUsage(box); }); });
@@ -3182,8 +3193,39 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     sb.rpc("app_usage", { p_days: days }).then(function (r) {
       if (r.error) throw r.error;
       body.classList.remove("muted", "small"); body.innerHTML = usageHtml(r.data || [], days);
+      wireColInfo(body, days);
     }).catch(function (e) { body.textContent = "Couldn't load usage just now" + (e && e.message ? " (" + e.message + ")" : "") + "."; });
   }
+  // What each usage table column counts, spelled out for the range being shown. Tap a header to read it.
+  function usageCols(start, today, span) {
+    var range = (span === 1 ? "today" : "the last " + span + " days") + " (" + fmtShort(start) + (start === today ? "" : " to " + fmtShort(today)) + ", Utah time" + (start === USAGE_SINCE ? "; recording started " + fmtShort(USAGE_SINCE) : "") + ")";
+    return [
+      ["Person", "Everyone who opened the app at least once in " + range + ", most opens first. The line under the name is their level."],
+      ["Days used", "How many separate days they opened the app in " + range + ", out of the " + span + (span === 1 ? " day" : " days") + " shown. Opening it five times on one day counts as one day."],
+      ["Opens", "How many times they opened the app in " + range + ". Opening it again within 30 minutes counts once, and signing in counts as an open."],
+      ["Opens a week", "Their opens turned into a weekly rate (opens × 7 ÷ " + span + "), using " + range + "." + (span < 7 ? " With fewer than 7 days recorded this is an estimate." : "")],
+      ["Sign-ins", "How many of their opens in " + range + " were a fresh sign-in with email, rather than reopening an app that was already signed in."],
+      ["Last opened", "The most recent time they opened the app, shown in Utah time."],
+      ["Usually on", "The kind of device they used for most of their opens in " + range + "."]
+    ];
+  }
+  function closeColInfo() {
+    var el = document.getElementById("col-info"); if (el) el.remove();
+    document.querySelectorAll(".th-info[aria-expanded=true]").forEach(function (b) { b.setAttribute("aria-expanded", "false"); });
+  }
+  function openColInfo(b, text) {
+    var was = b.getAttribute("aria-expanded") === "true"; closeColInfo(); if (was) return;
+    var el = document.createElement("div"); el.id = "col-info"; el.setAttribute("role", "tooltip");
+    el.innerHTML = "<b>" + esc(b.textContent.replace(/\s*i$/, "")) + "</b>" + esc(text);
+    document.body.appendChild(el); b.setAttribute("aria-expanded", "true");
+    var r = b.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+    var top = r.bottom + 8; if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 8);
+    el.style.top = top + "px"; el.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + "px";
+  }
+  document.addEventListener("pointerdown", function (e) { var el = document.getElementById("col-info"); if (el && !el.contains(e.target) && !e.target.closest(".th-info")) closeColInfo(); }, true);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeColInfo(); });
+  window.addEventListener("resize", closeColInfo);
+  document.addEventListener("scroll", function (e) { if (document.getElementById("col-info") && !(e.target.closest && e.target.closest("#col-info"))) closeColInfo(); }, true);
   function usageHtml(rows, days) {
     var dayOf = function (iso) { return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Denver" }); };
     var today = dayOf(new Date().toISOString()), start = addDays(today, -(days - 1)); if (start < USAGE_SINCE) start = USAGE_SINCE;
@@ -3208,7 +3250,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       '<line x1="0" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="var(--line)"/>' +
       [0, Math.floor((span - 1) / 2), span - 1].filter(function (v, i, a) { return a.indexOf(v) === i; }).map(function (i) { return '<text x="' + (i * bw + bw / 2).toFixed(1) + '" y="' + (H + 20) + '" text-anchor="middle">' + esc(fmtShort(series[i].d)) + "</text>"; }).join("") + "</svg></div>";
     var list = ids.sort(function (a, b) { return per[b].opens - per[a].opens || nameOf(a).localeCompare(nameOf(b)); });
-    h += '<div class="card tablewrap"><table class="grid a-grid"><thead><tr><th>Person</th><th>Days used</th><th>Opens</th><th>Opens a week</th><th>Sign-ins</th><th>Last opened</th><th>Usually on</th></tr></thead><tbody>' +
+    h += '<div class="card tablewrap"><table class="grid a-grid"><thead><tr>' + usageCols(start, today, span).map(function (c, i) { return '<th><button type="button" class="th-info" data-colinfo="' + i + '" aria-expanded="false">' + esc(c[0]) + ' <i class="i" aria-hidden="true">i</i></button></th>'; }).join("") + '</tr></thead><tbody>' +
       (list.length ? list.map(function (id) {
         var p = per[id], dev = Object.keys(p.dev).sort(function (a, b) { return p.dev[b] - p.dev[a]; })[0];
         return "<tr><td><b>" + esc(nameOf(id)) + '</b><div class="muted small">' + esc(roleOf(id)) + "</div></td><td>" + Object.keys(p.days).length + " of " + span + "</td><td>" + p.opens + "</td><td>" + (p.opens * 7 / span).toFixed(1) + "</td><td>" + p.signins + '</td><td class="nowrap">' + esc(fmtStamp(p.last)) + "</td><td>" + esc(dev) + "</td></tr>";
