@@ -2154,22 +2154,22 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     if (imp(t) === "crucial" && isLate(t)) c += " crit-late heat-" + Math.min(5, daysBetween(t.due, todayIso()));
     return c;
   }
-  // Critical and Optional checkboxes (ids prefix-crit and prefix-opt). Ticking one clears the other; neither means Normal.
+  // Priority dropdown (id prefix-prio): Normal, Critical or Optional.
   function prioField(prefix, t, editable, optNote) {
     if (!editable) return imp(t) ? '<div class="muted small">Critical task</div>' : t.optional ? '<div class="muted small">Optional task</div>' : "";
-    return '<div class="field prio"><span>Priority <span class="muted small" style="font-weight:400">leave both unticked for a normal task</span></span><div class="prio-opts">' +
-      '<label class="chk"><input type="checkbox" id="' + prefix + '-crit" data-prio="' + prefix + '-opt"' + (imp(t) ? " checked" : "") + '> <span><b class="imp-mark">!!!</b> Critical</span></label>' +
-      '<label class="chk"><input type="checkbox" id="' + prefix + '-opt" data-prio="' + prefix + '-crit"' + (t.optional ? " checked" : "") + "> <span>Optional <span class=\"muted small\">" + esc(optNote || "doesn't count toward progress") + "</span></span></label></div></div>";
+    var v = imp(t) ? "critical" : t.optional ? "optional" : "";
+    return '<label class="field prio">Priority<select id="' + prefix + '-prio">' + [["", "Normal"], ["critical", "!!! Critical"], ["optional", "Optional"]].map(function (x) {
+      return '<option value="' + x[0] + '"' + (x[0] === v ? " selected" : "") + ">" + x[1] + "</option>"; }).join("") + '</select><span class="muted small prio-note" style="font-weight:400"' + (v === "optional" ? "" : " hidden") + ">Optional " + esc(optNote || "doesn't count toward progress") + "</span></label>";
   }
   function prioRead(el, prefix, t) {
-    var c = el.querySelector("#" + prefix + "-crit"), o = el.querySelector("#" + prefix + "-opt"); if (!c || !o) return;
-    t.importance = c.checked ? "crucial" : ""; t.optional = o.checked && !c.checked;
+    var sel = el.querySelector("#" + prefix + "-prio"); if (!sel) return;
+    t.importance = sel.value === "critical" ? "crucial" : ""; t.optional = sel.value === "optional";
   }
-  // Only one of Critical and Optional can be ticked (runs on click, before the change event that autosaves).
-  document.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest("input[data-prio]"); if (!b || !b.checked) return;
-    var other = document.getElementById(b.dataset.prio); if (other) other.checked = false;
-  });
+  // The note under Priority explains Optional only while Optional is picked.
+  document.addEventListener("change", function (e) {
+    if (!e.target.matches || !e.target.matches(".prio select")) return;
+    var n = e.target.parentNode.querySelector(".prio-note"); if (n) n.hidden = e.target.value !== "optional";
+  }, true);
   function flagLevel(t) { var f = flagsOf(t); return f.some(function (x) { return x.lv === "bad"; }) ? "bad" : f.length ? "warn" : ""; }
   // "No owner" is shown once, as its own tag (noOwnerTag), so it isn't repeated here as a flag.
   function flagChips(t) { return flagsOf(t).filter(function (x) { return x.k !== "blocked" && x.k !== "owner"; }).map(function (x) { return '<span class="flag ' + x.lv + '">⚑ ' + esc(x.tx) + "</span>"; }).join(""); }
@@ -2969,6 +2969,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Priority on a task is now a dropdown: Normal, Critical or Optional."],
     ["2026-10-23", "Dragging to reorder is easier to follow: the item you grab moves with your finger and the others slide out of the way as you go."],
     ["2026-10-23", "Template tasks and their subtasks are reordered by dragging: grab the dotted handle on the left and drop the item where you want it. The up and down arrows are gone."],
     ["2026-10-23", "On a template task, the follow-up setting now sits right under Owner and Due Date, with the days-before box just below its checkbox."],
@@ -4357,7 +4358,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
           if (!text) { msg.hidden = false; msg.textContent = "Give the task a name first."; txt.focus(); return; }
           s.tasks.push({ id: uid(), text: text, supporters: sup.slice(), owner: el.querySelector("#nt-owner").value.trim(), details: el.querySelector("#nt-details").value.trim(),
             links: el.querySelector("#nt-links").value.trim(), notes: "", due: due.value, status: "Not Started", done: false, completed: "",
-            importance: el.querySelector("#nt-crit").checked ? "crucial" : "", optional: el.querySelector("#nt-opt").checked && !el.querySelector("#nt-crit").checked });
+            importance: el.querySelector("#nt-prio").value === "critical" ? "crucial" : "", optional: el.querySelector("#nt-prio").value === "optional" });
           save(); closeModal(); render(); toast("Task added");
         });
       });
