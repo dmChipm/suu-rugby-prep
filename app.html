@@ -955,6 +955,20 @@ table.a-grid td:first-child { min-width: 170px; }
 .ul-ver { display: inline-block; font-size: .75rem; font-weight: 800; color: var(--red); background: var(--red-soft); border-radius: 999px; padding: 1px 8px; margin-right: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dev-links { display: flex; flex-direction: column; gap: 8px; }
 .dev-as { align-self: flex-start; }
+.people-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.people-bar > .muted { margin-left: auto; }
+.tag-filter { display: flex; flex-wrap: wrap; gap: 6px; }
+.person-tags { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; margin-top: 3px; }
+.person-tags .lvl { font-size: .85rem; color: var(--muted); font-weight: 600; margin-right: 2px; }
+.person-tags .tag { font-size: .74rem; padding: 1px 8px; }
+.tag.tag-admin { background: var(--red-soft); color: var(--red); border-color: transparent; }
+.person-row .chev { align-self: center; color: var(--muted); }
+.lvl-seg { align-self: flex-start; }
+.lvl-seg button { padding: 7px 14px; }
+.tag-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-pick { border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .88rem; font-weight: 600; cursor: pointer; }
+.tag-pick[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tag-pick.admin[aria-pressed="true"] { background: var(--red); border-color: var(--red); color: #fff; }
 .fu-field { gap: 6px; }
 .fu-field .fu-days { padding-left: 26px; }
 #dev-view-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 900; display: flex; align-items: center; gap: 10px;
@@ -1148,11 +1162,28 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   ];
 
   var STATUSES = ["Not Started", "In Progress", "Blocked", "On Hold", "Complete"];
-  var ROLES = ["Developer", "Coach", "President", "Treasurer", "Presidency Member", "Team Member", "Volunteer"];
+  // Everyone has one level (ROLES) plus any number of tags. The Admin tag gives admin access; Developer shows the Development tab;
+  // President, Vice President and Presidency Member can manage projects. The rest describe someone's position on the team.
+  var ROLES = ["Coach", "Team Member", "Volunteer"];
+  var TAGS = ["Admin", "President", "Vice President", "Secretary", "Treasury", "Presidency Member", "Developer"];
+  var PROJECT_TAGS = ["President", "Vice President", "Presidency Member"];
+  // Before levels and tags, each person had one role. What each old role becomes (people saved before tags existed).
+  var OLD_ROLES = { "Coach": ["Coach", ["Admin"]], "Developer": ["Volunteer", ["Developer", "Admin"]], "President": ["Team Member", ["President", "Admin"]],
+    "Treasurer": ["Team Member", ["Treasury"]], "Presidency Member": ["Team Member", ["Presidency Member"]] };
+  function hasTag(p, t) { return !!p && (p.tags || []).indexOf(t) >= 0; }
+  function sortTags(ts) { return TAGS.filter(function (t) { return ts.indexOf(t) >= 0; }); }
+  function normPerson(p) {
+    if (!Array.isArray(p.tags)) { var m = OLD_ROLES[p.role]; p.tags = m ? m[1].slice() : []; if (m) p.role = m[0]; }
+    if (ROLES.indexOf(p.role) < 0) p.role = "Team Member";
+    p.tags = sortTags(p.tags);
+    return p;
+  }
+  // "Team Member · President, Admin"
+  function roleLine(p) { return p ? p.role + (p.tags && p.tags.length ? " · " + p.tags.join(", ") : "") : ""; }
+  function tagChips(p) { return (p.tags || []).map(function (t) { return '<span class="tag' + (t === "Admin" ? " tag-admin" : "") + '">' + esc(t) + "</span>"; }).join(""); }
   var TIERS = [[1, "Admins only"], [2, "Developers and up"], [3, "Players and up"], [4, "Everyone, including volunteers"]];
   var TIER_NAMES = { 1: "Admin", 2: "Developers", 3: "Players", 4: "Volunteers" };
-  var DEFAULT_TIER = { "Developer": 2, "Coach": 1, "President": 1, "Treasurer": 3, "Presidency Member": 3, "Team Member": 3, "Volunteer": 4 };
-  var DEFAULT_ACCESS = { "Developer": true, "Coach": true, "President": true, "Treasurer": false, "Presidency Member": false, "Team Member": false, "Volunteer": false };
+  var DEFAULT_TIER = { "Coach": 1, "Team Member": 3, "Volunteer": 4 };
   var APP_LINK = window.RUGBY_APP_LINK || "https://claude.ai/artifact/2fzXFw8W59mxjif1EvQibH";
   // Starting due dates, in days before game day (0 = game day). Admins can change any of these per master list.
   var DEFAULT_DUE = {
@@ -1924,16 +1955,17 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
           { id: uid(), text: "Post on team social media", owner: "", due: addDays(t0, 14), status: "Not Started", completed: "", notes: "" }
         ] }];
     }
-    if (!s.roleAccess) s.roleAccess = {};
-    ROLES.forEach(function (r) { if (!(r in s.roleAccess)) s.roleAccess[r] = DEFAULT_ACCESS[r]; });
     if (!s.docTier) s.docTier = {};
     ROLES.forEach(function (r) { if (!s.docTier[r]) s.docTier[r] = DEFAULT_TIER[r]; });
+    Object.keys(s.docTier).forEach(function (r) { if (ROLES.indexOf(r) < 0) delete s.docTier[r]; });
+    delete s.roleAccess;
     s.documents.forEach(function (d) { if (!d.tier) d.tier = 3; });
     if (!s.people || !s.people.length) {
-      s.people = [{ id: uid(), name: s.name || "Davis", email: "", phone: "", role: "Developer", status: "Active", invited: todayIso() }];
+      s.people = [{ id: uid(), name: s.name || "Davis", email: "", phone: "", role: "Volunteer", tags: ["Admin", "Developer"], status: "Active", invited: todayIso() }];
       s.currentUserId = s.people[0].id;
     }
     s.people.forEach(function (p) { if (p.status === "Active") p.joined = true; });
+    s.people.forEach(normPerson);
     if (!byId(s.people, s.currentUserId)) s.currentUserId = s.people[0].id;
     if (!Array.isArray(s.convos)) {
       var me0 = s.currentUserId || (s.people && s.people[0] && s.people[0].id), cid = uid(), now = Date.now();
@@ -1966,7 +1998,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
        ["Sam Okafor (example)", "Presidency Member"], ["Ava Nguyen (example)", "Team Member"], ["Tom Harris (example)", "Volunteer"]].forEach(function (x) {
         if (names[x[0].toLowerCase()]) return;
         var slug = x[0].split(" ")[x[0].indexOf("Coach") === 0 ? 2 : 0].toLowerCase();
-        s.people.push({ id: uid(), name: x[0], email: slug + "@example.com", phone: "", role: x[1], status: "Active", joined: true, invited: today0, example: true });
+        s.people.push(normPerson({ id: uid(), name: x[0], email: slug + "@example.com", phone: "", role: x[1], status: "Active", joined: true, invited: today0, example: true }));
       });
       var ex = (s.projects || []).filter(function (pj) { return pj.example; })[0];
       if (ex && ex.tasks.length >= 4 && !ex.tasks.some(function (t) { return t.owner; })) {
@@ -2081,14 +2113,19 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     n.querySelector("button").onclick = function () { n.hidden = true; n.setAttribute("role", "status"); };
     clearTimeout(noteTimer); noteTimer = setTimeout(function () { n.hidden = true; n.setAttribute("role", "status"); }, 8000);
   }
-  function isDev() { return currentUser().role === "Developer"; }
+  function isDev() { return hasTag(currentUser(), "Developer"); }
   function currentUser() { return byId(S.people, S.currentUserId) || S.people[0]; }
   // Developers can preview the app as an admin or as a regular team member (Development tab). It only changes what this screen shows;
   // the database still checks the real role, so a change made while previewing as an admin is refused if the role isn't really an admin.
   function devAs() { if (!isDev()) return ""; try { return sessionStorage.getItem("rugby-dev-as") || ""; } catch (e) { return ""; } }
   function setDevAs(v) { try { if (v) sessionStorage.setItem("rugby-dev-as", v); else sessionStorage.removeItem("rugby-dev-as"); } catch (e) {} }
-  function isAdmin() { var as = devAs(); return as === "member" ? false : as === "admin" ? true : !!S.roleAccess[currentUser().role]; }
-  function myTier() { return isAdmin() ? 1 : devAs() === "member" ? ((S.docTier || {})["Team Member"] || 3) : ((S.docTier || {})[currentUser().role] || 4); }
+  function isAdmin() { var as = devAs(); return as === "member" ? false : as === "admin" ? true : hasTag(currentUser(), "Admin"); }
+  // Documents: admins see every tier; developers see tier 2 and up; everyone else gets their level's tier.
+  function myTier() {
+    if (isAdmin()) return 1;
+    if (devAs() === "member") return (S.docTier || {})["Team Member"] || 3;
+    var t = (S.docTier || {})[currentUser().role] || 4; return isDev() ? Math.min(t, 2) : t;
+  }
   function canSeeDoc(d) { return myTier() <= (d.tier || 3); }
 
   // ---------- helpers ----------
@@ -2288,17 +2325,17 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   function localLayout() { try { return localStorage.getItem(KEY + "-layout") || "list"; } catch (e) { return "list"; } }
   function emptyState() {
-    return { layout: localLayout(), roleAccess: {}, docTier: {}, masters: [], sheets: [], documents: [], projects: [], convos: [], msgs: [], reads: {}, events: [], currentUserId: "_",
-      people: [{ id: "_", name: "", email: "", phone: "", role: "Team Member", status: "Active" }] };
+    return { layout: localLayout(), docTier: {}, masters: [], sheets: [], documents: [], projects: [], convos: [], msgs: [], reads: {}, events: [], currentUserId: "_",
+      people: [{ id: "_", name: "", email: "", phone: "", role: "Team Member", tags: [], status: "Active" }] };
   }
   function nul(v) { return v ? v : null; }
 
   function toRows(st) {
     var r = {}; TABLES.forEach(function (t) { r[t] = {}; });
-    Object.keys(st.roleAccess).forEach(function (k) { r.role_access[k] = { role: k, admin: !!st.roleAccess[k], doc_tier: (st.docTier || {})[k] || DEFAULT_TIER[k] || 3 }; });
+    ROLES.forEach(function (k) { r.role_access[k] = { role: k, admin: false, doc_tier: (st.docTier || {})[k] || DEFAULT_TIER[k] || 3 }; });
     st.people.forEach(function (p) {
       if (p.id === "_") return;
-      r.people[p.id] = { id: p.id, name: p.name, email: nul(p.email), phone: nul(p.phone), role: p.role, status: p.status, invited: p.invited || todayIso() };
+      r.people[p.id] = { id: p.id, name: p.name, email: nul(p.email), phone: nul(p.phone), role: p.role, tags: p.tags || [], status: p.status, invited: p.invited || todayIso() };
     });
     st.masters.forEach(function (m, mi) {
       r.masters[m.id] = { id: m.id, name: m.name, game_info: !!m.gameInfo, position: mi, rules: m.rules ? cleanRules(m.rules) : null };
@@ -2352,9 +2389,9 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   function snapshot(rows) { var o = {}; TABLES.forEach(function (t) { o[t] = {}; Object.keys(rows[t]).forEach(function (id) { o[t][id] = JSON.stringify(rows[t][id]); }); }); return o; }
 
   function fromRows(d) {
-    var st = { layout: localLayout(), roleAccess: {}, docTier: {}, masters: [], sheets: [], people: [] };
-    d.role_access.forEach(function (r) { st.roleAccess[r.role] = !!r.admin; st.docTier[r.role] = Number(r.doc_tier) || DEFAULT_TIER[r.role] || 3; });
-    st.people = d.people.map(function (p) { return { id: p.id, name: p.name, email: p.email || "", phone: p.phone || "", role: p.role, status: p.status, invited: p.invited, joined: !!p.user_id }; })
+    var st = { layout: localLayout(), docTier: {}, masters: [], sheets: [], people: [] };
+    d.role_access.forEach(function (r) { if (ROLES.indexOf(r.role) >= 0) st.docTier[r.role] = Number(r.doc_tier) || DEFAULT_TIER[r.role] || 3; });
+    st.people = d.people.map(function (p) { return { id: p.id, name: p.name, email: p.email || "", phone: p.phone || "", role: p.role, tags: Array.isArray(p.tags) ? p.tags : [], status: p.status, invited: p.invited, joined: !!p.user_id }; })
       .sort(function (a, b) { return a.name.localeCompare(b.name); });
     function byPos(a, b) { return a.position - b.position; }
     var mt = {}; d.master_tasks.slice().sort(byPos).forEach(function (t) {
@@ -2588,7 +2625,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
   function accountModal() {
     var me = currentUser();
-    openModal("<h1>" + esc(me.name) + '</h1><div class="muted">' + esc(me.role) + (isAdmin() ? " · Admin access" : "") + "</div><div>" + esc(auth.email) + "</div>" +
+    openModal("<h1>" + esc(me.name) + '</h1><div class="muted">' + esc(roleLine(me)) + "</div><div>" + esc(auth.email) + "</div>" +
       '<form id="acct-pw" class="auth-email" hidden style="border-top:1px dashed var(--line);padding-top:12px"><strong>Create your password</strong><span class="muted small">Then you can sign in with your email and password on any device.</span>' +
       '<label class="field">New password<input type="password" id="acct-pw1" minlength="8" required autocomplete="new-password"></label><label class="field">Type it again<input type="password" id="acct-pw2" minlength="8" required autocomplete="new-password"></label>' +
       '<div id="acct-pw-msg" class="small" hidden></div><button class="btn">Save password</button></form>' +
@@ -2833,7 +2870,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     else if (view.tab === "dev") {
       // Only people with the Developer role see this tab: tools for testing the app.
       var me = currentUser(), cnt = function (a) { return (a || []).length; };
-      var info = [["Version", appVersion() + (ONLINE && CFG.build ? " (build " + CFG.build + ")" : "")], ["Mode", ONLINE ? "Online (shared database)" : "Test mode (this device only)"], ["Signed in as", me.name + " · " + me.role], ["App link", APP_LINK],
+      var info = [["Version", appVersion() + (ONLINE && CFG.build ? " (build " + CFG.build + ")" : "")], ["Mode", ONLINE ? "Online (shared database)" : "Test mode (this device only)"], ["Signed in as", me.name + " · " + roleLine(me)], ["App link", APP_LINK],
         ["People", cnt(S.people)], ["Game sheets", cnt(S.sheets) + " (+" + cnt(S.archivedSheets) + " archived)"], ["Templates", cnt(S.masters)], ["Projects", cnt(S.projects) + " (+" + cnt(S.archivedProjects) + " archived)"],
         ["Documents", cnt(S.documents)], ["Conversations", cnt(S.convos)]];
       var as = devAs();
@@ -2972,6 +3009,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "People now have one level (Coach, Team Member or Volunteer) plus tags: Admin, President, Vice President, Secretary, Treasury, Presidency Member and Developer. The Admin tag gives admin access, Developer shows the Development tab, and President, Vice President and Presidency Member can manage projects. The People page shows each person's level and tags, filters by tag, and groups by level; tap a person to change their level or tags. Document access is set per level in People settings."],
     ["2026-10-23", "Templates no longer assign people: template tasks and subtasks have no Owner or Helpers, and new sheets start with every task unassigned so owners are picked on each sheet."],
     ["2026-10-23", "Subtasks can have their own due date: pick one when you add the subtask, or tap the subtask to set or change it. Overdue subtasks show their date in red, and subtasks with dates appear on the Calendar."],
     ["2026-10-23", "Priority on a task is now a dropdown: Normal, Critical or Optional."],
@@ -3740,6 +3778,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     return '<div class="menu-wrap"><button class="kebab' + (hamburger ? " hamb" : "") + '" id="' + id + '" aria-label="' + (hamburger ? "Menu" : "More options") + '" aria-haspopup="true" aria-expanded="false" data-menu="' + id + '"><span></span><span></span><span></span></button>' +
       '<div class="menu" role="menu" id="' + id + '-items" hidden>' + items.map(function (it) { return '<button role="menuitem" data-act="' + it[0] + '">' + esc(it[1]) + "</button>"; }).join("") + "</div></div>";
   }
+  app.addEventListener("click", function (e) { var c = e.target.closest("[data-ptag]"); if (!c) return; view.ptag = c.dataset.ptag; render(); });
   app.addEventListener("click", function (e) {
     var c = e.target.closest("[data-vfil]"); if (!c) return;
     view.mine = c.dataset.vfil === "mine"; view.flagged = c.dataset.vfil === "flagged"; render();
@@ -3990,7 +4029,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     }
     function show(all) {
       var q = all ? "" : input.value.trim().replace(/^@/, "").toLowerCase();
-      items = source().filter(function (p) { return !q || p.name.toLowerCase().indexOf(q) >= 0 || p.role.toLowerCase().indexOf(q) >= 0; })
+      items = source().filter(function (p) { return !q || p.name.toLowerCase().indexOf(q) >= 0 || p.role.toLowerCase().indexOf(q) >= 0 || (p.tags || []).some(function (t) { return t.toLowerCase().indexOf(q) === 0; }); })
         .sort(function (a, b) { var sa = a.name.toLowerCase().indexOf(q) === 0 ? 0 : 1, sb = b.name.toLowerCase().indexOf(q) === 0 ? 0 : 1; return sa - sb || a.name.localeCompare(b.name); });
       active = items.length ? 0 : -1;
       list.innerHTML = items.length ? items.map(function (p, i) {
@@ -4649,27 +4688,31 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     var h = '<div class="row spread"><h1>People</h1><div class="row">' + (admin ? '<button class="btn" data-act="invite">+ Invite</button>' : "") + kebab("people-menu", (admin && ONLINE ? [["send-notice", "Send notification"]] : []).concat([["people-settings", "Settings"]])) + "</div></div>";
     if (!ONLINE) h += '<div class="note">Test mode: real sign-ins come later. Tap your name at the top to see the app as any person on this list.</div>';
     var ps = peopleSort(), byRole = ps === "role", act = S.people.filter(function (p) { return p.status !== "Inactive"; });
-    h += '<div class="row spread"><span class="muted small">' + act.length + (act.length === 1 ? " person" : " people") + '</span><div class="seg" role="group" aria-label="Sort people"><button data-act="psort-az" aria-pressed="' + (ps === "az") + '">A to Z</button><button data-act="psort-za" aria-pressed="' + (ps === "za") + '">Z to A</button><button data-act="psort-role" aria-pressed="' + byRole + '">By position</button></div></div>';
+    // Tag filter: chips for each tag someone has, plus Everyone.
+    var tf = view.ptag && act.some(function (p) { return hasTag(p, view.ptag); }) ? view.ptag : "";
+    var used = TAGS.filter(function (t) { return act.some(function (p) { return hasTag(p, t); }); });
+    var shown = tf ? act.filter(function (p) { return hasTag(p, tf); }) : act;
+    h += '<div class="people-bar"><div class="seg" role="group" aria-label="Sort people"><button data-act="psort-az" aria-pressed="' + (ps === "az") + '">A to Z</button><button data-act="psort-za" aria-pressed="' + (ps === "za") + '">Z to A</button><button data-act="psort-role" aria-pressed="' + byRole + '">By level</button></div>' +
+      (used.length ? '<div class="view-chips tag-filter" role="group" aria-label="Show people with a tag">' + [["", "Everyone"]].concat(used.map(function (t) { return [t, t]; })).map(function (x) {
+        return '<button type="button" class="sf-chip' + (tf === x[0] ? " on" : "") + '" data-ptag="' + esc(x[0]) + '" aria-pressed="' + (tf === x[0]) + '">' + esc(x[1]) + "</button>"; }).join("") + "</div>" : "") +
+      '<span class="muted small">' + shown.length + (shown.length === 1 ? " person" : " people") + "</span></div>";
     function personItem(p) {
-      var contact = [p.email, p.phone].filter(Boolean).join(" · ");
-      var inner = '<div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + '</div><div class="grow"><div class="title">' + esc(p.name) +
-        (p.id === S.currentUserId ? ' <span class="muted small">(you)</span>' : "") + '</div><div class="muted small">' + (byRole ? esc(contact || "No contact info") : esc(p.role) + (S.roleAccess[p.role] ? " · Admin access" : "")) + "</div></div>" +
-        '<span class="pill ' + (p.status === "Active" ? "st-done" : "st-ip") + '">' + esc(p.status) + "</span>";
-      return '<button class="item" data-open-person="' + p.id + '">' + inner + "</button>";
+      var sub = byRole ? "" : '<span class="lvl">' + esc(p.role) + "</span>";
+      return '<button class="item person-row" data-open-person="' + p.id + '"><div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + '</div><div class="grow"><div class="title">' + esc(p.name) +
+        (p.id === S.currentUserId ? ' <span class="muted small">(you)</span>' : "") + '</div><div class="person-tags">' + sub + tagChips(p) + "</div></div>" +
+        (p.status !== "Active" ? '<span class="pill st-ip">' + esc(p.status) + "</span>" : "") + '<span class="chev" aria-hidden="true">›</span></button>';
     }
-    if (!byRole) h += act.length ? '<div class="list">' + act.slice().sort(function (a, b) { return ps === "za" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name); }).map(personItem).join("") + "</div>" : '<div class="card empty">No one yet.</div>';
+    if (!byRole) h += shown.length ? '<div class="list">' + shown.slice().sort(function (a, b) { return ps === "za" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name); }).map(personItem).join("") + "</div>" : '<div class="card empty">No one yet.</div>';
     else ROLES.forEach(function (r) {
-      var list = S.people.filter(function (p) { return p.role === r && p.status !== "Inactive"; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
-      h += '<div class="row spread"><h2>' + esc(r) + ' <span style="font-variant-numeric:tabular-nums">(' + list.length + ")</span></h2>" +
-        '<span class="pill ' + (S.roleAccess[r] ? "st-done" : "st-ns") + '">' + (S.roleAccess[r] ? "Admin access" : "Updates tasks") + "</span></div>";
-      if (!list.length) { h += '<div class="muted small">No one yet.</div>'; return; }
-      h += '<div class="list">' + list.map(personItem).join("") + "</div>";
+      var list = shown.filter(function (p) { return p.role === r; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+      h += '<h2>' + esc(r === "Team Member" ? "Team Members" : r + "es".slice(r === "Coach" ? 0 : 1)) + ' <span class="muted" style="font-variant-numeric:tabular-nums;font-weight:400">' + list.length + "</span></h2>";
+      h += list.length ? '<div class="list">' + list.map(personItem).join("") + "</div>" : '<div class="muted small">No one yet.</div>';
     });
     var off = S.people.filter(function (p) { return p.status === "Inactive"; });
     if (off.length) {
       h += '<div class="row spread"><h2>Deactivated <span style="font-variant-numeric:tabular-nums">(' + off.length + ')</span></h2></div><div class="list">' + off.map(function (p) {
         return '<button class="item inactive" data-open-person="' + p.id + '"><div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + '</div><div class="grow"><div class="title">' + esc(p.name) +
-          '</div><div class="muted small">' + esc(p.role) + '</div></div><span class="pill st-ns">Deactivated</span></button>';
+          '</div><div class="muted small">' + esc(roleLine(p)) + '</div></div><span class="pill st-ns">Deactivated</span></button>';
       }).join("") + "</div>";
       h += tip("About deactivated people", "They can't sign in and don't appear when choosing owners or helpers. Tasks already assigned to them keep their name.");
     }
@@ -4677,20 +4720,18 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
   function roleSettingsHtml() {
     var admin = isAdmin();
-    var h = '<h2>Roles with admin access</h2><div class="card"><ul class="tasks">' + ROLES.map(function (r) {
-      return '<li style="align-items:center"><span class="txt">' + esc(r) + '</span><label class="chk small"><input type="checkbox" id="ra-' + r.replace(/\W/g, "") + '" data-role-access="' + esc(r) + '" ' +
-        (S.roleAccess[r] ? "checked " : "") + (admin ? "" : "disabled ") + "> Admin access</label></li>";
-    }).join("") + "</ul></div>";
-    h += '<h2>Document access by role</h2><div class="card"><ul class="tasks">' + ROLES.map(function (r) {
-      var adm = S.roleAccess[r], t = adm ? 1 : (S.docTier[r] || 3);
-      return '<li class="tier-row"><label class="txt" for="dt-' + r.replace(/\W/g, "") + '">' + esc(r) + '</label><select id="dt-' + r.replace(/\W/g, "") + '" data-doc-tier="' + esc(r) + '" ' + (admin && !adm ? "" : "disabled ") + ">" +
+    var h = '<h2>Document access by level</h2><div class="card"><ul class="tasks">' + ROLES.map(function (r) {
+      var t = S.docTier[r] || DEFAULT_TIER[r] || 3;
+      return '<li class="tier-row"><label class="txt" for="dt-' + r.replace(/\W/g, "") + '">' + esc(r) + '</label><select id="dt-' + r.replace(/\W/g, "") + '" data-doc-tier="' + esc(r) + '" ' + (admin ? "" : "disabled ") + ">" +
         [1, 2, 3, 4].map(function (n) { return '<option value="' + n + '"' + (t === n ? " selected" : "") + ">" + n + ". " + TIER_NAMES[n] + "</option>"; }).join("") + "</select></li>";
     }).join("") + "</ul></div>";
-    h += tip("How access works", "<p>Admin access lets someone edit templates, game sheets and people. Everyone else can view sheets and update task status and notes.</p><p>A role sees documents set to its tier and every tier below it. Roles with admin access always see every document.</p>");
+    h += tip("How levels and tags work", "<p>Everyone has one level: Coach, Team Member or Volunteer. Tags add to that.</p><p><b>Admin</b> can edit templates, game sheets, the calendar and people, and sees every document. " +
+      "<b>President</b>, <b>Vice President</b> and <b>Presidency Member</b> can manage projects. <b>Developer</b> shows the Development tab and tier 2 documents. <b>Secretary</b> and <b>Treasury</b> show someone's position.</p>" +
+      "<p>Each level sees documents set to its tier and every tier below it.</p>");
     if (!admin) h = '<p class="muted small" style="margin:0">Only admins can change these.</p>' + h;
     return h;
   }
-  // People ⋮ Settings: who has admin access and which documents each role sees.
+  // People ⋮ Settings: which documents each level sees, and what the tags mean.
   function peopleSettingsModal() {
     openModal('<h1>People settings</h1><div id="role-settings" class="settings-body">' + roleSettingsHtml() + '</div>' +
       '<p class="muted small" style="margin:0">Notifications, sounds and analytics are in your profile at the top right.</p>' +
@@ -4729,32 +4770,31 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     if (t.dataset.docTier && isAdmin()) {
       S.docTier[t.dataset.docTier] = Number(t.value) || 3; save(); toast(t.dataset.docTier + " now sees tier " + t.value + " documents and below"); return true;
     }
-    if (t.dataset.roleAccess && isAdmin()) {
-      var acc = JSON.parse(JSON.stringify(S.roleAccess)); acc[t.dataset.roleAccess] = t.checked;
-      if (!adminCount(S.people, acc)) { t.checked = true; toast("At least one person needs admin access"); return false; }
-      if (!acc[currentUser().role]) { t.checked = true; toast("Switch to another admin before removing your own admin access"); return false; }
-      S.roleAccess = acc; save(); render(); toast(t.dataset.roleAccess + (t.checked ? " now has admin access" : " no longer has admin access")); return true;
-    }
     return false;
   }
   function initials(n) { return String(n || "?").split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0].toUpperCase(); }).join(""); }
-  function adminCount(people, access) { return people.filter(function (p) { return access[p.role] && p.status !== "Inactive"; }).length; }
+  function adminCount(people) { return people.filter(function (p) { return hasTag(p, "Admin") && p.status !== "Inactive"; }).length; }
   function awaitingJoin(p) { return p.status === "Invited" && !p.joined && !!(p.email || p.phone); }
   function resendInvite(p) { p.invited = todayIso(); save(); render(); inviteModal(p, true); }
   function inviteLink(p) { return APP_LINK + (p.email && !/claude\.ai/.test(APP_LINK) ? (APP_LINK.indexOf("?") < 0 ? "?" : "&") + "email=" + encodeURIComponent(p.email) : ""); }
   function inviteText(p) {
     var how = p.email ? " Sign in with your email (" + p.email + ") and tap \"First time? Create a password\"." : "";
-    return "Hi " + p.name.split(" ")[0] + ", you've been added to the SUU Women's Rugby game prep app as " + p.role + ". Open it here: " + inviteLink(p) + how;
+    return "Hi " + p.name.split(" ")[0] + ", you've been added to the SUU Women's Rugby game prep app as " + (p.role === "Team Member" ? "a team member" : p.role === "Coach" ? "a coach" : "a volunteer") + ". Open it here: " + inviteLink(p) + how;
   }
 
   function personModal(p) {
     var isNew = !p, admin = isAdmin();
-    p = p || { name: "", email: "", phone: "", role: "Team Member" };
-    var roleSel = '<label class="field">Role<select id="pm-role">' + ROLES.map(function (r) { return "<option" + (r === p.role ? " selected" : "") + ">" + esc(r) + "</option>"; }).join("") + "</select></label>";
+    p = p || { name: "", email: "", phone: "", role: "Team Member", tags: [] };
+    var tags = (p.tags || []).slice();
+    var roleSel = '<div class="field"><span>Level</span><div class="seg lvl-seg" role="radiogroup" aria-label="Level">' + ROLES.map(function (r) {
+      return '<button type="button" role="radio" data-lvl="' + esc(r) + '" aria-checked="' + (r === p.role) + '" aria-pressed="' + (r === p.role) + '">' + esc(r) + "</button>"; }).join("") + '</div><input type="hidden" id="pm-role" value="' + esc(p.role) + '"></div>' +
+      '<div class="field"><span>Tags <span class="muted small" style="font-weight:400">tap to add or remove</span></span><div class="tag-picks">' + TAGS.map(function (t) {
+        return '<button type="button" class="tag-pick' + (t === "Admin" ? " admin" : "") + '" data-tagpick="' + esc(t) + '" aria-pressed="' + (tags.indexOf(t) >= 0) + '">' + esc(t) + "</button>"; }).join("") + "</div>" +
+      '<span class="muted small" style="font-weight:400">Admin can edit templates, sheets, the calendar and people.</span></div>';
     openModal("<h1>" + (isNew ? "Invite person" : esc(p.name)) + '</h1><form style="display:flex;flex-direction:column;gap:12px">' +
       fld("Name", "pm-name", p.name, admin, "text", ' placeholder="First and last name"') +
       '<div class="grid2">' + fld("Email", "pm-email", p.email, admin, "email", ' placeholder="name@example.com"') + fld("Phone", "pm-phone", p.phone, admin, "tel") + "</div>" +
-      (admin ? roleSel : fld("Role", "", p.role, false)) +
+      (admin ? roleSel : '<div class="field"><span>Level and tags</span><div class="person-tags"><span class="lvl">' + esc(p.role) + "</span>" + tagChips(p) + "</div></div>") +
       '<div id="pm-err" class="small" style="color:var(--red)" hidden></div>' +
       (!isNew ? '<div class="row spread"><div class="muted small">' + esc(p.status) + (p.invited ? " · invited " + esc(fmtDate(p.invited)) : "") + "</div>" + (admin && awaitingJoin(p) ? '<button type="button" class="btn" id="pm-resend">Resend invite</button>' : admin && ONLINE && p.status !== "Inactive" ? '<button type="button" class="btn" id="pm-notify">Send notification</button>' : "") + "</div>" : "") +
       (admin ? '<div class="row spread">' + (!isNew ? '<div class="row"><button type="button" class="btn danger" id="pm-remove">Remove</button><button type="button" class="btn" id="pm-active">' + (p.status === "Inactive" ? "Reactivate" : "Deactivate") + "</button>" + "</div>" : "<span></span>") +
@@ -4768,17 +4808,25 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         var cl = el.querySelector("#pm-copy-link"); if (cl) cl.addEventListener("click", function () { copyText(APP_LINK, "Invite link copied"); });
         var err = el.querySelector("#pm-err");
         function fail(m) { err.textContent = m; err.hidden = false; }
+        el.querySelectorAll("[data-lvl]").forEach(function (b) { b.addEventListener("click", function () {
+          el.querySelector("#pm-role").value = b.dataset.lvl;
+          el.querySelectorAll("[data-lvl]").forEach(function (x) { var on = x === b; x.setAttribute("aria-pressed", on); x.setAttribute("aria-checked", on); });
+        }); });
+        el.querySelectorAll("[data-tagpick]").forEach(function (b) { b.addEventListener("click", function () {
+          var t = b.dataset.tagpick, i = tags.indexOf(t); if (i >= 0) tags.splice(i, 1); else tags.push(t);
+          b.setAttribute("aria-pressed", i < 0);
+        }); });
         if (!isNew) {
           el.querySelector("#pm-active").addEventListener("click", function () {
             if (p.status === "Inactive") { p.status = p.joined ? "Active" : "Invited"; save(); closeModal(); render(); toast(p.name + " reactivated"); return; }
             if (p.id === S.currentUserId) return fail("You can't deactivate yourself. Switch to another admin first.");
             var rest = S.people.filter(function (x) { return x.id !== p.id; });
-            if (!adminCount(rest, S.roleAccess)) return fail("Someone else needs admin access before you deactivate this person.");
+            if (!adminCount(rest)) return fail("Someone else needs the Admin tag before you deactivate this person.");
             p.status = "Inactive"; save(); closeModal(); render(); toast(p.name + " deactivated");
           });
           el.querySelector("#pm-remove").addEventListener("click", function () {
             var rest = S.people.filter(function (x) { return x.id !== p.id; });
-            if (!adminCount(rest, S.roleAccess)) return fail("Someone else needs admin access before you remove this person.");
+            if (!adminCount(rest)) return fail("Someone else needs the Admin tag before you remove this person.");
             if (p.id === S.currentUserId) return fail("You can't remove yourself. Switch to another admin first.");
             S.people = rest; save(); closeModal(); render(); toast(p.name + " removed");
           });
@@ -4793,14 +4841,16 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
             return x.id !== p.id && ((email && (x.email || "").toLowerCase() === email.toLowerCase()) || (phone && digits(phone).length >= 7 && digits(x.phone) === digits(phone)));
           })[0];
           if (dupe) return fail(dupe.name + " already has that " + (email && (dupe.email || "").toLowerCase() === email.toLowerCase() ? "email" : "phone number") + " and is on the team list" + (dupe.status === "Inactive" ? " (deactivated). Reactivate them instead." : ". No new invite needed."));
-          if (!isNew && role !== p.role) {
-            var after = S.people.map(function (x) { return x.id === p.id ? { role: role } : x; });
-            if (!adminCount(after, S.roleAccess)) return fail("That would leave no one with admin access.");
+          tags = sortTags(tags);
+          if (!isNew && hasTag(p, "Admin") && tags.indexOf("Admin") < 0) {
+            var after = S.people.map(function (x) { return x.id === p.id ? { tags: tags, status: x.status } : x; });
+            if (!adminCount(after)) return fail("That would leave no one with the Admin tag.");
+            if (p.id === S.currentUserId) return fail("You can't remove your own Admin tag. Ask another admin to do it.");
           }
           if (isNew) {
-            var np = { id: uid(), name: name, email: email, phone: phone, role: role, status: "Invited", invited: todayIso() };
+            var np = { id: uid(), name: name, email: email, phone: phone, role: role, tags: tags, status: "Invited", invited: todayIso() };
             S.people.push(np); save(); render(); inviteModal(np);
-          } else { p.name = name; p.email = email; p.phone = phone; p.role = role; save(); closeModal(); render(); toast("Saved"); }
+          } else { p.name = name; p.email = email; p.phone = phone; p.role = role; p.tags = tags; save(); closeModal(); render(); toast("Saved"); }
         });
       });
   }
@@ -4839,8 +4889,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   function switchUserModal() {
     openModal('<h1>Switch person</h1><p class="muted small" style="margin:0">Test mode: see the app the way each person will.</p><div class="list">' +
       S.people.filter(function (p) { return p.status !== "Inactive"; }).map(function (p) {
-        return '<button class="item" data-switch="' + p.id + '"><div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + '</div><div class="grow"><div class="title">' + esc(p.name) + '</div><div class="muted small">' + esc(p.role) +
-          (S.roleAccess[p.role] ? " · Admin access" : "") + "</div></div>" + (p.id === S.currentUserId ? '<span class="pill st-done">Current</span>' : "") + "</button>";
+        return '<button class="item" data-switch="' + p.id + '"><div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + '</div><div class="grow"><div class="title">' + esc(p.name) + '</div><div class="muted small">' + esc(roleLine(p)) + "</div></div>" + (p.id === S.currentUserId ? '<span class="pill st-done">Current</span>' : "") + "</button>";
       }).join("") + '</div>' + settingsItemsHtml() + '<div class="row" style="justify-content:flex-end"><button class="btn" data-close>Close</button></div>',
       function (el) {
         wireSettingsItems(el);
@@ -5347,7 +5396,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
   // Pick people one by one, or add a whole group (everyone, or everyone in a role) with one tap.
   function pickerHtml(picked, exclude) {
-    var people = S.people.filter(function (p) { return p.status !== "Inactive" && p.id !== "_" && exclude.indexOf(p.id) < 0 && !!S.roleAccess[p.role]; }).sort(function (a, b) { return a.name.localeCompare(b.name); });
+    var people = S.people.filter(function (p) { return p.status !== "Inactive" && p.id !== "_" && exclude.indexOf(p.id) < 0 && hasTag(p, "Admin"); }).sort(function (a, b) { return a.name.localeCompare(b.name); });
     var roles = ROLES.filter(function (r) { return people.some(function (p) { return p.role === r; }); });
     return '<div class="field"><span>Add a group</span><div class="chips">' + '<button type="button" class="chip-btn" data-grp="*">Everyone</button>' +
       roles.map(function (r) { return '<button type="button" class="chip-btn" data-grp="' + esc(r) + '">All ' + esc(r) + (/s$/.test(r) ? "" : "s") + "</button>"; }).join("") + "</div></div>" +
@@ -5428,7 +5477,6 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // ---------- projects ----------
   // Simple projects: the presidency (and admins) create projects and assign tasks; everyone can update their task status and notes.
-  var PROJECT_ROLES = ["President", "Presidency Member"];
   // People on a project: the owner or an admin picks them, and task owners, helpers and subtask owners are chosen from them.
   // With no one added yet, every active person can be picked.
   function canEditMembers(pj) { return isAdmin() || nameIsMe(pj.lead); }
@@ -5449,7 +5497,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         el.querySelector("form").addEventListener("submit", function (e) { e.preventDefault(); closeModal(); });
       });
   }
-  function canManageProjects() { return isAdmin() || PROJECT_ROLES.indexOf(currentUser().role) >= 0; }
+  function canManageProjects() { return isAdmin() || (devAs() !== "member" && PROJECT_TAGS.some(function (t) { return hasTag(currentUser(), t); })); }
   function canManageProject(pj) { return canManageProjects() || !!(pj && nameIsMe(pj.lead)); }
   // A project's required tasks: optional ones don't count toward its progress.
   function preq(pj) { return pj.tasks.filter(function (t) { return !t.optional; }); }

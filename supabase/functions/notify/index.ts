@@ -25,10 +25,11 @@ async function loadKeys() {
   return keys;
 }
 
-type Person = { id: string; name: string; email: string | null; role: string; status: string };
+type Person = { id: string; name: string; email: string | null; role: string; tags: string[] | null; status: string };
+const isAdminP = (p: Person) => (p.tags || []).includes("Admin");
 const norm = (s: string | null | undefined) => String(s || "").trim().toLowerCase();
 async function activePeople(): Promise<Person[]> {
-  const { data } = await admin.from("people").select("id,name,email,role,status");
+  const { data } = await admin.from("people").select("id,name,email,role,tags,status");
   return ((data || []) as Person[]).filter((p) => p.status !== "Inactive");
 }
 
@@ -100,9 +101,7 @@ async function messages(body: { ids: string[] }) {
   const { data: convs } = await admin.from("conversations").select("id,name,member_ids").in("id", convIds);
   const people = await activePeople();
   const nameOf = (id: string) => (people.find((p) => p.id === id) || { name: "" }).name;
-  // Messages is admin-only in the app, so only admins hear about new messages.
-  const { data: ra } = await admin.from("role_access").select("role,admin");
-  const adminRoles = new Set((ra || []).filter((r) => r.admin).map((r) => r.role));
+  // Messages is admin-only in the app, so only admins (the Admin tag) hear about new messages.
   let devices = 0;
   for (const c of convs || []) {
     const ms = msgs.filter((m) => m.conversation_id === c.id), last = ms[ms.length - 1];
@@ -111,7 +110,7 @@ async function messages(body: { ids: string[] }) {
     const text = String(last.body || "").trim() || (files ? (files === 1 ? "Sent a file" : "Sent " + files + " files") : "New message");
     const members: string[] = c.member_ids || [];
     const group = c.name || (members.length > 2 ? "Group chat" : "");
-    const to = members.filter((id) => !ms.every((m) => m.author_id === id) && people.some((p) => p.id === id && adminRoles.has(p.role)));
+    const to = members.filter((id) => !ms.every((m) => m.author_id === id) && people.some((p) => p.id === id && isAdminP(p)));
     const msg = { title: group ? who + " in " + group : who, body: (ms.length > 1 ? ms.length + " messages. " : "") + text.slice(0, 180), tag: "chat-" + c.id, kind: "message" };
     devices += (await deliver(to, msg)).devices;
   }
@@ -157,8 +156,7 @@ async function send(req: Request, body: { to: string | string[]; title?: string;
   if (!email) return reply(401, { error: "signin" });
   const people = await activePeople();
   const me = people.find((p) => norm(p.email) === email);
-  const { data: ra } = await admin.from("role_access").select("role,admin");
-  if (!me || !(ra || []).some((r) => r.role === me.role && r.admin)) return reply(403, { error: "not_admin" });
+  if (!me || !isAdminP(me)) return reply(403, { error: "not_admin" });
   const text = String(body.body || "").trim().slice(0, 500);
   if (!text) return reply(400, { error: "empty" });
   const ids = body.to === "team" ? people.map((p) => p.id) : (Array.isArray(body.to) ? body.to : []).filter((id) => people.some((p) => p.id === id));

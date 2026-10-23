@@ -336,3 +336,13 @@ create policy "managers update" on public.team_events for update to authenticate
 create policy "managers delete" on public.team_events for delete to authenticated using (public.is_admin());
 alter publication supabase_realtime add table public.team_events;
 -- The calendar feed function lists team_events too, with their times (America/Denver).
+
+-- Levels and tags (2026-10-23). people.role is now a level: Coach, Team Member or Volunteer. people.tags holds any of
+-- Admin, President, Vice President, Secretary, Treasury, Presidency Member, Developer. role_access keeps only each level's doc_tier.
+-- is_admin(): the Admin tag. can_manage_projects(): admin, or President / Vice President / Presidency Member.
+-- my_doc_tier(): 1 for admins, else the level's doc_tier (at most 2 with the Developer tag). app_usage(): the Developer tag.
+alter table public.people add column tags text[] not null default '{}';
+-- Old roles were mapped: Coach -> Coach + Admin; Developer -> Volunteer + Admin, Developer; President -> Team Member + Admin, President;
+-- Treasurer -> Team Member + Treasury; Presidency Member -> Team Member + Presidency Member.
+alter table public.role_access drop constraint role_access_role_check;
+alter table public.role_access add constraint role_access_role_check check (role in ('Coach','Team Member','Volunteer'));
