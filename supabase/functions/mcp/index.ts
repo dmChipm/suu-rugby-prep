@@ -181,9 +181,9 @@ tool("add_task", "Add a task to a game sheet (coaches and admins) or a project (
   });
 
 tool("list_people", "Everyone on the team list with their role.", {}, [], true, async (c) => {
-  const { data, error } = await c.db.from("people").select("name,role,tags,status").order("name");
+  const { data, error } = await c.db.from("people").select("name,role,status").order("name");
   if (error) throw error;
-  return (data || []).filter((p: any) => p.status !== "Inactive").map((p: any) => ({ name: p.name, level: p.role, tags: p.tags || [] }));
+  return (data || []).filter((p: any) => p.status !== "Inactive").map((p: any) => ({ name: p.name, role: p.role }));
 });
 
 tool("list_conversations", "Your chats in the team app (group chats and direct messages) with their latest message.", {}, [], true, async (c) => {
