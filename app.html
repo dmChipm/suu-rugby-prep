@@ -672,31 +672,7 @@ nav.tabs .badge { margin-left: 6px; }
   .cal-more { font-size: .72rem; color: var(--muted); padding-left: 5px; }
 }
 .cal-corner { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-.my-work { padding: 0; overflow: hidden; }
-.mw-head { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 12px 14px; flex-wrap: wrap; }
-.mw-head:hover { background: var(--red-soft); }
-.mw-head:focus-visible { outline: 3px solid var(--red); outline-offset: -3px; }
-.mw-ring { width: 58px; height: 58px; flex: none; }
-.mw-ring text { font: 800 13px var(--body); fill: var(--ink); }
-.mw-main { flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 6px; }
-.mw-title { font-family: var(--display); font-weight: 700; font-size: 1.1rem; display: flex; align-items: baseline; gap: 8px; }
-.mw-stats { display: flex; gap: 16px; }
-.mw-stat { display: flex; flex-direction: column; line-height: 1.1; }
-.mw-stat b { font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-.mw-stat small { font-size: .74rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-.mw-stat.bad b, .mw-stat.bad small { color: var(--red); }
-.mw-week { display: flex; gap: 6px; align-items: flex-end; margin-left: auto; }
-.mw-day { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 22px; }
-.mw-bar { height: 34px; width: 10px; border-radius: 5px; background: var(--line); display: flex; align-items: flex-end; overflow: hidden; }
-.mw-bar i { display: block; width: 100%; background: var(--muted); border-radius: 5px; }
-.mw-day.today .mw-bar i { background: var(--red); }
-.mw-n { font-size: .7rem; font-weight: 800; height: .9rem; font-variant-numeric: tabular-nums; }
-.mw-wd { font-size: .62rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
-.mw-day.today .mw-wd { color: var(--red); }
-@media (max-width: 499px) { .mw-week { margin-left: 0; width: 100%; justify-content: space-between; } .mw-day { width: auto; flex: 1; } }
-.mw-list { border-top: 1px solid var(--line); padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; animation: fade-in .18s ease-out; }
-.mw-list .card { box-shadow: none; }
-.cal-tabs { display: flex; justify-content: center; gap: 24px; border-bottom: 1px solid var(--line); }
+@media (max-width: 499px) { .cal-tabs { display: flex; justify-content: center; gap: 24px; border-bottom: 1px solid var(--line); }
 .cal-tabs button { border: 0; background: transparent; padding: 6px 4px 8px; font: inherit; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -1px; }
 .cal-tabs button[aria-selected="true"] { color: var(--ink); font-weight: 800; border-bottom-color: var(--red); }
 .k-practice { --k: #7a52d1; } .k-night { --k: #d2408f; }
@@ -728,6 +704,9 @@ nav.tabs .badge { margin-left: 6px; }
 .ag-day.game { background: linear-gradient(90deg, var(--red-soft), transparent 70%); margin: 0 -16px; padding: 8px 16px 4px; }
 .ag-when { flex: none; width: 58px; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .cal-row.k-late .ag-when { color: var(--red); font-weight: 700; }
+.ag-late h3 { color: var(--red); }
+.ag-late { border-bottom: 2px solid var(--line); padding-bottom: 8px; }
+.ag-nodue { border-top: 2px solid var(--line); margin-top: 8px; padding-top: 10px; }
 .ag-gap { padding: 8px 0; border-top: 1px dashed var(--line); }
 .ag-more { align-self: center; margin-top: 6px; }
 .cal-none { margin: 0; padding: 8px 0 2px; border-top: 1px solid var(--line); font-size: .9rem; }
@@ -3103,6 +3082,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "My Tasks now lives in the Calendar's Agenda (Just mine): an Overdue section at the top, your tasks by day, and a No due date section at the bottom. The Your tasks card is gone."],
     ["2026-10-23", "My Tasks is now part of the Calendar: a Your tasks card at the top shows a % done ring, your open, overdue and this-week counts and a 7-day strip of what's due. Tap it for the full list grouped by game and project. The My Tasks tab is gone."],
     ["2026-10-23", "The Calendar opens on the Agenda list again, and the Agenda tab now comes first."],
     ["2026-10-23", "The Calendar opens on Just mine (your tasks plus every game, practice and event). Tap Everyone to see the whole team's tasks."],
@@ -5077,39 +5057,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
   function byDue(a, b) { return (a.due || "9").localeCompare(b.due || "9"); }
   function mineOf(tasks) { return tasks.filter(function (t) { return isMine(t) || isSupporting(t); }); }
-  // Your tasks, at a glance, on top of the Calendar: a done ring, open / overdue / this week counts and a 7-day strip of what's due.
-  // Tapping it opens the full list, grouped by game and project (what used to be the My Tasks tab).
-  function myWorkItems() {
-    var out = [], tdy = todayIso();
-    function take(tasks) {
-      tasks.forEach(function (t) {
-        if (isMine(t)) out.push({ done: isDone(t), due: t.due || "", late: isLate(t) });
-        (t.subtasks || []).forEach(function (q) { if (nameIsMe(q.owner)) out.push({ done: !!q.done, due: q.due || "", late: !q.done && !!q.due && q.due < tdy }); });
-      });
-    }
-    S.sheets.filter(function (sh) { return !isPast(sh.date); }).forEach(function (sh) { take(sh.tasks); });
-    (S.projects || []).forEach(function (pj) { take(pj.tasks); });
-    return out;
-  }
-  function myWorkCard() {
-    var its = myWorkItems(), tdy = todayIso(), wk = addDays(tdy, 6);
-    var open = its.filter(function (x) { return !x.done; }), done = its.length - open.length, late = open.filter(function (x) { return x.late; }).length;
-    var week = open.filter(function (x) { return x.due && x.due >= tdy && x.due <= wk; }).length, pc = its.length ? Math.round(done * 100 / its.length) : 0;
-    var days = []; for (var i = 0; i < 7; i++) { var d = addDays(tdy, i); days.push({ d: d, n: open.filter(function (x) { return x.due === d; }).length }); }
-    var peak = Math.max.apply(null, days.map(function (x) { return x.n; }).concat([1])), C = 2 * Math.PI * 24, on = !!view.myWorkOpen;
-    var ring = '<svg class="mw-ring" viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="24" fill="none" stroke="var(--line)" stroke-width="7"/>' +
-      (pc ? '<circle cx="30" cy="30" r="24" fill="none" stroke="var(--red)" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + (C * pc / 100).toFixed(1) + " " + C.toFixed(1) + '" transform="rotate(-90 30 30)"/>' : "") +
-      '<text x="30" y="31" text-anchor="middle" dominant-baseline="middle">' + pc + "%</text></svg>";
-    var strip = '<span class="mw-week" aria-hidden="true">' + days.map(function (x, i) {
-      return '<span class="mw-day' + (i === 0 ? " today" : "") + '"><span class="mw-bar"><i style="height:' + (x.n ? Math.max(18, Math.round(x.n * 100 / peak)) : 0) + '%"></i></span><span class="mw-n">' + (x.n || "") + '</span><span class="mw-wd">' +
-        esc(i === 0 ? "Today" : new Date(x.d + "T12:00:00").toLocaleDateString(undefined, { weekday: "narrow" })) + "</span></span>"; }).join("") + "</span>";
-    var stat = function (n, label, cls) { return '<span class="mw-stat' + (cls ? " " + cls : "") + '"><b>' + n + "</b><small>" + label + "</small></span>"; };
-    var label = "Your tasks: " + open.length + " open, " + late + " overdue, " + week + " due this week, " + pc + "% done";
-    return '<section class="card my-work' + (on ? " open" : "") + '"><button type="button" class="mw-head" data-act="my-work" aria-expanded="' + on + '" aria-label="' + esc(label) + '">' + ring +
-      '<span class="mw-main"><span class="mw-title">Your tasks <span class="muted small">' + (on ? "Hide list ˄" : "See list ˅") + '</span></span><span class="mw-stats">' + stat(open.length, "open") + stat(late, "overdue", late ? "bad" : "") + stat(week, "this week") + "</span></span>" +
-      strip + "</button>" + (on ? '<div class="mw-list">' + todoView(true) + "</div>" : "") + "</section>";
-  }
-  function todoView(bare) {
+  function todoView() {
     var up = S.sheets.filter(function (s) { return !isPast(s.date); }).sort(sortSheets), me = currentUser();
     var h = '<div><h1>My Tasks</h1><div class="muted">Hey ' + esc(me.name.split(" ")[0]) + "! Here's what you're in charge of.</div></div>" + pushNudgeHtml();
     // Only work this person owns: tasks where they're the owner, plus subtasks assigned to them.
@@ -5131,7 +5079,6 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       return '<section class="todo-sec"><div class="row spread"><h2>' + title + '</h2><span class="muted small">' + n + " open</span></div>" +
         (open.length ? taskGroups(open) : '<div class="card empty">' + (any ? "Everything you're in charge of here is done. Legend! 🎉" : none) + "</div>") + "</section>";
     }
-    if (bare) return section("Game Prep", sg, "Nothing on upcoming game or event sheets is assigned to you.") + section("Projects", pg, "No project tasks are assigned to you.");
     return h + (SHOW_LEADERBOARD ? leaderboardHtml() : "") + section("Game Prep", sg, "Nothing on upcoming game or event sheets is assigned to you.") + section("Projects", pg, "No project tasks are assigned to you.");
   }
   // The leaderboard is built but hidden for now; set this to true to show it on My Tasks again.
@@ -6346,9 +6293,14 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       out += '<div class="ag-gap muted small">' + esc(md(gap[0], { weekday: "short", month: "short", day: "numeric" }) + (gap.length > 1 ? " – " + md(gap[gap.length - 1], { weekday: "short", month: "short", day: "numeric" }) : "")) + " · Nothing" + (mine ? " for you" : " scheduled") + "</div>";
       gap = [];
     }
+    // Starting from today: everything overdue from earlier days gets its own section first, oldest first, dated on the left.
+    if (span[0] === tdy) {
+      var late = []; Object.keys(by).sort().forEach(function (d) { if (d < tdy) by[d].forEach(function (it) { if (it.k === "late") late.push({ it: it, d: d }); }); });
+      if (late.length) out += '<section class="ag-day ag-late"><h3><span>Overdue · ' + late.length + "</span></h3>" + late.map(function (x) {
+        return calRow(x.it).replace('<span class="cal-k"', '<span class="ag-when">' + esc(fmtShort(x.d)) + '</span><span class="cal-k"'); }).join("") + "</section>";
+    }
     span.forEach(function (iso) {
       var its = (by[iso] || []).slice();
-      if (iso === tdy && span[0] === tdy) Object.keys(by).forEach(function (d) { if (d < tdy) by[d].forEach(function (it) { if (it.k === "late") its.unshift(it); }); });
       if (!its.length && iso !== tdy) { gap.push(iso); return; }
       flush();
       var game = its.some(function (it) { return it.k === "game"; });
@@ -6356,7 +6308,22 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         (its.length ? its.map(row).join("") : '<p class="muted cal-none">Nothing' + (mine ? " for you" : "") + " today.</p>") + "</section>";
     });
     flush();
-    return '<div class="card agenda">' + out + '<button type="button" class="btn ghost ag-more" data-act="cal-more">Show 2 more weeks ›</button></div>';
+    var more = '<button type="button" class="btn ghost ag-more" data-act="cal-more">Show 2 more weeks ›</button>';
+    // Just mine: your open tasks and subtasks that have no due date, so the Agenda holds all of your work.
+    if (mine) {
+      var nd = [];
+      function undated(tasks, where, attr) {
+        tasks.forEach(function (t) {
+          if (!isDone(t) && !t.due && (isMine(t) || isSupporting(t))) nd.push({ k: "task", label: t.text, sub: where + (isMine(t) ? "" : " · Helping"), attrs: 'data-act="cal-task" ' + attr + ' data-task="' + t.id + '"' });
+          (t.subtasks || []).forEach(function (q) { if (!q.done && !q.due && nameIsMe(q.owner)) nd.push({ k: "task", label: q.text, sub: "Subtask of " + t.text + " · " + where, attrs: 'data-act="cal-task" ' + attr + ' data-task="' + t.id + '"' }); });
+        });
+      }
+      S.sheets.filter(function (sh) { return !isPast(sh.date); }).forEach(function (sh) { undated(sh.tasks, sheetTitle(sh), 'data-sheet="' + sh.id + '"'); });
+      (S.projects || []).forEach(function (pj) { undated(pj.tasks, pj.name, 'data-proj="' + pj.id + '"'); });
+      if (nd.length) more += '<section class="ag-day ag-nodue"><h3><span>No due date · ' + nd.length + "</span></h3>" +
+        nd.map(function (it) { return calRow(it).replace('<span class="cal-k"', '<span class="ag-when">—</span><span class="cal-k"'); }).join("") + "</section>";
+    }
+    return '<div class="card agenda">' + out + more + "</div>";
   }
   function calendarView() {
     var mine = view.calMine !== false, mode = calMode(), by = calItems(mine), ym = calMonth().split("-"), y = +ym[0], m = +ym[1] - 1;
@@ -6371,7 +6338,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     var grid = view.calGrid || "month";
     var modeLabel = CAL_MODES.filter(function (x) { return x[0] === (mode === "agenda" ? grid : mode); })[0][1];
     // Agenda / Calendar tabs sit under the date; the Month, Week, 3 days, Day menu stays top right and opens the calendar in that layout.
-    var h = '<h1 class="sr-only">Calendar</h1>' + myWorkCard() + pushNudgeHtml() + '<div class="cal-corner">' +
+    var h = '<h1 class="sr-only">Calendar</h1>' + pushNudgeHtml() + '<div class="cal-corner">' +
       ('<div class="menu-wrap"><button class="kebab cal-mode-btn" id="cal-mode" aria-label="Calendar view: ' + esc(modeLabel) + '" aria-haspopup="true" aria-expanded="false" data-menu="cal-mode">' + esc(modeLabel) +
       ' <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>' +
       '<div class="menu" role="menu" id="cal-mode-items" hidden>' + CAL_MODES.filter(function (x) { return x[0] !== "agenda"; }).map(function (x) { return '<button role="menuitemradio" aria-checked="' + (x[0] === mode) + '" data-act="cal-mode" data-mode="' + x[0] + '">' + (x[0] === mode ? "✓ " : "") + esc(x[1]) + "</button>"; }).join("") + "</div></div>") +
@@ -6565,7 +6532,6 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         render(); break;
       case "cal-mode": view.calDay = calSel(); view.calMode = t.dataset.mode; if (t.dataset.mode !== "agenda") view.calGrid = t.dataset.mode; closeMenus(); render(); break;
       case "cal-today": view.calMonth = todayIso().slice(0, 7); view.calDay = todayIso(); view.calAgendaN = 0; render(); break;
-      case "my-work": view.myWorkOpen = !view.myWorkOpen; render(); break;
       case "cal-more": view.calAgendaN = (view.calAgendaN || AGENDA_DAYS) + AGENDA_DAYS; render(); break;
       case "cal-day": if (t.dataset.toDay) { view.calDay = t.dataset.day; view.calMonth = t.dataset.day.slice(0, 7); view.calMode = "day"; render(); break; }
         view.calDay = t.dataset.day; if (t.dataset.day.slice(0, 7) !== calMonth()) view.calMonth = t.dataset.day.slice(0, 7); render(); var dl = document.getElementById("cal-daylist"); if (dl && window.matchMedia("(max-width: 699px)").matches) scrollBelowHeader(dl); break;
