@@ -2121,6 +2121,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
   window.addEventListener("pagehide", function () { if (!ONLINE || auth.state === "ready") savePlace(); });
   function save(quiet) {
+    if (REAL) { if (!quiet) notice("Test profile: not saved"); return; }
     if (ONLINE) { try { localStorage.setItem(KEY + "-layout", S.layout); } catch (e) {} push(quiet); return; }
     demoTrack();
     try { localStorage.setItem(KEY, JSON.stringify(S)); if (!quiet) savedNotice(); }
@@ -2141,18 +2142,56 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     n.querySelector("button").onclick = function () { n.hidden = true; n.setAttribute("role", "status"); };
     clearTimeout(noteTimer); noteTimer = setTimeout(function () { n.hidden = true; n.setAttribute("role", "status"); }, 8000);
   }
-  function isDev() { return hasTag(currentUser(), "Developer"); }
+  // The signed-in person, even while a developer is exploring as a test profile.
+  function realUser() { var r = REAL || S; return byId(r.people, r.currentUserId) || r.people[0]; }
+  function isDev() { return hasTag(realUser(), "Developer"); }
   function currentUser() { return byId(S.people, S.currentUserId) || S.people[0]; }
-  // Developers can preview the app as an admin or as a regular team member (Development tab). It only changes what this screen shows;
-  // the database still checks the real role, so a change made while previewing as an admin is refused if the role isn't really an admin.
-  function devAs() { if (!isDev()) return ""; try { return sessionStorage.getItem("rugby-dev-as") || ""; } catch (e) { return ""; } }
-  function setDevAs(v) { try { if (v) sessionStorage.setItem("rugby-dev-as", v); else sessionStorage.removeItem("rugby-dev-as"); } catch (e) {} }
-  function isAdmin() { var as = devAs(); return as === "member" ? false : as === "admin" ? true : hasTag(currentUser(), "Admin"); }
+  // Test profiles (Development tab): developers can explore the app as Jane Doe (an admin) or John Doe (not an admin).
+  // Picking one swaps in a private copy of the team's data (REAL keeps the real data) where Jane and John exist and have tasks.
+  // Nothing done in a test profile is saved or sent, and Jane and John never appear in the real People directory.
+  var REAL = null;
+  var TEST_PROFILES = {
+    jane: { id: "test-jane", name: "Jane Doe", email: "jane.doe@test.suu-rugby", phone: "(435) 555-0142", role: "Coach", tags: ["Admin"], status: "Active", joined: true, test: true },
+    john: { id: "test-john", name: "John Doe", email: "john.doe@test.suu-rugby", phone: "(435) 555-0187", role: "Team Member", tags: [], status: "Active", joined: true, test: true }
+  };
+  function devAs() { if (!isDev()) return ""; try { var v = sessionStorage.getItem("rugby-dev-as") || ""; return { admin: "jane", member: "john" }[v] || (TEST_PROFILES[v] ? v : ""); } catch (e) { return ""; } }
+  function setDevAs(v) { try { if (v) sessionStorage.setItem("rugby-dev-as", v); else sessionStorage.removeItem("rugby-dev-as"); } catch (e) {} syncTestProfile(); }
+  function buildTestState(real) {
+    var t = JSON.parse(JSON.stringify(real)), j = TEST_PROFILES.jane.name, k = TEST_PROFILES.john.name;
+    t.people = t.people.concat([normPerson(JSON.parse(JSON.stringify(TEST_PROFILES.jane))), normPerson(JSON.parse(JSON.stringify(TEST_PROFILES.john)))]);
+    // Hand Jane and John a share of the open work: every 4th open task goes to Jane, the one after it to John, with the other as a helper now and then.
+    var n = 0, today = todayIso();
+    function deal(tasks) {
+      tasks.forEach(function (x) {
+        if (x.status === "Complete") return;
+        var r = n++ % 4;
+        if (r === 0) { x.owner = j; if (n % 3 === 0) x.supporters = (x.supporters || []).concat([k]); }
+        else if (r === 1) { x.owner = k; if (n % 3 === 0) x.supporters = (x.supporters || []).concat([j]); }
+        (x.subtasks || []).forEach(function (q, i) { if (!q.done && i % 2 === r % 2 && r < 2) q.owner = r === 0 ? k : j; });
+      });
+    }
+    (t.sheets || []).forEach(function (sh) { deal(sh.tasks); });
+    (t.projects || []).forEach(function (pj) { deal(pj.tasks); if (!pj.lead && n % 2) pj.lead = j; });
+    // Make sure each has at least one done task and something due soon.
+    [j, k].forEach(function (nm, i) {
+      var all = []; (t.sheets || []).forEach(function (sh) { all = all.concat(sh.tasks); });
+      var mine = all.filter(function (x) { return x.owner === nm; });
+      if (mine[1] && !mine.some(function (x) { return x.status === "Complete"; })) { mine[1].status = "Complete"; mine[1].done = true; mine[1].completed = today; mine[1].by = nm; }
+      if (mine[0] && !mine[0].due) mine[0].due = addDays(today, 2 + i);
+    });
+    t.currentUserId = TEST_PROFILES[devAs()].id;
+    return t;
+  }
+  function syncTestProfile() {
+    var as = devAs();
+    if (as && TEST_PROFILES[as]) { var real = REAL || S; if (!real) return; REAL = real; S = buildTestState(real); }
+    else if (REAL) { S = REAL; REAL = null; }
+  }
+  function isAdmin() { return hasTag(currentUser(), "Admin"); }
   // Documents: admins see every tier; developers see tier 2 and up; everyone else gets their level's tier.
   function myTier() {
     if (isAdmin()) return 1;
-    if (devAs() === "member") return (S.docTier || {})["Team Member"] || 3;
-    var t = (S.docTier || {})[currentUser().role] || 4; return isDev() ? Math.min(t, 2) : t;
+    var t = (S.docTier || {})[currentUser().role] || 4; return hasTag(currentUser(), "Developer") ? Math.min(t, 2) : t;
   }
   function canSeeDoc(d) { return myTier() <= (d.tier || 3); }
 
@@ -2309,7 +2348,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       vb = document.createElement("div"); vb.id = "dev-view-bar"; vb.setAttribute("role", "status"); document.body.appendChild(vb);
       vb.addEventListener("click", function (e) { if (e.target.closest("[data-dev-exit]")) { setDevAs(""); render(); } });
     }
-    if (vb) { vb.hidden = !as; vb.innerHTML = as ? "<span>Previewing the " + (as === "member" ? "non-admin" : "admin") + ' view</span><button type="button" data-dev-exit>Exit</button>' : ""; }
+    if (vb) { vb.hidden = !as; vb.innerHTML = as ? "<span>Exploring as " + esc(TEST_PROFILES[as].name) + " · nothing is saved</span>" + '<button type="button" data-dev-exit>Exit</button>' : ""; }
     document.getElementById("tab-analytics").hidden = !(isAdmin() && analyticsTabOn());
     if (view.tab === "analytics" && !isAdmin()) view.tab = "calendar";
     if ((view.tab === "dev" || view.tab === "updates" || view.tab === "devdocs") && !isDev()) view.tab = "calendar";
@@ -2470,7 +2509,8 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       var d = {}; TABLES.forEach(function (t, i) { d[t] = res[i].data || []; });
       var st = fromRows(d), me = byId(st.people, meId);
       if (!me || me.status === "Inactive") { auth.state = "notinvited"; render(); return; }
-      st.currentUserId = meId; S = st; last = snapshot(toRows(S));
+      st.currentUserId = meId; last = snapshot(toRows(st));
+      if (REAL) { REAL = st; S = buildTestState(st); } else S = st;
       if (auth.state === "ready") render();
     });
   }
@@ -2861,6 +2901,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   if (ONLINE) { S = emptyState(); APP_LINK = appUrl(); }
 
   function render() {
+    if (S && !!devAs() !== !!REAL) syncTestProfile();
     var ae = document.activeElement, keepMsg = ae && ae.id === "msg-input" ? { a: ae.selectionStart, b: ae.selectionEnd } : null;
     renderInner();
     if (!(ONLINE && auth.state === "loading")) hideBootLoader();
@@ -2904,10 +2945,10 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       var as = devAs();
       app.innerHTML = '<div><h1>Development</h1><div class="muted">Only people with the Developer role see this tab.</div></div>' +
         '<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px"><strong>View the app as</strong>' +
-        '<div class="seg dev-as" role="group" aria-label="View the app as">' + [["", "My role"], ["admin", "Admin"], ["member", "Non-admin"]].map(function (x) {
+        '<div class="seg dev-as" role="group" aria-label="View the app as">' + [["", "Me"], ["jane", "Jane Doe · Admin"], ["john", "John Doe · Not admin"]].map(function (x) {
           return '<button type="button" data-dev-as="' + x[0] + '" aria-pressed="' + (as === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div>" +
-        '<p class="muted small" style="margin:0">Non-admin shows the app the way a Team Member sees it: no admin buttons, menus or tabs. Admin shows every admin control. ' +
-        "This only changes what you see on this device until you close the app; the database still uses your real role.</p></div>" +
+        '<p class="muted small" style="margin:0">Explore the app as a test profile with its own tasks: Jane Doe is a Coach with the Admin tag; John Doe is a Team Member with no tags. ' +
+        "They use a private copy of the team's data on this device: nothing you change is saved or sent, and they never appear in the real People list. Tap Exit or Me to come back.</p></div>" +
         '<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px"><strong>Effects</strong>' +
         '<div class="row"><button class="btn primary" id="dev-small">💥 Task complete (cannon)</button><button class="btn" id="dev-big">🎉 Sheet or project 100% (random piñata)</button><button class="btn" id="dev-loader">🏉 Loading screen</button></div>' +
         '<div class="row" style="flex-wrap:wrap;gap:8px"><span class="small muted">Or pick one:</span>' + [["bird", "Thunderbird"], ["thor", "Thor"], ["pika", "Pikachu"], ["train", "Train"], ["ilona", "Ilona Maher"]].filter(function (x) { return SHOWS.indexOf(x[0]) >= 0; }).map(function (x) { return '<button class="btn" data-show="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
@@ -2922,7 +2963,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       app.querySelector("#dev-loader").addEventListener("click", function () { showLoader(true); });
       app.querySelectorAll("[data-show]").forEach(function (b) { b.addEventListener("click", function () { pinataShow("Home Game is 100% ready!", b.dataset.show); }); });
       app.querySelector("#dev-sound").addEventListener("change", function (e) { setSound(e.target.checked); });
-      app.querySelectorAll("[data-dev-as]").forEach(function (b) { b.addEventListener("click", function () { setDevAs(b.dataset.devAs); render(); toast(b.dataset.devAs ? "Now viewing as " + (b.dataset.devAs === "member" ? "a non-admin" : "an admin") : "Back to your own role"); }); });
+      app.querySelectorAll("[data-dev-as]").forEach(function (b) { b.addEventListener("click", function () { var v = b.dataset.devAs; setDevAs(v); render(); toast(v ? "Now exploring as " + TEST_PROFILES[v].name : "Back to your own profile"); }); });
     }
     else if (view.tab === "projects") { var pj = view.projectId && byId(S.projects, view.projectId); app.innerHTML = pj ? projectDetail(pj) : projectsView(); }
     else if (view.tab === "sheets") {
@@ -3037,6 +3078,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Development tab: two test profiles, Jane Doe (Coach, Admin) and John Doe (Team Member), replace the Admin / Non-admin preview. Pick one to explore the whole app as that person with their own tasks; it uses a private copy of the data, so nothing is saved and they never show in the real People list."],
     ["2026-10-23", "Calendar: the List / Calendar switch is now Calendar and Agenda tabs under the date range, and the calendar grid is the default again. The Month, Week, 3 days and Day menu stays top right and opens the calendar in that layout."],
     ["2026-10-23", "Calendar: a List / Calendar switch at the top swaps between the agenda list and the calendar grid. The Month, Week, 3 days and Day menu shows only in Calendar, and it remembers which one you last used."],
     ["2026-10-23", "The app now opens on the Calendar, and the Calendar tab comes before My Tasks in the tab bar. Refreshing still keeps you on the page you were on."],
@@ -4298,6 +4340,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
   function allTaskFiles(t) { var a = (t.files || []).slice(); (t.subtasks || []).forEach(function (q) { a = a.concat(q.files || []); }); return a; }
   function taskStore(path, file) {
+    if (REAL) return Promise.reject(new Error("Files can't be uploaded in a test profile"));
     if (ONLINE) return sb.storage.from("task-files").upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false }).then(function (r) { if (r.error) throw r.error; });
     return idb.put("task:" + path, file);
   }
@@ -5179,6 +5222,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     var k = fileKind(files[0]); return k === "image" ? "📷 Photo" : k === "video" ? "🎥 Video" : k === "audio" ? "🎵 Audio" : FILE_ICON[k] + " " + files[0].name;
   }
   function chatStore(path, file) {
+    if (REAL) return Promise.reject(new Error("Files can't be uploaded in a test profile"));
     if (ONLINE) return sb.storage.from("chat").upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false }).then(function (r) { if (r.error) throw r.error; });
     return idb.put("chat:" + path, file);
   }
@@ -5574,7 +5618,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         el.querySelector("form").addEventListener("submit", function (e) { e.preventDefault(); closeModal(); });
       });
   }
-  function canManageProjects() { return isAdmin() || (devAs() !== "member" && PROJECT_TAGS.some(function (t) { return hasTag(currentUser(), t); })); }
+  function canManageProjects() { return isAdmin() || (PROJECT_TAGS.some(function (t) { return hasTag(currentUser(), t); })); }
   function canManageProject(pj) { return canManageProjects() || !!(pj && nameIsMe(pj.lead)); }
   // A project's required tasks: optional ones don't count toward its progress.
   function preq(pj) { return pj.tasks.filter(function (t) { return !t.optional; }); }
@@ -5934,6 +5978,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   };
 
   function storeFile(doc, file) {
+    if (REAL) return Promise.reject(new Error("Files can't be uploaded in a test profile"));
     if (ONLINE) return sb.storage.from("documents").upload(doc.path, file, { contentType: file.type || "application/octet-stream", upsert: false }).then(function (r) { if (r.error) throw r.error; });
     return idb.put(doc.id, file);
   }
