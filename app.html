@@ -1005,6 +1005,8 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 .tk-sec .sub-add { margin-top: 0; }
 .sub-add > input { flex: 2 1 180px; }
 .sub-add .btn { flex: none; }
+.sub-add input[type=date] { flex: 1 1 140px; }
+.sub-due.late { color: var(--red); font-weight: 700; }
 .h2-count { text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 6px; }
 .sub-add .combo { flex: 1 1 160px; }
 .tfiles { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
@@ -2969,6 +2971,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Subtasks can have their own due date: pick one when you add the subtask, or tap the subtask to set or change it. Overdue subtasks show their date in red, and subtasks with dates appear on the Calendar."],
     ["2026-10-23", "Priority on a task is now a dropdown: Normal, Critical or Optional."],
     ["2026-10-23", "Dragging to reorder is easier to follow: the item you grab moves with your finger and the others slide out of the way as you go."],
     ["2026-10-23", "Template tasks and their subtasks are reordered by dragging: grab the dotted handle on the left and drop the item where you want it. The up and down arrows are gone."],
@@ -4196,10 +4199,11 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       (canWork ? '<div class="sub-add"><input type="text" id="' + px + '-subnew" placeholder="+ Add a subtask (type @ to assign)" autocomplete="off" aria-label="New subtask" data-mention>' +
         '<div class="combo" hidden><input type="text" id="' + px + '-subwho" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + px + '-subwho-list" placeholder="Assign to (optional)" aria-label="Assign the new subtask to">' +
         '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="' + px + '-subwho-list" role="listbox" hidden></ul></div>' +
+        '<input type="date" id="' + px + '-subdue" aria-label="Subtask due date (optional)" title="Due date (optional)" hidden>' +
         '<button type="button" class="btn" id="' + px + '-subadd" hidden>Add</button></div>' : "") +
       '<div id="' + px + '-files"></div>';
   }
-  function workSkip(px) { return [px + "-subnew", px + "-subwho", px + "-sewho"]; }
+  function workSkip(px) { return [px + "-subnew", px + "-subwho", px + "-sewho", px + "-subdue", px + "-sedue"]; }
   function wireWork(el, px, t, canWork, pool) {
     var subsEl = el.querySelector("#" + px + "-subs"), filesEl = el.querySelector("#" + px + "-files"), cnt = el.querySelector("#" + px + "-subcount"), editing = null;
     function changed() { save(); render(); }
@@ -4238,12 +4242,14 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         if (editing === q.id) return '<li class="sub editing" data-sub="' + q.id + '">' +
           (canWork ? '<input type="text" class="sub-edit-text" value="' + esc(q.text) + '" aria-label="Subtask">' +
             '<div class="combo"><input type="text" id="' + px + '-sewho" value="' + esc(q.owner || "") + '" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + px + '-sewho-list" placeholder="Assign to" aria-label="Assigned to">' +
-            '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="' + px + '-sewho-list" role="listbox" hidden></ul></div>'
-            : '<strong>' + esc(q.text) + '</strong><span class="muted small">Assigned to ' + esc(q.owner || "no one") + "</span>") +
+            '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="' + px + '-sewho-list" role="listbox" hidden></ul></div>' +
+            '<label class="field sub-due-field">Due date<input type="date" id="' + px + '-sedue" value="' + esc(q.due || "") + '"></label>'
+            : '<strong>' + esc(q.text) + '</strong><span class="muted small">Assigned to ' + esc(q.owner || "no one") + (q.due ? " · due " + esc(fmtShort(q.due)) : "") + "</span>") +
           filesArea("sub:" + q.id) +
           '<div class="row spread">' + (isAdmin() ? '<button type="button" class="btn danger" data-sub-del>Remove subtask</button>' : "<span></span>") + '<button type="button" class="btn primary" data-sub-done>Done</button></div></li>';
         return '<li class="sub' + (q.done ? " done" : "") + '" data-sub="' + q.id + '"><label class="check"><input type="checkbox" data-sub-chk' + (q.done ? " checked" : "") + (canCheck ? "" : " disabled") + ' aria-label="Done: ' + esc(q.text) + '"></label>' +
           '<button type="button" class="sub-main" data-sub-open' + (canCheck ? "" : " disabled") + '><span class="sub-txt">' + esc(q.text) + '</span><span class="meta">' + (q.owner ? "<span>" + esc(q.owner) + "</span>" : '<span class="muted">Unassigned</span>') +
+          (q.due ? '<span class="sub-due' + (!q.done && q.due < todayIso() ? " late" : "") + '">Due ' + esc(fmtShort(q.due)) + "</span>" : "") +
           (nf ? '<span class="tag">📎 ' + nf + "</span>" : "") + (q.done && q.by ? '<span class="muted">Done by ' + esc(q.by) + "</span>" : "") + "</span></button></li>";
       }).join("") : "";
       subsEl.hidden = !subs.length; hideEmpty();
@@ -4252,9 +4258,9 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     function redraw(key) { if (key === "task") drawFiles(); else drawSubs(); }
     function commitEdit() {
       var q = editing && byId(t.subtasks || [], editing); if (!q || !canWork) return;
-      var ti = subsEl.querySelector(".sub-edit-text"), wi = subsEl.querySelector("#" + px + "-sewho");
-      var nt = ti ? ti.value.trim() : q.text, no = wi ? wi.value.trim() : q.owner;
-      if ((nt && nt !== q.text) || no !== (q.owner || "")) { if (nt) q.text = nt; q.owner = no; changed(); }
+      var ti = subsEl.querySelector(".sub-edit-text"), wi = subsEl.querySelector("#" + px + "-sewho"), di = subsEl.querySelector("#" + px + "-sedue");
+      var nt = ti ? ti.value.trim() : q.text, no = wi ? wi.value.trim() : q.owner, nd = di ? di.value : q.due || "";
+      if ((nt && nt !== q.text) || no !== (q.owner || "") || nd !== (q.due || "")) { if (nt) q.text = nt; q.owner = no; q.due = nd; changed(); }
     }
     function upload(key, fl) {
       var files = Array.prototype.slice.call(fl || []), big = files.filter(function (f) { return f.size > TASK_FILE_LIMIT; });
@@ -4304,7 +4310,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         listFor(key).push({ id: uid(), docId: d.id, name: d.name, by: currentUser().name, byId: S.currentUserId, at: Date.now() }); redraw(key); changed(); return;
       }
       if (tg.matches("[data-tf-input]")) { upload(tg.closest("[data-fkey]").dataset.fkey, tg.files); tg.value = ""; return; }
-      if (tg.matches(".sub-edit-text") || tg.id === px + "-sewho") commitEdit();
+      if (tg.matches(".sub-edit-text") || tg.id === px + "-sewho" || tg.id === px + "-sedue") commitEdit();
     });
     var addBtn = el.querySelector("#" + px + "-subadd");
     if (addBtn) {
@@ -4312,11 +4318,12 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       var nIn = el.querySelector("#" + px + "-subnew"), wIn = el.querySelector("#" + px + "-subwho");
       var add = function () {
         var tm = takeMentions(nIn.value), v = tm.text; if (!v) { nIn.focus(); return; }
-        (t.subtasks = t.subtasks || []).push({ id: uid(), text: v, owner: wIn.value.trim() || tm.names[0] || "", done: false, by: "", files: [] });
-        nIn.value = ""; wIn.value = ""; drawSubs(); changed(); nIn.focus(); showWho();
+        (t.subtasks = t.subtasks || []).push({ id: uid(), text: v, owner: wIn.value.trim() || tm.names[0] || "", due: dIn.value, done: false, by: "", files: [] });
+        nIn.value = ""; wIn.value = ""; dIn.value = ""; drawSubs(); changed(); nIn.focus(); showWho();
       };
       // The assign box and Add button only show once there's a subtask name to add.
-      var showWho = function () { var on = !!nIn.value.trim() || !!wIn.value.trim(); wIn.closest(".combo").hidden = !on; addBtn.hidden = !on; };
+      var dIn = el.querySelector("#" + px + "-subdue");
+      var showWho = function () { var on = !!nIn.value.trim() || !!wIn.value.trim(); wIn.closest(".combo").hidden = !on; addBtn.hidden = !on; dIn.hidden = !on; };
       nIn.addEventListener("input", showWho);
       addBtn.addEventListener("click", add);
       nIn.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); add(); } });
@@ -5866,12 +5873,20 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     function add(d, it) { (by[d] = by[d] || []).push(it); }
     function mineT(t) { return isMine(t) || isSupporting(t); }
     function taskKind(t) { return isDone(t) ? "done" : isLate(t) ? "late" : "task"; }
+    // Subtasks with their own due date show on the calendar too, and open their task.
+    function calSubs(t, where, attr) {
+      (t.subtasks || []).forEach(function (q) {
+        if (!q.due || (mine && !nameIsMe(q.owner) && !mineT(t))) return;
+        add(q.due, { k: q.done ? "done" : q.due < todayIso() ? "late" : "task", label: q.text, sub: "Subtask of " + t.text + " · " + where + (q.owner ? " · " + q.owner : ""), attrs: 'data-act="cal-task" ' + attr + ' data-task="' + t.id + '"' });
+      });
+    }
     S.sheets.forEach(function (sh) {
       if (sh.date) add(sh.date, { k: sh.gameInfo ? "game" : "night", label: sheetTitle(sh), sub: sh.gameInfo ? "Game day" : "Event day", attrs: 'data-open-sheet="' + sh.id + '"' });
       sh.tasks.forEach(function (t) {
         if (!t.due || (mine && !mineT(t))) return;
         add(t.due, { k: taskKind(t), label: t.text, sub: sheetTitle(sh) + (t.owner ? " · " + t.owner : ""), attrs: 'data-act="cal-task" data-sheet="' + sh.id + '" data-task="' + t.id + '"' });
       });
+      sh.tasks.forEach(function (t) { calSubs(t, sheetTitle(sh), 'data-sheet="' + sh.id + '"'); });
       sh.tasks.forEach(function (t) {
         var cd = confirmDue(t, sh); if (!cd || (mine && !mineT(t))) return;
         var got = !!(t.confirmation || "").trim();
@@ -5880,6 +5895,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     });
     (S.projects || []).forEach(function (pj) {
       if (pj.due && (!mine || nameIsMe(pj.lead) || pj.tasks.some(mineT))) add(pj.due, { k: "proj", label: pj.name, sub: "Project due" + (pj.lead ? " · " + pj.lead : ""), attrs: 'data-open-project="' + pj.id + '"' });
+      pj.tasks.forEach(function (t) { calSubs(t, pj.name, 'data-proj="' + pj.id + '"'); });
       pj.tasks.forEach(function (t) {
         if (!t.due || (mine && !mineT(t))) return;
         add(t.due, { k: taskKind(t), label: t.text, sub: pj.name + (t.owner ? " · " + t.owner : ""), attrs: 'data-act="cal-task" data-proj="' + pj.id + '" data-task="' + t.id + '"' });
