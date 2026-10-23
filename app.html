@@ -3078,6 +3078,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "The Calendar opens on Just mine (your tasks plus every game, practice and event). Tap Everyone to see the whole team's tasks."],
     ["2026-10-23", "Development tab: two test profiles, Jane Doe (Coach, Admin) and John Doe (Team Member), replace the Admin / Non-admin preview. Pick one to explore the whole app as that person with their own tasks; it uses a private copy of the data, so nothing is saved and they never show in the real People list."],
     ["2026-10-23", "Calendar: the List / Calendar switch is now Calendar and Agenda tabs under the date range, and the calendar grid is the default again. The Month, Week, 3 days and Day menu stays top right and opens the calendar in that layout."],
     ["2026-10-23", "Calendar: a List / Calendar switch at the top swaps between the agenda list and the calendar grid. The Month, Week, 3 days and Day menu shows only in Calendar, and it remembers which one you last used."],
@@ -6298,7 +6299,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     return '<div class="card agenda">' + out + '<button type="button" class="btn ghost ag-more" data-act="cal-more">Show 2 more weeks ›</button></div>';
   }
   function calendarView() {
-    var mine = !!view.calMine, mode = calMode(), by = calItems(mine), ym = calMonth().split("-"), y = +ym[0], m = +ym[1] - 1;
+    var mine = view.calMine !== false, mode = calMode(), by = calItems(mine), ym = calMonth().split("-"), y = +ym[0], m = +ym[1] - 1;
     var first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay()), last = new Date(y, m + 1, 0);
     var weeks = Math.ceil((first.getDay() + last.getDate()) / 7), tdy = todayIso(), sel = calSel(), span = mode === "month" ? null : calSpan();
     var unit = { agenda: "2 weeks", month: "month", week: "week", "3day": "3 days", day: "day" }[mode];
