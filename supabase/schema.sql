@@ -346,3 +346,8 @@ alter table public.people add column tags text[] not null default '{}';
 -- Treasurer -> Team Member + Treasury; Presidency Member -> Team Member + Presidency Member.
 alter table public.role_access drop constraint role_access_role_check;
 alter table public.role_access add constraint role_access_role_check check (role in ('Coach','Team Member','Volunteer'));
+
+-- Blocked reasons (migration blocked_reason, Oct 23, 2026):
+--   blocked_reason text on sheet_tasks / project_tasks: why the task is blocked (the app requires one when marking Blocked; cleared otherwise).
+--   task_status_log.note text: log_task_status() stores the reason on a change to Blocked, and logs event 'reason' when the reason
+--   changes while the task stays Blocked. Admins see these in the Status log (Blocked reasons filter) and each task's History.

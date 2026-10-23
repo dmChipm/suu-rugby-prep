@@ -160,8 +160,7 @@ table.grid .clip { max-width: 200px; overflow-wrap: anywhere; display: table-cel
 .props .ro { padding: 0; border: 0; background: none; }
 .props .prop-hint { grid-column: 2; margin-top: -2px; font-weight: 400; }
 .props .prop-comp .field.is-blank input { display: none; }
-.st-wrap { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.st-track { flex: 1; min-width: 0; }
+.st-wrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .st-track { display: flex; align-items: flex-start; }
 .st-step { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 0; font: inherit; cursor: pointer; color: var(--muted); }
 .st-step + .st-step::before { content: ""; position: absolute; top: 12px; right: 50%; width: 100%; height: 3px; margin-right: 14px; background: var(--line); border-radius: 2px; }
@@ -178,7 +177,19 @@ table.grid .clip { max-width: 200px; overflow-wrap: anywhere; display: table-cel
 .st-lbl { font-size: .78rem; font-weight: 700; text-align: center; line-height: 1.15; }
 .st-step.now .st-lbl, .st-step[aria-checked="true"] .st-lbl { color: var(--ink); }
 .st-step:hover .st-dot { border-color: var(--ink); }
-.st-side { display: flex; flex-direction: column; gap: 6px; flex: none; padding-left: 12px; border-left: 1px solid var(--line); }
+.st-side { display: flex; gap: 6px; justify-content: flex-end; }
+.st-why { background: var(--red-soft); border-radius: 10px; padding: 8px 10px; font-size: .9rem; overflow-wrap: anywhere; }
+.st-why b { color: var(--red); }
+.st-ask { display: flex; flex-direction: column; gap: 6px; border: 2px solid var(--red); border-radius: 12px; padding: 10px; animation: fade-in .16s ease-out; }
+.st-ask label { font-weight: 700; font-size: .9rem; display: flex; flex-direction: column; gap: 2px; }
+.st-ask-msg { color: var(--red); font-size: .85rem; font-weight: 700; }
+.log-why { display: block; font-style: italic; color: var(--ink); margin-top: 2px; }
+#dl-blocked[aria-pressed="true"] { background: var(--red); border-color: var(--red); color: #fff; }
+.qs-why { display: flex; flex-direction: column; gap: 6px; padding: 4px; width: 230px; max-width: calc(100vw - 40px); }
+.qs-why textarea.bad { border-color: var(--red); outline: 2px solid var(--red); }
+.qs-why-acts { display: flex; justify-content: flex-end; gap: 6px; padding: 4px; }
+#qs-pop .qs-ok { background: var(--red); color: #fff; }
+#qs-pop .qs-ok:hover { background: var(--red); filter: brightness(1.08); }
 .st-flag { border: 1px dashed var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 3px 11px; font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; }
 .st-flag[aria-checked="false"] { background: transparent; }
 .st-flag[aria-checked="true"] { border-style: solid; border-color: transparent; }
@@ -1929,7 +1940,9 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     if (pj && preq(pj).length && preq(pj).every(isDone)) return pinataShow(pj.name + " is 100% done!");
     cannonShow(t.text ? "Done: " + t.text : "");
   }
-  function setStatus(t, status, completed) {
+  // Blocked always carries a reason (asked for in the pop-up and the quick status menu); any other status clears it.
+  function setStatus(t, status, completed, reason) {
+    t.blockedReason = status === "Blocked" ? (reason != null ? reason : t.blockedReason || "") : "";
     if (status === "Complete" && t.status !== "Complete") setTimeout(function () { celebrateTask(t); }, 0);
     t.status = status; t.done = status === "Complete";
     if (t.done) { t.completed = completed || t.completed || todayIso(); if (!t.by) t.by = currentUser().name; if (!t.completedAt) t.completedAt = new Date().toISOString(); }
@@ -2348,7 +2361,18 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     el.style.top = top + "px"; el.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + "px";
     el.addEventListener("click", function (e) {
       var b = e.target.closest("[data-qs-pick]"); if (!b) return;
-      closeQuickStatus(); var v = b.dataset.qsPick; if (v === t.status) return;
+      var v = b.dataset.qsPick;
+      if (v === "Blocked") {
+        el.innerHTML = '<label class="qs-why" for="qs-why-in"><b>Why is it blocked?</b><textarea id="qs-why-in" rows="3" placeholder="Required"></textarea></label><div class="qs-why-acts"><button type="button" data-qs-back>Back</button><button type="button" class="qs-ok" data-qs-ok>Mark blocked</button></div>';
+        var ta = el.querySelector("textarea"); ta.value = t.status === "Blocked" ? t.blockedReason || "" : ""; ta.focus();
+        el.querySelector("[data-qs-back]").addEventListener("click", function (ev) { ev.stopPropagation(); openQuickStatus(pill); });
+        el.querySelector("[data-qs-ok]").addEventListener("click", function (ev) {
+          ev.stopPropagation(); var r = ta.value.trim(); if (!r) { ta.focus(); ta.classList.add("bad"); return; }
+          closeQuickStatus(); setStatus(t, "Blocked", "", r); save(); render(); toast("Blocked: " + t.text);
+        });
+        return;
+      }
+      closeQuickStatus(); if (v === t.status) return;
       setStatus(t, v); save(); render(); toast((v === "Complete" ? "Done" : v) + ": " + t.text);
     });
     var cur = el.querySelector('[aria-checked="true"]') || el.querySelector("button"); cur.focus({ preventScroll: true });
@@ -2363,7 +2387,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     if (pill && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.stopPropagation(); openQuickStatus(pill); return; }
     var pop = document.getElementById("qs-pop"); if (!pop) return;
     if (e.key === "Escape") { closeQuickStatus(); return; }
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); var bs = [].slice.call(pop.querySelectorAll("button")), i = bs.indexOf(document.activeElement); bs[(i + (e.key === "ArrowDown" ? 1 : bs.length - 1)) % bs.length].focus(); }
+    if ((e.key === "ArrowDown" || e.key === "ArrowUp") && document.activeElement && document.activeElement.tagName === "BUTTON") { e.preventDefault(); var bs = [].slice.call(pop.querySelectorAll("button")), i = bs.indexOf(document.activeElement); bs[(i + (e.key === "ArrowDown" ? 1 : bs.length - 1)) % bs.length].focus(); }
   }, true);
   document.addEventListener("pointerdown", function (e) { var pop = document.getElementById("qs-pop"); if (pop && !pop.contains(e.target) && !(e.target.closest && e.target.closest("[data-qs]"))) closeQuickStatus(); }, true);
   window.addEventListener("resize", closeQuickStatus);
@@ -2503,7 +2527,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         label: s.label || "", example: !!s.example, rules: s.rules ? cleanRules(s.rules) : null, created_at: new Date(s.created || Date.now()).toISOString() };
       s.tasks.concat(s.archived || []).forEach(function (t, i) {
         r.sheet_tasks[t.id] = { archived_at: arcIso(t), archived_by: t.archivedBy || "", id: t.id, sheet_id: s.id, master_task_id: nul(t.mtId), text: t.text, owner: t.owner || "", details: t.details || "", links: t.links || "", notes: "",
-          due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), position: i, supporters: t.supporters || [], optional: !!t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], importance: imp(t), optional: !!t.optional, completed_at: t.completedAt || null };
+          due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), position: i, supporters: t.supporters || [], optional: !!t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], importance: imp(t), optional: !!t.optional, completed_at: t.completedAt || null, blocked_reason: t.blockedReason || "" };
         (t.notesLog || []).forEach(function (n) {
           r.task_notes[n.id] = { id: n.id, sheet_task_id: t.id, author: n.by || "", body: n.text, created_at: new Date(n.at).toISOString() };
         });
@@ -2526,7 +2550,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     (st.projects || []).concat(st.archivedProjects || []).forEach(function (pj, pi) {
       r.projects[pj.id] = { archived_at: arcIso(pj), archived_by: pj.archivedBy || "", id: pj.id, name: pj.name, description: pj.description || "", lead: pj.lead || "", members: pj.members || [], due: nul(pj.due), position: pi, created_at: new Date(pj.created || Date.now()).toISOString() };
       pj.tasks.concat(pj.archived || []).forEach(function (t, i) {
-        r.project_tasks[t.id] = { archived_at: arcIso(t), archived_by: t.archivedBy || "", id: t.id, project_id: pj.id, text: t.text, owner: t.owner || "", due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), notes: t.notes || "", position: i, supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [], importance: imp(t), completed_at: t.completedAt || null };
+        r.project_tasks[t.id] = { archived_at: arcIso(t), archived_by: t.archivedBy || "", id: t.id, project_id: pj.id, text: t.text, owner: t.owner || "", due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), notes: t.notes || "", position: i, supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [], importance: imp(t), completed_at: t.completedAt || null, blocked_reason: t.blockedReason || "" };
       });
     });
     (st.events || []).forEach(function (e) {
@@ -2556,7 +2580,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     });
     var stx = {}; d.sheet_tasks.slice().sort(byPos).forEach(function (t) {
       (stx[t.sheet_id] = stx[t.sheet_id] || []).push({ id: t.id, mtId: t.master_task_id, text: t.text, owner: t.owner, details: t.details, links: t.links, notes: "",
-        due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, supporters: t.supporters || [], notesLog: notes[t.id] || [], optional: t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "", optional: !!t.optional, importance: t.importance || "", completedAt: t.completed_at || "" });
+        due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, blockedReason: t.blocked_reason || "", supporters: t.supporters || [], notesLog: notes[t.id] || [], optional: t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "", optional: !!t.optional, importance: t.importance || "", completedAt: t.completed_at || "" });
     });
     st.sheets = d.sheets.map(function (s) {
       return { id: s.id, masterId: s.master_id, masterName: s.master_name, gameInfo: s.game_info, opponent: s.opponent, date: s.date || "", label: s.label,
@@ -2570,7 +2594,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     st.reacts = (d.message_reactions || []).map(function (x) { return { id: x.id, msgId: x.message_id, convoId: x.conversation_id, personId: x.person_id, emoji: x.emoji, at: Date.parse(x.created_at) }; });
     st.reads = {}; (d.conversation_reads || []).forEach(function (x) { st.reads[x.conversation_id] = Date.parse(x.last_read); });
     var ptx = {}; (d.project_tasks || []).slice().sort(byPos).forEach(function (t) {
-      (ptx[t.project_id] = ptx[t.project_id] || []).push({ id: t.id, text: t.text, owner: t.owner, due: t.due || "", status: t.status, done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, notes: t.notes || "", supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "", importance: t.importance || "", completedAt: t.completed_at || "" });
+      (ptx[t.project_id] = ptx[t.project_id] || []).push({ id: t.id, text: t.text, owner: t.owner, due: t.due || "", status: t.status, blockedReason: t.blocked_reason || "", done: t.status === "Complete", completed: t.completed || "", by: t.done_by || undefined, notes: t.notes || "", supporters: t.supporters || [], subtasks: t.subtasks || [], files: t.files || [], archivedAt: arcMs(t), archivedBy: t.archived_by || "", importance: t.importance || "", completedAt: t.completed_at || "" });
     });
     st.projects = (d.projects || []).slice().sort(byPos).map(function (x) {
       var all = ptx[x.id] || [];
@@ -3165,6 +3189,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Marking a task Blocked now asks why, and a reason is required (in the task pop-up and the quick status menu). The reason shows on the task, and admins can see every reason in the Status log (new Blocked reasons filter) and in each task's History. Blocked and On Hold moved below the status track, on the right."],
     ["2026-10-23", "Task pop-ups: Blocked and On Hold now sit to the right of the status track."],
     ["2026-10-23", "Quick status: tap the status pill on any task in a list (sheets, projects, Home) to pick Not Started, In Progress, Blocked, On Hold or Done without opening the task."],
     ["2026-10-23", "Task pop-ups: Status, Owner, Due and Completed are now tidy rows. Status is a progress track (Not Started, In Progress, Done) with Blocked and On Hold beside it, Due says how far off it is, and Completed fills itself in when you mark the task done."],
@@ -3540,9 +3565,11 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       if (!first) {
         var own = (t.owner || "").trim();
         if (own && (!was || own.toLowerCase() !== was.owner.toLowerCase())) log.unshift(Object.assign({ event: "assigned", owner: own, from: null, to: t.status }, base));
-        if (was ? was.status !== t.status : t.status !== "Not Started") log.unshift(Object.assign({ event: "status", owner: own, from: was ? was.status : null, to: t.status }, base));
+        var why = t.status === "Blocked" ? t.blockedReason || "" : "";
+        if (was ? was.status !== t.status : t.status !== "Not Started") log.unshift(Object.assign({ event: "status", owner: own, from: was ? was.status : null, to: t.status, note: why }, base));
+        else if (was && why && why !== was.why) log.unshift(Object.assign({ event: "reason", owner: own, from: "Blocked", to: "Blocked", note: why }, base));
       }
-      demoSeen[t.id] = { owner: (t.owner || "").trim(), status: t.status };
+      demoSeen[t.id] = { owner: (t.owner || "").trim(), status: t.status, why: t.status === "Blocked" ? t.blockedReason || "" : "" };
     });
     if (log.length > 3000) log.length = 3000;
   }
@@ -3553,13 +3580,14 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     if (taskId) q = q.eq("task_id", taskId);
     return q.then(function (r) {
       if (r.error) throw r.error;
-      return (r.data || []).map(function (x) { return { taskId: x.task_id, kind: x.kind, parentId: x.parent_id, text: x.task_text, event: x.event || "status", owner: x.owner || "", from: x.from_status, to: x.to_status, by: x.changed_by || "", at: x.changed_at }; });
+      return (r.data || []).map(function (x) { return { taskId: x.task_id, kind: x.kind, parentId: x.parent_id, text: x.task_text, event: x.event || "status", owner: x.owner || "", from: x.from_status, to: x.to_status, note: x.note || "", by: x.changed_by || "", at: x.changed_at }; });
     });
   }
   function logLine(x) {
-    var who = x.by ? esc(x.by) : "Someone";
+    var who = x.by ? esc(x.by) : "Someone", why = x.note ? '<span class="log-why">“' + esc(x.note) + "”</span>" : "";
     return x.event === "assigned" ? who + " assigned it to <b>" + esc(x.owner) + "</b>"
-      : who + " changed it " + (x.from ? "from " + esc(x.from) + " " : "") + "to <b>" + esc(x.to) + "</b>";
+      : x.event === "reason" ? who + " updated why it's <b>Blocked</b>" + why
+      : who + " changed it " + (x.from ? "from " + esc(x.from) + " " : "") + "to <b>" + esc(x.to) + "</b>" + why;
   }
   // The History section in a task pop-up (admins only).
   function historyHtml() { return isAdmin() ? '<details class="task-hist"><summary>History</summary><div class="th-body muted small">Loading…</div></details>' : ""; }
@@ -3640,13 +3668,13 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
   function statusLogModal() {
     openModal('<h1>Status log</h1><p class="muted small" style="margin:0">Every status change and assignment on game sheets and projects, newest first. Recorded from Oct 17, 2026 on.</p>' +
-      '<input type="search" id="dl-q" placeholder="Search by task, person, status or place" aria-label="Search the status log">' +
+      '<div class="row"><input type="search" id="dl-q" placeholder="Search by task, person, status, reason or place" aria-label="Search the status log" style="flex:1;min-width:0"><button type="button" class="chip-btn" id="dl-blocked" aria-pressed="false">Blocked reasons</button></div>' +
       '<div id="dl-list" class="muted small">Loading…</div><div class="row" style="justify-content:flex-end"><button class="btn" data-close>Close</button></div>',
       function (el) {
-        var rows = [], box = el.querySelector("#dl-list");
+        var rows = [], box = el.querySelector("#dl-list"), onlyBlocked = false;
         function draw(q) {
           q = (q || "").trim().toLowerCase();
-          var shown = rows.filter(function (x) { return !q || [x.text, x.by, x.owner, x.from, x.to, placeName(x.kind, x.parentId)].join(" ").toLowerCase().indexOf(q) >= 0; }).slice(0, 400);
+          var shown = rows.filter(function (x) { return (!onlyBlocked || (x.to === "Blocked" && x.event !== "assigned")) && (!q || [x.text, x.by, x.owner, x.from, x.to, x.note, placeName(x.kind, x.parentId)].join(" ").toLowerCase().indexOf(q) >= 0); }).slice(0, 400);
           box.classList.remove("muted", "small");
           box.innerHTML = shown.length ? '<ul class="tasks done-log">' + shown.map(function (x) {
             return '<li><div class="dl-row"><span class="txt"><b>' + esc(x.text) + '</b></span><span class="small">' + logLine(x) + '</span><span class="muted small">' + esc(fmtStamp(x.at)) + " · " + esc(placeName(x.kind, x.parentId)) + "</span></div></li>";
@@ -3654,6 +3682,8 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         }
         loadLog().then(function (r) { rows = r; draw(""); }).catch(function () { box.textContent = "Couldn't load the log just now."; });
         el.querySelector("#dl-q").addEventListener("input", function (e) { draw(e.target.value); });
+        var bb = el.querySelector("#dl-blocked");
+        bb.addEventListener("click", function () { onlyBlocked = !onlyBlocked; bb.setAttribute("aria-pressed", String(onlyBlocked)); draw(el.querySelector("#dl-q").value); });
       });
   }
 
@@ -4186,7 +4216,10 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       '<div class="prop prop-st"><span class="prop-k" id="' + p + '-st-k">Status</span><div class="st-wrap" role="radiogroup" aria-labelledby="' + p + '-st-k"><div class="st-track">' + ST_STEPS.map(function (x, i) {
         return '<button type="button" role="radio" class="st-step" data-st="' + esc(x) + '" data-i="' + i + '" aria-checked="' + (x === t.status) + '"><span class="st-dot" aria-hidden="true">' + (i + 1) + '</span><span class="st-lbl">' + esc(x === "Complete" ? "Done" : x) + "</span></button>"; }).join("") +
       '</div><div class="st-side">' + ["Blocked", "On Hold"].map(function (x) { return '<button type="button" role="radio" class="st-flag ' + ST_CLS[x] + '" data-st="' + x + '" aria-checked="' + (x === t.status) + '">' + x + "</button>"; }).join("") +
-      '</div></div><select id="' + p + '-status" hidden aria-hidden="true" tabindex="-1">' + STATUSES.map(function (x) { return "<option" + (x === t.status ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></div>" +
+      '</div>' + '<div class="st-why" id="' + p + '-why"' + (t.status === "Blocked" ? "" : " hidden") + '><b>Blocked:</b> <span class="st-why-t">' + esc(t.blockedReason || "No reason given") + '</span> <button type="button" class="linkish" data-why-edit>Change</button></div>' +
+      '<div class="st-ask" id="' + p + '-ask" hidden><label for="' + p + '-why-in">Why is it blocked? <span class="muted small">Required. Admins can see every reason in the status log.</span></label><textarea id="' + p + '-why-in" rows="2" placeholder="e.g. Waiting on the field office to confirm"></textarea>' +
+      '<div class="st-ask-msg" role="alert" hidden>Type a reason first.</div><div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-why-cancel>Cancel</button><button type="button" class="btn primary" data-why-ok>Mark blocked</button></div></div>' +
+      '<input type="hidden" id="' + p + '-breason" value="' + esc(t.blockedReason || "") + '"></div><select id="' + p + '-status" hidden aria-hidden="true" tabindex="-1">' + STATUSES.map(function (x) { return "<option" + (x === t.status ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></div>" +
       ownerHtml +
       '<div class="prop-due">' + fld("Due", p + "-due", t.due, dueEdit, "date") + '<span class="prop-hint muted small" id="' + p + '-rel">' + esc(rel()) + "</span></div>" +
       '<div class="prop-comp">' + fld("Completed", p + "-completed", t.completed, compEdit, "date") + '<span class="prop-hint muted small" id="' + p + '-comp-hint"' + (t.completed ? " hidden" : "") + ">Fills in when you mark it done</span></div></div>";
@@ -4201,13 +4234,26 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   function wireProps(el, p) {
     var sel = el.querySelector("#" + p + "-status"), comp = el.querySelector("#" + p + "-completed"), due = el.querySelector("#" + p + "-due"), hint = el.querySelector("#" + p + "-comp-hint");
     function compShow() { var ro = el.querySelector(".prop-comp .ro"), has = comp ? !!comp.value : !!(ro && !ro.querySelector(".muted")); if (ro) ro.hidden = !has; if (comp) comp.closest(".field").classList.toggle("is-blank", !comp.value); if (hint) hint.hidden = has; }
+    var ask = el.querySelector("#" + p + "-ask"), why = el.querySelector("#" + p + "-why"), whyIn = el.querySelector("#" + p + "-why-in"), br = el.querySelector("#" + p + "-breason");
+    function setTo(v) {
+      sel.value = v; paintTrack(el, v); why.hidden = v !== "Blocked"; ask.hidden = true;
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+      setTimeout(compShow, 0);
+    }
+    function askWhy() { ask.hidden = false; why.hidden = true; ask.querySelector(".st-ask-msg").hidden = true; whyIn.value = sel.value === "Blocked" ? br.value : ""; whyIn.focus(); }
     el.querySelectorAll("[data-st]").forEach(function (b) {
       b.addEventListener("click", function () {
+        if (b.dataset.st === "Blocked") { askWhy(); return; }
         if (sel.value === b.dataset.st) return;
-        sel.value = b.dataset.st; paintTrack(el, sel.value);
-        sel.dispatchEvent(new Event("change", { bubbles: true }));
-        setTimeout(compShow, 0);
+        setTo(b.dataset.st);
       });
+    });
+    el.querySelector("[data-why-edit]").addEventListener("click", askWhy);
+    ask.querySelector("[data-why-cancel]").addEventListener("click", function () { ask.hidden = true; why.hidden = sel.value !== "Blocked"; });
+    ask.querySelector("[data-why-ok]").addEventListener("click", function () {
+      var v = whyIn.value.trim(); if (!v) { ask.querySelector(".st-ask-msg").hidden = false; whyIn.focus(); return; }
+      br.value = v; why.querySelector(".st-why-t").textContent = v;
+      if (sel.value === "Blocked") { why.hidden = false; ask.hidden = true; sel.dispatchEvent(new Event("change", { bubbles: true })); } else setTo("Blocked");
     });
     paintTrack(el, sel.value);
     if (comp) comp.addEventListener("change", compShow);
@@ -4741,7 +4787,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
           }
           var cf = el.querySelector("#tk-confirm"); if (cf) t.confirmation = cf.value.trim();
           if (canSup) t.supporters = sup.filter(function (n) { return n.toLowerCase() !== (t.owner || "").toLowerCase(); });
-          setStatus(t, st.value, comp ? comp.value : "");
+          setStatus(t, st.value, comp ? comp.value : "", el.querySelector("#tk-breason").value);
           save(); render();
         }, ["tk-note-new", "tk-sup"].concat(workSkip("tk")));
       });
@@ -6068,7 +6114,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
           }
           if (isAdmin()) prioRead(el, "pk", t);
           t.notes = el.querySelector("#pk-notes").value.trim();
-          setStatus(t, st.value, comp.value); save(); render();
+          setStatus(t, st.value, comp.value, el.querySelector("#pk-breason").value); save(); render();
         }, ["pk-sup"].concat(workSkip("pk")));
       });
   }
