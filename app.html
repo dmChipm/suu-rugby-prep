@@ -3082,6 +3082,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "On Home, the Agenda tab is now called My agenda."],
     ["2026-10-23", "The Calendar tab is now called Home, since it holds your tasks as well as the team schedule. Its Agenda and Calendar views are unchanged."],
     ["2026-10-23", "My Tasks now lives in the Calendar's Agenda (Just mine): an Overdue section at the top, your tasks by day, and a No due date section at the bottom. The Your tasks card is gone."],
     ["2026-10-23", "My Tasks is now part of the Calendar: a Your tasks card at the top shows a % done ring, your open, overdue and this-week counts and a 7-day strip of what's due. Tap it for the full list grouped by game and project. The My Tasks tab is gone."],
@@ -6346,7 +6347,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       kebab("cal-menu", [["cal-subscribe", "Add to my calendar app"]], true) + "</div>";
     h += '<div class="cal-bar-top"><div class="cal-nav"><button type="button" class="icon-btn" data-act="cal-prev" aria-label="Previous ' + unit + '">' + chev("M15 18l-6-6 6-6") + "</button>" +
       '<div class="cal-month" aria-live="polite">' + esc(title) + '</div><button type="button" class="icon-btn" data-act="cal-next" aria-label="Next ' + unit + '">' + chev("M9 18l6-6-6-6") + "</button></div>" +
-      '<div class="cal-tabs" role="tablist" aria-label="Calendar layout"><button type="button" role="tab" data-act="cal-mode" data-mode="agenda" aria-selected="' + (mode === "agenda") + '">Agenda</button>' +
+      '<div class="cal-tabs" role="tablist" aria-label="Calendar layout"><button type="button" role="tab" data-act="cal-mode" data-mode="agenda" aria-selected="' + (mode === "agenda") + '">My agenda</button>' +
       '<button type="button" role="tab" data-act="cal-mode" data-mode="' + grid + '" aria-selected="' + (mode !== "agenda") + '">Calendar</button></div>' +
       '<div class="cal-tools"><div class="seg" role="group" aria-label="Whose tasks"><button type="button" data-act="cal-who" data-who="all" aria-pressed="' + !mine + '">Everyone</button><button type="button" data-act="cal-who" data-who="mine" aria-pressed="' + mine + '">Just mine</button></div>' +
       '<button type="button" class="btn" data-act="cal-today">Today</button>' +
