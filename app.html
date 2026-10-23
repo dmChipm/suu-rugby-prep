@@ -151,6 +151,40 @@ table.grid tr.is-done .tname { color: var(--muted); text-decoration: line-throug
 table.grid .tname { font-weight: 600; min-width: 180px; }
 table.grid .nowrap { white-space: nowrap; font-variant-numeric: tabular-nums; }
 table.grid .clip { max-width: 200px; overflow-wrap: anywhere; display: table-cell; }
+.props { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; padding: 2px 14px; background: var(--surface); }
+.props > .prop, .props > .field, .props > .prop-due, .props > .prop-comp { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 4px 12px; padding: 10px 0; }
+.props > * + * { border-top: 1px solid var(--line); }
+.props .prop-due > .field, .props .prop-comp > .field { display: contents; }
+.props .prop-k, .props > .field > label, .props > .field > span, .props .prop-due .field, .props .prop-comp .field { font-size: .85rem; font-weight: 700; color: var(--muted); }
+.props .prop-due input, .props .prop-comp input, .props > .field .combo, .props .ro { color: var(--ink); font-weight: 600; font-size: 1rem; }
+.props .ro { padding: 0; border: 0; background: none; }
+.props .prop-hint { grid-column: 2; margin-top: -2px; font-weight: 400; }
+.props .prop-comp .field.is-blank input { display: none; }
+.st-wrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.st-track { display: flex; align-items: flex-start; }
+.st-step { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 0; font: inherit; cursor: pointer; color: var(--muted); }
+.st-step + .st-step::before { content: ""; position: absolute; top: 12px; right: 50%; width: 100%; height: 3px; margin-right: 14px; background: var(--line); border-radius: 2px; }
+.st-step + .st-step { margin-left: 0; }
+.st-step + .st-step::before { width: calc(100% - 28px); }
+.st-step.past::before, .st-step.now::before { background: var(--red); }
+.st-step:first-child::before { display: none; }
+.st-dot { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: .8rem; font-weight: 800; background: var(--surface); color: var(--muted); transition: background .15s, border-color .15s; }
+.st-step.past .st-dot { background: var(--red); border-color: var(--red); color: #fff; }
+.st-step.now .st-dot { border-color: var(--red); color: var(--red); }
+.st-wrap[data-status="st-done"] .st-step .st-dot { background: var(--done); border-color: var(--done); color: #fff; }
+.st-wrap[data-status="st-done"] .st-step::before { background: var(--done); }
+.st-wrap[data-status="st-blocked"] .st-step.now .st-dot, .st-wrap[data-status="st-hold"] .st-step.now .st-dot { border-style: dashed; }
+.st-lbl { font-size: .78rem; font-weight: 700; text-align: center; line-height: 1.15; }
+.st-step.now .st-lbl, .st-step[aria-checked="true"] .st-lbl { color: var(--ink); }
+.st-step:hover .st-dot { border-color: var(--ink); }
+.st-side { display: flex; gap: 6px; flex-wrap: wrap; }
+.st-flag { border: 1px dashed var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 3px 11px; font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; }
+.st-flag[aria-checked="false"] { background: transparent; }
+.st-flag[aria-checked="true"] { border-style: solid; border-color: transparent; }
+.st-flag.st-blocked[aria-checked="true"] { background: var(--red); color: var(--red-ink); }
+.st-flag.st-hold[aria-checked="true"] { background: var(--hold-soft); color: var(--hold); }
+.st-flag:hover { border-color: var(--ink); color: var(--ink); }
+@media (max-width: 420px) { .props > .prop, .props > .field, .props > .prop-due, .props > .prop-comp { grid-template-columns: 1fr; } .props .prop-hint { grid-column: 1; } }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
 textarea { width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font: inherit; color: inherit; resize: vertical; }
 div.field { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: .9rem; }
@@ -3082,6 +3116,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Task pop-ups: Status, Owner, Due and Completed are now tidy rows. Status is a progress track (Not Started, In Progress, Done) with Blocked and On Hold beside it, Due says how far off it is, and Completed fills itself in when you mark the task done."],
     ["2026-10-23", "On Home, the switch now reads Just mine, then Everyone."],
     ["2026-10-23", "On Home, the Month / Week / 3 days / Day menu only shows while Calendar is picked; My agenda doesn't need it."],
     ["2026-10-23", "On Home, the Agenda tab is now called My agenda."],
@@ -4089,6 +4124,45 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // ---------- task editor ----------
   // Owner picker: type to filter people, or open the full list with the arrow.
+  // The task pop-up's basics as label / value rows: Status as one-tap chips (a hidden select keeps the old wiring), Owner,
+  // Due with how far off it is, and Completed, which fills itself in when the task is marked Complete.
+  var ST_STEPS = ["Not Started", "In Progress", "Complete"];
+  var ST_CLS = { "Not Started": "st-ns", "In Progress": "st-ip", "Blocked": "st-blocked", "On Hold": "st-hold", "Complete": "st-done" };
+  function dueFromNow(iso) { if (!iso) return ""; var n = daysBetween(todayIso(), iso); return n === 0 ? "today" : n === 1 ? "tomorrow" : n === -1 ? "yesterday" : n > 0 ? "in " + n + " days" : -n + " days ago"; }
+  function propsBlock(p, t, ownerHtml, dueEdit, compEdit, gameRel) {
+    var rel = function () { return [dueFromNow(t.due), gameRel].filter(Boolean).join(" · "); };
+    return '<div class="props">' +
+      '<div class="prop prop-st"><span class="prop-k" id="' + p + '-st-k">Status</span><div class="st-wrap" role="radiogroup" aria-labelledby="' + p + '-st-k"><div class="st-track">' + ST_STEPS.map(function (x, i) {
+        return '<button type="button" role="radio" class="st-step" data-st="' + esc(x) + '" data-i="' + i + '" aria-checked="' + (x === t.status) + '"><span class="st-dot" aria-hidden="true">' + (i + 1) + '</span><span class="st-lbl">' + esc(x === "Complete" ? "Done" : x) + "</span></button>"; }).join("") +
+      '</div><div class="st-side">' + ["Blocked", "On Hold"].map(function (x) { return '<button type="button" role="radio" class="st-flag ' + ST_CLS[x] + '" data-st="' + x + '" aria-checked="' + (x === t.status) + '">' + x + "</button>"; }).join("") +
+      '</div></div><select id="' + p + '-status" hidden aria-hidden="true" tabindex="-1">' + STATUSES.map(function (x) { return "<option" + (x === t.status ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></div>" +
+      ownerHtml +
+      '<div class="prop-due">' + fld("Due", p + "-due", t.due, dueEdit, "date") + '<span class="prop-hint muted small" id="' + p + '-rel">' + esc(rel()) + "</span></div>" +
+      '<div class="prop-comp">' + fld("Completed", p + "-completed", t.completed, compEdit, "date") + '<span class="prop-hint muted small" id="' + p + '-comp-hint"' + (t.completed ? " hidden" : "") + ">Fills in when you mark it done</span></div></div>";
+  }
+  // Steps before the current one are filled in; Blocked and On Hold sit at step 2 with their side flag lit.
+  function paintTrack(el, status) {
+    var cur = status === "Complete" ? 2 : status === "Not Started" ? 0 : 1, wrap = el.querySelector(".st-wrap"); if (!wrap) return;
+    wrap.dataset.status = ST_CLS[status] || "st-ns";
+    el.querySelectorAll(".st-step").forEach(function (b) { var i = +b.dataset.i; b.classList.toggle("past", i < cur || status === "Complete"); b.classList.toggle("now", i === cur); b.querySelector(".st-dot").textContent = i < cur || status === "Complete" ? "✓" : i + 1; });
+    el.querySelectorAll("[data-st]").forEach(function (x) { x.setAttribute("aria-checked", String(x.dataset.st === status)); });
+  }
+  function wireProps(el, p) {
+    var sel = el.querySelector("#" + p + "-status"), comp = el.querySelector("#" + p + "-completed"), due = el.querySelector("#" + p + "-due"), hint = el.querySelector("#" + p + "-comp-hint");
+    function compShow() { var ro = el.querySelector(".prop-comp .ro"), has = comp ? !!comp.value : !!(ro && !ro.querySelector(".muted")); if (ro) ro.hidden = !has; if (comp) comp.closest(".field").classList.toggle("is-blank", !comp.value); if (hint) hint.hidden = has; }
+    el.querySelectorAll("[data-st]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (sel.value === b.dataset.st) return;
+        sel.value = b.dataset.st; paintTrack(el, sel.value);
+        sel.dispatchEvent(new Event("change", { bubbles: true }));
+        setTimeout(compShow, 0);
+      });
+    });
+    paintTrack(el, sel.value);
+    if (comp) comp.addEventListener("change", compShow);
+    if (due) due.addEventListener("change", function () { var r = el.querySelector("#" + p + "-rel"); if (r) r.textContent = dueFromNow(due.value); });
+    compShow();
+  }
   function ownerCombo(id, value) {
     return '<div class="field"><label for="' + id + '">Owner</label><div class="combo"><input type="text" id="' + id + '" value="' + esc(value) +
       '" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="' + id + '-list" placeholder="Type a name or pick from the list">' +
@@ -4544,14 +4618,11 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
   function sheetTaskModal(s, t) {
     var admin = isAdmin();
-    var statusSel = '<label class="field">Status<select id="tk-status">' + STATUSES.map(function (x) { return "<option" + (x === t.status ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></label>";
     var mt = masterTaskOf(s, t), canSup = admin || isMine(t), sup = (t.supporters || []).slice();
     function howSec() { return refBlock(howTo(s, t), linkList(linksOf(s, t)), mt && admin ? "From the " + s.masterName + " template, so edits here update every sheet made from it." : "", admin); }
     openModal(taskHead(t) + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") + '<form style="display:flex;flex-direction:column;gap:12px">' +
       (admin ? fld("Task", "tk-text", t.text, true) : "") +
-      '<div class="grid2">' + statusSel + (admin ? ownerCombo("tk-owner", t.owner) : fld("Owner", "", t.owner, false)) +
-      fld("Due Date", "tk-due", t.due, admin, "date") + fld("Date Completed", "tk-completed", t.completed, admin, "date") + "</div>" +
-      (t.due && s.date ? '<div class="muted small tk-hint" id="tk-rel">Due ' + esc(dueOffsetText(daysBetween(t.due, s.date), s)) + " (" + esc(fmtDate(s.date)) + ")</div>" : "") +
+      propsBlock("tk", t, admin ? ownerCombo("tk-owner", t.owner) : fld("Owner", "", t.owner, false), admin, admin, t.due && s.date ? dueOffsetText(daysBetween(t.due, s.date), s) : "") +
       doneLine(t) +
       prioField("tk", t, admin, "doesn't count toward this sheet's progress") +
       supportersField("tk-sup", t.supporters || [], canSup) +
@@ -4565,6 +4636,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       taskFoot(admin ? "tk" : "", admin) + "</form>",
       function (el) {
         var st = el.querySelector("#tk-status"), comp = el.querySelector("#tk-completed");
+        wireProps(el, "tk");
         if (admin) attachCombo(el, "tk-owner");
         // Template tasks keep instructions and links on the template, so an edit here reaches every sheet made from it.
         var hs = el.querySelector("#tk-how"), src = mt || t;
@@ -5915,12 +5987,10 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
   function projectTaskModal(pj, t) {
     var mgr = canManageProject(pj), canWork = mgr || isMine(t) || isSupporting(t), psup = (t.supporters || []).slice(), pool = projectPool(pj);
-    var statusSel = '<label class="field">Status<select id="pk-status">' + STATUSES.map(function (x) { return "<option" + (x === t.status ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></label>";
     openModal(taskHead(t) + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") +
       '<div class="muted small">' + esc(pj.name) + '</div><form style="display:flex;flex-direction:column;gap:12px">' +
       (mgr ? fld("Task", "pk-text", t.text, true) : "") +
-      '<div class="grid2">' + statusSel + (mgr ? ownerCombo("pk-owner", t.owner) : fld("Owner", "", t.owner, false)) +
-      fld("Due Date", "pk-due", t.due, mgr, "date") + fld("Date Completed", "pk-completed", t.completed, true, "date") + "</div>" +
+      propsBlock("pk", t, mgr ? ownerCombo("pk-owner", t.owner) : fld("Owner", "", t.owner, false), mgr, true, "") +
       doneLine(t) +
       prioField("pk", t, isAdmin(), "doesn't count toward the project's progress") +
       supportersField("pk-sup", t.supporters || [], mgr) +
@@ -5930,6 +6000,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       taskFoot(mgr ? "pk" : "", isAdmin()) + "</form>",
       function (el) {
         var st = el.querySelector("#pk-status"), comp = el.querySelector("#pk-completed");
+        wireProps(el, "pk");
         wireCancel(el, [t]);
         if (mgr) attachCombo(el, "pk-owner", pool ? { people: pool, emptyText: POOL_EMPTY } : null);
         st.addEventListener("change", function () { if (st.value === "Complete" && !comp.value) comp.value = todayIso(); if (st.value !== "Complete") comp.value = ""; });
