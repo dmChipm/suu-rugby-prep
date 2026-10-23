@@ -989,7 +989,8 @@ table.a-grid td:first-child { min-width: 170px; }
 .sub-num { flex: none; width: 22px; height: 22px; border-radius: 999px; display: grid; place-items: center; background: var(--red-soft); color: var(--red); font-size: .75rem; font-weight: 800; margin-top: 1px; }
 .drag-handle { flex: none; align-self: center; display: grid; place-items: center; width: 28px; height: 36px; margin-left: -6px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: grab; touch-action: none; }
 .drag-handle:hover, .drag-handle:focus-visible { background: var(--red-soft); color: var(--ink); }
-.dragging { position: relative; z-index: 3; background: var(--surface); box-shadow: 0 8px 22px rgba(20, 8, 10, .22); border-radius: 10px; }
+.sorting { position: relative; }
+.dragging { position: relative; z-index: 3; background: var(--surface); box-shadow: 0 10px 26px rgba(20, 8, 10, .28); border-radius: 10px; will-change: transform; }
 html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
 .sub-move { display: flex; flex: none; }
 .sub-move .icon-btn { width: 28px; height: 28px; }
@@ -2968,6 +2969,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Dragging to reorder is easier to follow: the item you grab moves with your finger and the others slide out of the way as you go."],
     ["2026-10-23", "Template tasks and their subtasks are reordered by dragging: grab the dotted handle on the left and drop the item where you want it. The up and down arrows are gone."],
     ["2026-10-23", "On a template task, the follow-up setting now sits right under Owner and Due Date, with the days-before box just below its checkbox."],
     ["2026-10-22", "Task pop-ups have a Cancel button next to Done. Changes still save as you go, but Cancel puts the task back the way it was when you opened it."],
@@ -3824,22 +3826,43 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     if (!ul || !ul.hasAttribute("data-sortable") || e.button > 0) return;
     e.preventDefault();
     var from = sortItems(ul).indexOf(li), scroller = ul.closest(".modal") || document.scrollingElement, tick = null, lastY = e.clientY;
-    li.classList.add("dragging"); document.documentElement.classList.add("is-dragging");
-    // Listen on the window: moving the item in the page drops pointer capture on its handle.
-    function place(y) {
-      var list = sortItems(ul), before = null;
-      for (var k = 0; k < list.length; k++) { if (list[k] === li) continue; var r = list[k].getBoundingClientRect(); if (y < r.top + r.height / 2) { before = list[k]; break; } }
-      if (before) { if (before !== li.nextElementSibling) ul.insertBefore(li, before); }
-      else { var last = list[list.length - 1]; if (last !== li) last.after(li); }
+    var grab = e.clientY - li.getBoundingClientRect().top, half = li.offsetHeight / 2, done = false;
+    ul.classList.add("sorting"); li.classList.add("dragging"); document.documentElement.classList.add("is-dragging");
+    // Where the item would sit with no drag offset, in screen terms (offsetTop ignores transforms).
+    function slotTop() { return ul.getBoundingClientRect().top + li.offsetTop; }
+    // The dragged item stays under your finger; it's lifted slightly so it reads as picked up.
+    function follow() { li.style.transform = "translateY(" + (lastY - grab - slotTop()) + "px) scale(1.02)"; }
+    // The others slide into their new places: note where each sat, move the dragged item in the list, then animate each from old to new.
+    function place() {
+      var list = sortItems(ul), y = lastY - grab + half, before = null;
+      for (var k = 0; k < list.length; k++) { if (list[k] === li) continue; if (y < ul.getBoundingClientRect().top + list[k].offsetTop + list[k].offsetHeight / 2) { before = list[k]; break; } }
+      var last = list[list.length - 1];
+      if (before ? before === li.nextElementSibling : last === li) return;
+      var old = list.map(function (x) { return x.offsetTop; });
+      if (before) ul.insertBefore(li, before); else last.after(li);
+      list.forEach(function (x, i) {
+        if (x === li) return;
+        var d = old[i] - x.offsetTop; if (!d) return;
+        x.style.transition = "none"; x.style.transform = "translateY(" + d + "px)";
+        x.getBoundingClientRect(); // apply the jump before animating back
+        x.style.transition = "transform .18s ease"; x.style.transform = "";
+      });
     }
     // Near the top or bottom edge, keep scrolling so a long list can be dragged end to end.
-    function edge() { var d = lastY < 70 ? -12 : lastY > window.innerHeight - 70 ? 12 : 0; if (d) { scroller.scrollTop += d; place(lastY); } }
-    function move(ev) { lastY = ev.clientY; place(lastY); }
+    function edge() { var d = lastY < 70 ? -12 : lastY > window.innerHeight - 70 ? 12 : 0; if (d) { scroller.scrollTop += d; place(); follow(); } }
+    function move(ev) { lastY = ev.clientY; place(); follow(); }
     function up() {
+      if (done) return; done = true;
       clearInterval(tick); window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up);
-      li.classList.remove("dragging"); document.documentElement.classList.remove("is-dragging");
-      sortDone(ul, from, sortItems(ul).indexOf(li), li.dataset.sortId);
+      // Settle into the gap, then save the new order.
+      li.style.transition = "transform .15s ease"; li.style.transform = "";
+      setTimeout(function () {
+        ul.classList.remove("sorting"); li.classList.remove("dragging"); document.documentElement.classList.remove("is-dragging");
+        sortItems(ul).forEach(function (x) { x.style.transition = ""; x.style.transform = ""; });
+        sortDone(ul, from, sortItems(ul).indexOf(li), li.dataset.sortId);
+      }, 160);
     }
+    follow();
     tick = setInterval(edge, 30);
     window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
   });
