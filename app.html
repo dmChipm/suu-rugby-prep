@@ -1136,7 +1136,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   </div>
   <nav class="tabs" role="tablist">
     <button id="tab-messages" role="tab" data-tab="messages">Messages<span class="badge" id="msg-badge" hidden></span></button>
-    <button id="tab-calendar" role="tab" data-tab="calendar">Calendar</button>
+    <button id="tab-calendar" role="tab" data-tab="calendar">Home</button>
     <button id="tab-sheets" role="tab" data-tab="sheets">Game Prep &amp; Projects</button>
     <button id="tab-projects" role="tab" data-tab="projects" hidden>Projects</button>
     <button id="tab-people" role="tab" data-tab="people">People</button>
@@ -3082,6 +3082,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "The Calendar tab is now called Home, since it holds your tasks as well as the team schedule. Its Agenda and Calendar views are unchanged."],
     ["2026-10-23", "My Tasks now lives in the Calendar's Agenda (Just mine): an Overdue section at the top, your tasks by day, and a No due date section at the bottom. The Your tasks card is gone."],
     ["2026-10-23", "My Tasks is now part of the Calendar: a Your tasks card at the top shows a % done ring, your open, overdue and this-week counts and a 7-day strip of what's due. Tap it for the full list grouped by game and project. The My Tasks tab is gone."],
     ["2026-10-23", "The Calendar opens on the Agenda list again, and the Agenda tab now comes first."],
@@ -6338,7 +6339,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     var grid = view.calGrid || "month";
     var modeLabel = CAL_MODES.filter(function (x) { return x[0] === (mode === "agenda" ? grid : mode); })[0][1];
     // Agenda / Calendar tabs sit under the date; the Month, Week, 3 days, Day menu stays top right and opens the calendar in that layout.
-    var h = '<h1 class="sr-only">Calendar</h1>' + pushNudgeHtml() + '<div class="cal-corner">' +
+    var h = '<h1 class="sr-only">Home</h1>' + pushNudgeHtml() + '<div class="cal-corner">' +
       ('<div class="menu-wrap"><button class="kebab cal-mode-btn" id="cal-mode" aria-label="Calendar view: ' + esc(modeLabel) + '" aria-haspopup="true" aria-expanded="false" data-menu="cal-mode">' + esc(modeLabel) +
       ' <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>' +
       '<div class="menu" role="menu" id="cal-mode-items" hidden>' + CAL_MODES.filter(function (x) { return x[0] !== "agenda"; }).map(function (x) { return '<button role="menuitemradio" aria-checked="' + (x[0] === mode) + '" data-act="cal-mode" data-mode="' + x[0] + '">' + (x[0] === mode ? "✓ " : "") + esc(x[1]) + "</button>"; }).join("") + "</div></div>") +
