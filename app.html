@@ -950,6 +950,9 @@ button.a-tile:hover, .a-grid tr[data-drill]:hover td { border-color: var(--red);
 .a-drill { max-height: 55vh; overflow: auto; }
 table.grid.a-grid { min-width: 640px; }
 .th-info { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-weight: inherit; border-radius: 6px; padding: 2px 4px; margin: -2px -4px; }
+.u-quiet { color: var(--red); font-weight: 700; }
+.a-tile .th-info { display: inline; margin: 0; padding: 0; white-space: normal; }
+.a-tile .th-info .i { vertical-align: -2px; margin-left: 2px; }
 .th-info:hover, .th-info:focus-visible, .th-info[aria-expanded=true] { background: var(--red-soft); }
 .th-info .i { font-style: normal; display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--muted); color: var(--muted); font-size: .65rem; font-weight: 800; }
 #col-info { position: fixed; z-index: 60; max-width: min(300px, calc(100vw - 16px)); padding: 10px 12px; background: var(--surface); border: 2px solid var(--ink); border-radius: 12px; box-shadow: var(--shadow); font-size: .85rem; line-height: 1.45; animation: pop .16s ease-out; }
@@ -3018,6 +3021,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Development usage stats use standard measures: active today, active this week, average daily users and stickiness, a daily active users chart with its average, and a people table with last active (red after a quiet week), days active, sessions and sessions per day."],
     ["2026-10-23", "The red header now slides up out of the way as you scroll down a page, and comes back as soon as you scroll up."],
     ["2026-10-23", "Development usage table: tap any column heading (Person, Days used, Opens and the rest) to see what it counts and the exact date range it covers."],
     ["2026-10-23", "The People page opens sorted by level (Coaches, Team Members, Volunteers)."],
@@ -3181,14 +3185,12 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   var USAGE_SINCE = "2026-10-20";
   function usageShell() {
     var d = view.usageDays || 30;
-    return '<div class="row spread"><span class="muted small">Recorded from ' + esc(fmtDate(USAGE_SINCE)) + ' on. Opens within 30 minutes of each other count once.</span><div class="seg" role="group" aria-label="Usage range">' +
+    return '<div class="row spread"><span class="muted small">Recorded from ' + esc(fmtDate(USAGE_SINCE)) + ' on. Opens within 30 minutes of each other count as one session. Tap any heading for what it means.</span><div class="seg" role="group" aria-label="Usage range">' +
       [7, 30, 90].map(function (n) { return '<button type="button" data-usage-days="' + n + '" aria-pressed="' + (d === n) + '">' + n + " days</button>"; }).join("") + "</div></div>" +
       '<div class="u-body muted small">' + (ONLINE ? "Loading usage…" : "Usage is recorded once the team uses the online app. Test mode doesn't record anything.") + "</div>";
   }
-  function wireColInfo(body, days) {
-    var today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Denver" }), start = addDays(today, -(days - 1)); if (start < USAGE_SINCE) start = USAGE_SINCE;
-    var cols = usageCols(start, today, Math.max(1, daysBetween(start, today) + 1));
-    body.querySelectorAll("[data-colinfo]").forEach(function (b) { b.addEventListener("click", function () { openColInfo(b, cols[Number(b.dataset.colinfo)][1]); }); });
+  function wireColInfo(body) {
+    body.querySelectorAll("[data-tip]").forEach(function (b) { b.addEventListener("click", function () { openColInfo(b, b.dataset.tip); }); });
   }
   function loadUsage(box) {
     if (!box) return;
@@ -3198,22 +3200,11 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     sb.rpc("app_usage", { p_days: days }).then(function (r) {
       if (r.error) throw r.error;
       body.classList.remove("muted", "small"); body.innerHTML = usageHtml(r.data || [], days);
-      wireColInfo(body, days);
+      wireColInfo(body);
     }).catch(function (e) { body.textContent = "Couldn't load usage just now" + (e && e.message ? " (" + e.message + ")" : "") + "."; });
   }
-  // What each usage table column counts, spelled out for the range being shown. Tap a header to read it.
-  function usageCols(start, today, span) {
-    var range = (span === 1 ? "today" : "the last " + span + " days") + " (" + fmtShort(start) + (start === today ? "" : " to " + fmtShort(today)) + ", Utah time" + (start === USAGE_SINCE ? "; recording started " + fmtShort(USAGE_SINCE) : "") + ")";
-    return [
-      ["Person", "Everyone who opened the app at least once in " + range + ", most opens first. The line under the name is their level."],
-      ["Days used", "How many separate days they opened the app in " + range + ", out of the " + span + (span === 1 ? " day" : " days") + " shown. Opening it five times on one day counts as one day."],
-      ["Opens", "How many times they opened the app in " + range + ". Opening it again within 30 minutes counts once, and signing in counts as an open."],
-      ["Opens a week", "Their opens turned into a weekly rate (opens × 7 ÷ " + span + "), using " + range + "." + (span < 7 ? " With fewer than 7 days recorded this is an estimate." : "")],
-      ["Sign-ins", "How many of their opens in " + range + " were a fresh sign-in with email, rather than reopening an app that was already signed in."],
-      ["Last opened", "The most recent time they opened the app, shown in Utah time."],
-      ["Usually on", "The kind of device they used for most of their opens in " + range + "."]
-    ];
-  }
+  // Each heading and tile in the usage stats carries its explanation (data-tip); tapping it shows that text in a bubble.
+  function infoBtn(label, tip) { return '<button type="button" class="th-info" data-tip-title="' + esc(label) + '" data-tip="' + esc(tip) + '" aria-expanded="false">' + esc(label) + ' <i class="i" aria-hidden="true">i</i></button>'; }
   function closeColInfo() {
     var el = document.getElementById("col-info"); if (el) el.remove();
     document.querySelectorAll(".th-info[aria-expanded=true]").forEach(function (b) { b.setAttribute("aria-expanded", "false"); });
@@ -3221,7 +3212,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   function openColInfo(b, text) {
     var was = b.getAttribute("aria-expanded") === "true"; closeColInfo(); if (was) return;
     var el = document.createElement("div"); el.id = "col-info"; el.setAttribute("role", "tooltip");
-    el.innerHTML = "<b>" + esc(b.textContent.replace(/\s*i$/, "")) + "</b>" + esc(text);
+    el.innerHTML = "<b>" + esc(b.dataset.tipTitle) + "</b>" + esc(text);
     document.body.appendChild(el); b.setAttribute("aria-expanded", "true");
     var r = b.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
     var top = r.bottom + 8; if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 8);
@@ -3231,37 +3222,55 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeColInfo(); });
   window.addEventListener("resize", closeColInfo);
   document.addEventListener("scroll", function (e) { if (document.getElementById("col-info") && !(e.target.closest && e.target.closest("#col-info"))) closeColInfo(); }, true);
+  // Standard product metrics, sized for a team: daily and weekly active users, stickiness (average daily users ÷ everyone active in the range), sessions and recency.
   function usageHtml(rows, days) {
     var dayOf = function (iso) { return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Denver" }); };
     var today = dayOf(new Date().toISOString()), start = addDays(today, -(days - 1)); if (start < USAGE_SINCE) start = USAGE_SINCE;
-    var span = Math.max(1, daysBetween(start, today) + 1), byDay = {}, per = {};
+    var span = Math.max(1, daysBetween(start, today) + 1), byDay = {}, per = {}, weekStart = addDays(today, -6), week = {};
+    var range = (span === 1 ? "today" : "the last " + span + " days") + " (" + fmtShort(start) + (start === today ? "" : " to " + fmtShort(today)) + ", Utah time" + (start === USAGE_SINCE ? "; recording started " + fmtShort(USAGE_SINCE) : "") + ")";
     rows = rows.filter(function (x) { return dayOf(x.opened_at) >= start; });
     rows.forEach(function (x) {
-      var d = dayOf(x.opened_at); (byDay[d] = byDay[d] || {})[x.person_id] = 1;
-      var p = per[x.person_id] = per[x.person_id] || { opens: 0, signins: 0, days: {}, last: "", dev: {} };
-      p.opens++; if (x.kind === "signin") p.signins++; p.days[d] = 1; if (x.opened_at > p.last) p.last = x.opened_at; p.dev[x.device || "Unknown"] = (p.dev[x.device || "Unknown"] || 0) + 1;
+      var d = dayOf(x.opened_at); (byDay[d] = byDay[d] || {})[x.person_id] = 1; if (d >= weekStart) week[x.person_id] = 1;
+      var p = per[x.person_id] = per[x.person_id] || { opens: 0, days: {}, last: "", dev: {} };
+      p.opens++; p.days[d] = 1; if (x.opened_at > p.last) p.last = x.opened_at; p.dev[x.device || "Unknown"] = (p.dev[x.device || "Unknown"] || 0) + 1;
     });
     var series = []; for (var i = 0; i < span; i++) { var dk = addDays(start, i); series.push({ d: dk, n: Object.keys(byDay[dk] || {}).length }); }
     var total = series.reduce(function (a, x) { return a + x.n; }, 0), avg = total / span, ids = Object.keys(per), peak = Math.max.apply(null, series.map(function (x) { return x.n; }).concat([1]));
+    var team = S.people.filter(function (p) { return p.status !== "Inactive"; }).length || 1, dau = Object.keys(byDay[today] || {}).length, wau = Object.keys(week).length;
+    var sticky = ids.length ? Math.round(avg / ids.length * 100) : 0, pct = function (n) { return Math.round(n / team * 100) + "%"; };
     var nameOf = function (id) { var p = byId(S.people, id); return p ? p.name : "Removed person"; }, roleOf = function (id) { var p = byId(S.people, id); return p ? p.role : ""; };
-    var h = '<div class="a-tiles">' + [[avg.toFixed(1), "people a day on average", "over " + span + (span === 1 ? " day" : " days")], [ids.length, "people opened the app", "of " + S.people.filter(function (p) { return p.status !== "Inactive"; }).length + " on the team"],
-      [rows.length, "opens", (rows.length / span).toFixed(1) + " a day"], [rows.filter(function (x) { return x.kind === "signin"; }).length, "sign-ins", "fresh logins, not reopening"]].map(function (t) {
-        return '<div class="card a-tile"><span class="a-big">' + esc(String(t[0])) + '</span><span class="a-label">' + esc(t[1]) + '</span><span class="muted small">' + esc(t[2]) + "</span></div>"; }).join("") + "</div>";
-    // People per day: one bar per day, labels on the first, middle and last day.
-    var W = 600, H = 150, bw = W / Math.max(span, 14);
-    h += '<div class="card a-chart"><h3>People using the app each day</h3><svg viewBox="0 -14 ' + W + " " + (H + 34) + '" role="img" aria-label="People using the app each day">' +
+    var tiles = [
+      [dau, "Active today", pct(dau) + " of the team", "Daily active users: people who opened the app at least once today (Utah time)."],
+      [wau, "Active this week", pct(wau) + " of the team", "Weekly active users: people who opened the app at least once in the last 7 days (" + fmtShort(weekStart) + " to " + fmtShort(today) + "). The most useful number for a team that meets a few times a week."],
+      [avg.toFixed(1), "Average daily users", "over " + span + (span === 1 ? " day" : " days"), "The average number of people who opened the app each day across " + range + "."],
+      [ids.length ? sticky + "%" : "–", "Stickiness", ids.length ? "of " + ids.length + " active people on a typical day" : "no one active yet", "Average daily users ÷ everyone who used the app in " + range + ". 100% would mean every active person opens it every day; 20% or more is healthy for a tool people use a few times a week."]];
+    var h = '<div class="a-tiles">' + tiles.map(function (t) {
+      return '<div class="card a-tile"><span class="a-big">' + esc(String(t[0])) + '</span><span class="a-label">' + infoBtn(t[1], t[3]) + '</span><span class="muted small">' + esc(t[2]) + "</span></div>"; }).join("") + "</div>";
+    // Daily active users: one bar per day, a dashed line at the average, labels on the first, middle and last day.
+    var W = 600, H = 150, bw = W / Math.max(span, 14), ay = Math.round(H - avg * H / peak);
+    h += '<div class="card a-chart"><h3>Daily active users</h3><svg viewBox="0 -14 ' + W + " " + (H + 34) + '" role="img" aria-label="Daily active users">' +
       series.map(function (x, i) { var bh = Math.round(x.n * H / peak); return '<rect x="' + (i * bw + bw * .15).toFixed(1) + '" y="' + (H - bh) + '" width="' + (bw * .7).toFixed(1) + '" height="' + Math.max(bh, x.n ? 2 : 0) + '" rx="2" fill="var(--red)"><title>' + esc(fmtShort(x.d)) + ": " + x.n + (x.n === 1 ? " person" : " people") + "</title></rect>" +
         (span <= 31 && x.n ? '<text x="' + (i * bw + bw / 2).toFixed(1) + '" y="' + (H - bh - 4) + '" text-anchor="middle">' + x.n + "</text>" : ""); }).join("") +
+      (total ? '<line x1="0" x2="' + W + '" y1="' + ay + '" y2="' + ay + '" stroke="var(--ink)" stroke-dasharray="4 4" stroke-opacity=".5"/><text x="' + W + '" y="' + (ay - 4) + '" text-anchor="end">avg ' + avg.toFixed(1) + "</text>" : "") +
       '<line x1="0" x2="' + W + '" y1="' + H + '" y2="' + H + '" stroke="var(--line)"/>' +
       [0, Math.floor((span - 1) / 2), span - 1].filter(function (v, i, a) { return a.indexOf(v) === i; }).map(function (i) { return '<text x="' + (i * bw + bw / 2).toFixed(1) + '" y="' + (H + 20) + '" text-anchor="middle">' + esc(fmtShort(series[i].d)) + "</text>"; }).join("") + "</svg></div>";
-    var list = ids.sort(function (a, b) { return per[b].opens - per[a].opens || nameOf(a).localeCompare(nameOf(b)); });
-    h += '<div class="card tablewrap"><table class="grid a-grid"><thead><tr>' + usageCols(start, today, span).map(function (c, i) { return '<th><button type="button" class="th-info" data-colinfo="' + i + '" aria-expanded="false">' + esc(c[0]) + ' <i class="i" aria-hidden="true">i</i></button></th>'; }).join("") + '</tr></thead><tbody>' +
+    // People: most engaged first. Anyone quiet for a week or more is flagged.
+    var ago = function (iso) { var n = daysBetween(dayOf(iso), today); return n === 0 ? "Today" : n === 1 ? "Yesterday" : n + " days ago"; };
+    var cols = [
+      ["Person", "Everyone who opened the app in " + range + ", most days active first. The line under the name is their level."],
+      ["Last active", "When they last opened the app. Anyone quiet for 7 days or more is marked in red so you can check in."],
+      ["Days active", "How many separate days they opened the app in " + range + ", out of " + span + ". Opening it five times on one day counts as one day."],
+      ["Sessions", "Visits in " + range + ". Opening the app again within 30 minutes is the same session, and signing in starts one."],
+      ["Per day", "Average sessions on the days they used it (sessions ÷ days active). Higher means they come back several times a day."],
+      ["Usually on", "The kind of device they used for most of their sessions in " + range + "."]];
+    var list = ids.sort(function (a, b) { return Object.keys(per[b].days).length - Object.keys(per[a].days).length || per[b].opens - per[a].opens || nameOf(a).localeCompare(nameOf(b)); });
+    h += '<div class="card tablewrap"><table class="grid a-grid"><thead><tr>' + cols.map(function (c) { return "<th>" + infoBtn(c[0], c[1]) + "</th>"; }).join("") + "</tr></thead><tbody>" +
       (list.length ? list.map(function (id) {
-        var p = per[id], dev = Object.keys(p.dev).sort(function (a, b) { return p.dev[b] - p.dev[a]; })[0];
-        return "<tr><td><b>" + esc(nameOf(id)) + '</b><div class="muted small">' + esc(roleOf(id)) + "</div></td><td>" + Object.keys(p.days).length + " of " + span + "</td><td>" + p.opens + "</td><td>" + (p.opens * 7 / span).toFixed(1) + "</td><td>" + p.signins + '</td><td class="nowrap">' + esc(fmtStamp(p.last)) + "</td><td>" + esc(dev) + "</td></tr>";
-      }).join("") : '<tr><td colspan="7" class="muted">No one has opened the app in this range yet.</td></tr>') + "</tbody></table></div>";
+        var p = per[id], dev = Object.keys(p.dev).sort(function (a, b) { return p.dev[b] - p.dev[a]; })[0], nd = Object.keys(p.days).length, quiet = daysBetween(dayOf(p.last), today) >= 7;
+        return "<tr><td><b>" + esc(nameOf(id)) + '</b><div class="muted small">' + esc(roleOf(id)) + '</div></td><td class="nowrap' + (quiet ? " u-quiet" : "") + '">' + esc(ago(p.last)) + '<div class="muted small">' + esc(new Date(p.last).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Denver" })) + "</div></td><td>" + nd + " of " + span + "</td><td>" + p.opens + "</td><td>" + (p.opens / nd).toFixed(1) + "</td><td>" + esc(dev) + "</td></tr>";
+      }).join("") : '<tr><td colspan="6" class="muted">No one has opened the app in this range yet.</td></tr>') + "</tbody></table></div>";
     var never = S.people.filter(function (p) { return p.status !== "Inactive" && !per[p.id]; });
-    if (never.length) h += '<p class="muted small" style="margin:0"><b>Hasn\'t opened it in this range:</b> ' + never.map(function (p) { return esc(p.name); }).join(", ") + "</p>";
+    if (never.length) h += '<p class="muted small" style="margin:0"><b>Not active in this range (' + never.length + "):</b> " + never.map(function (p) { return esc(p.name); }).join(", ") + "</p>";
     return '<div class="u-wrap">' + h + "</div>";
   }
   function devLink(act, title, sub) {
