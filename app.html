@@ -774,6 +774,7 @@ nav.tabs .badge { margin-left: 6px; }
 .cal-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .cal-txt b { overflow-wrap: anywhere; }
 .cal-txt small { color: var(--muted); font-size: .82rem; }
+.cal-txt small .pill { margin-right: 4px; vertical-align: 1px; }
 .cal-row.k-done b { text-decoration: line-through; color: var(--muted); }
 
 /* Messages: smoother motion */
@@ -3188,6 +3189,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "On game and event sheets, each task shows its due date first, then its status. Tasks on Home now show their status too, right after the due date, and you can tap it to change the status."],
     ["2026-10-23", "The Blocked note is gentler: it asks \"What's holding it up?\" in calm colors, and Save turns on once something is typed."],
     ["2026-10-23", "Marking a task Blocked now asks why, and a reason is required (in the task pop-up and the quick status menu). The reason shows on the task, and admins can see every reason in the Status log (new Blocked reasons filter) and in each task's History. Blocked and On Hold moved below the status track, on the right."],
     ["2026-10-23", "Task pop-ups: Blocked and On Hold now sit to the right of the status track."],
@@ -3993,10 +3995,11 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     } else {
       // Open tasks first, two lines each (name, then status, owner and due date). Finished ones fold into "Done (n)" at the bottom.
       var row = function (t) {
-        var meta = [statusPill(t), flagChips(t)];
+        var meta = [];
+        if (t.due && !isDone(t)) meta.push('<span class="' + (isLate(t) ? "late" : "") + '">Due ' + esc(fmtShort(t.due)) + "</span>");
+        meta.push(statusPill(t), flagChips(t));
         if (t.optional) meta.push('<span class="tag">Optional</span>');
         if (t.owner) meta.push("<span>" + esc(t.owner) + "</span>"); else if (!isDone(t)) meta.push(noOwnerTag());
-        if (t.due && !isDone(t)) meta.push('<span class="' + (isLate(t) ? "late" : "") + '">Due ' + esc(fmtShort(t.due)) + "</span>");
         if (isDone(t) && t.completed) meta.push("<span>" + esc(fmtShort(t.completed)) + "</span>");
         return '<li class="' + (isDone(t) ? "is-done" : "") + rowFlags(t) + '"><label class="check" title="Mark done"><input type="checkbox" id="t-' + t.id + '" data-toggle="' + t.id + '" aria-label="Done: ' + esc(t.text) + '" ' + (isDone(t) ? "checked" : "") + "></label>" +
           '<div class="tcol"><button class="tmain" data-open-task="' + t.id + '"><span class="txt">' + ttl(t.text, t) + '</span><span class="meta">' + meta.join("") + "</span></button></div></li>";
@@ -6226,7 +6229,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       if (sh.date) add(sh.date, { k: sh.gameInfo ? "game" : "night", label: sheetTitle(sh), sub: sh.gameInfo ? "Game day" : "Event day", attrs: 'data-open-sheet="' + sh.id + '"' });
       sh.tasks.forEach(function (t) {
         if (!t.due || (mine && !mineT(t))) return;
-        add(t.due, { k: taskKind(t), label: t.text, sub: sheetTitle(sh) + (t.owner ? " · " + t.owner : ""), attrs: 'data-act="cal-task" data-sheet="' + sh.id + '" data-task="' + t.id + '"' });
+        add(t.due, { k: taskKind(t), t: t, label: t.text, sub: sheetTitle(sh) + (t.owner ? " · " + t.owner : ""), attrs: 'data-act="cal-task" data-sheet="' + sh.id + '" data-task="' + t.id + '"' });
       });
       sh.tasks.forEach(function (t) { calSubs(t, sheetTitle(sh), 'data-sheet="' + sh.id + '"'); });
       sh.tasks.forEach(function (t) {
@@ -6240,7 +6243,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       pj.tasks.forEach(function (t) { calSubs(t, pj.name, 'data-proj="' + pj.id + '"'); });
       pj.tasks.forEach(function (t) {
         if (!t.due || (mine && !mineT(t))) return;
-        add(t.due, { k: taskKind(t), label: t.text, sub: pj.name + (t.owner ? " · " + t.owner : ""), attrs: 'data-act="cal-task" data-proj="' + pj.id + '" data-task="' + t.id + '"' });
+        add(t.due, { k: taskKind(t), t: t, label: t.text, sub: pj.name + (t.owner ? " · " + t.owner : ""), attrs: 'data-act="cal-task" data-proj="' + pj.id + '" data-task="' + t.id + '"' });
       });
     });
     (S.events || []).forEach(function (e) {
@@ -6262,7 +6265,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     return [sel];
   }
   function calRow(it) {
-    return '<button type="button" class="cal-row k-' + it.k + '" ' + it.attrs + '><span class="cal-k" aria-hidden="true"></span><span class="cal-txt"><b>' + esc(it.label) + "</b><small>" + esc(it.sub) +
+    return '<button type="button" class="cal-row k-' + it.k + '" ' + it.attrs + '><span class="cal-k" aria-hidden="true"></span><span class="cal-txt"><b>' + esc(it.label) + "</b><small>" + (it.t ? statusPill(it.t) + " " : "") + esc(it.sub) +
       (it.k === "late" ? " · Overdue" : it.k === "done" ? " · Done" : "") + "</small></span><span aria-hidden=\"true\" class=\"muted\">›</span></button>";
   }
   // ---------- practices and team nights ----------
@@ -6488,7 +6491,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       var nd = [];
       function undated(tasks, where, attr) {
         tasks.forEach(function (t) {
-          if (!isDone(t) && !t.due && (isMine(t) || isSupporting(t))) nd.push({ k: "task", label: t.text, sub: where + (isMine(t) ? "" : " · Helping"), attrs: 'data-act="cal-task" ' + attr + ' data-task="' + t.id + '"' });
+          if (!isDone(t) && !t.due && (isMine(t) || isSupporting(t))) nd.push({ k: "task", t: t, label: t.text, sub: where + (isMine(t) ? "" : " · Helping"), attrs: 'data-act="cal-task" ' + attr + ' data-task="' + t.id + '"' });
           (t.subtasks || []).forEach(function (q) { if (!q.done && !q.due && nameIsMe(q.owner)) nd.push({ k: "task", label: q.text, sub: "Subtask of " + t.text + " · " + where, attrs: 'data-act="cal-task" ' + attr + ' data-task="' + t.id + '"' }); });
         });
       }
