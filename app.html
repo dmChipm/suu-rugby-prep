@@ -671,6 +671,17 @@ nav.tabs .badge { margin-left: 6px; }
   .cal-ev.k-done { color: var(--muted); text-decoration: line-through; }
   .cal-more { font-size: .72rem; color: var(--muted); padding-left: 5px; }
 }
+.next-game { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 14px; text-align: left; font: inherit; color: inherit; cursor: pointer; border-left: 5px solid var(--red); }
+.next-game:hover { background: var(--red-soft); }
+.next-game .ng-when { flex: none; display: flex; flex-direction: column; align-items: center; min-width: 64px; padding-right: 12px; border-right: 1px solid var(--line); line-height: 1.15; }
+.next-game .ng-when b { font-family: var(--display); font-size: 1.05rem; text-transform: uppercase; color: var(--red); white-space: nowrap; }
+.next-game .ng-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.next-game .ng-main b { line-height: 1.25; overflow-wrap: anywhere; }
+.next-game .ng-k { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.next-game small { color: var(--muted); font-size: .85rem; }
+.next-game .nw { white-space: nowrap; }
+.next-game .late { color: var(--red); font-weight: 700; }
+.next-game .pill { flex: none; }
 .cal-corner { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .k-practice { --k: #7a52d1; } .k-night { --k: #d2408f; }
 .wd-pick { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -3021,6 +3032,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Calendar: a Next game banner at the top shows how many days until the next game, its readiness, open and overdue tasks, and how many are yours. Tap it to open the sheet."],
     ["2026-10-23", "Development usage stats use standard measures: active today, active this week, average daily users and stickiness, a daily active users chart with its average, and a people table with last active (red after a quiet week), days active, sessions and sessions per day."],
     ["2026-10-23", "The red header now slides up out of the way as you scroll down a page, and comes back as soon as you scroll up."],
     ["2026-10-23", "Development usage table: tap any column heading (Person, Days used, Opens and the rest) to see what it counts and the exact date range it covers."],
@@ -6207,6 +6219,19 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         });
       });
   }
+  // The soonest upcoming game (real sheets before examples), as a banner on top of the calendar that opens its sheet.
+  function nextGameBanner() {
+    var tdy = todayIso(), up = S.sheets.filter(function (sh) { return sh.gameInfo && sh.date && sh.date >= tdy; })
+      .sort(function (a, b) { return (a.example ? 1 : 0) - (b.example ? 1 : 0) || a.date.localeCompare(b.date); });
+    var sh = up[0]; if (!sh) return "";
+    var r = readiness(sh), open = req(sh).filter(function (t) { return !isDone(t); }).length, late = sh.tasks.filter(isLate).length;
+    var mine = sh.tasks.filter(function (t) { return !isDone(t) && (isMine(t) || isSupporting(t)); }).length, n = daysBetween(tdy, sh.date);
+    var when = n === 0 ? "Today" : n === 1 ? "Tomorrow" : "In " + n + " days";
+    var facts = [open ? open + (open === 1 ? " task open" : " tasks open") : "All tasks done", late ? '<span class="late">' + late + " overdue</span>" : "", mine ? mine + (mine === 1 ? " is yours" : " are yours") : ""].filter(Boolean);
+    return '<button type="button" class="card next-game" data-open-sheet="' + sh.id + '"><span class="ng-when"><b>' + esc(when) + '</b><small>' + esc(fmtShort(sh.date)) + '</small></span>' +
+      '<span class="ng-main"><span class="ng-k">Next game</span><b>' + esc(sheetTitle(sh)) + '</b><small>' + facts.map(function (f) { return '<span class="nw">' + f + "</span>"; }).join(" · ") + '</small></span>' +
+      '<span class="pill ' + r.cls + '">' + esc(r.label) + '</span><span aria-hidden="true" class="muted">›</span></button>';
+  }
   function calendarView() {
     var mine = !!view.calMine, mode = calMode(), by = calItems(mine), ym = calMonth().split("-"), y = +ym[0], m = +ym[1] - 1;
     var first = new Date(y, m, 1), start = new Date(y, m, 1 - first.getDay()), last = new Date(y, m + 1, 0);
@@ -6227,6 +6252,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       '<div class="cal-tools"><div class="seg" role="group" aria-label="Whose tasks"><button type="button" data-act="cal-who" data-who="all" aria-pressed="' + !mine + '">Everyone</button><button type="button" data-act="cal-who" data-who="mine" aria-pressed="' + mine + '">Just mine</button></div>' +
       '<button type="button" class="btn" data-act="cal-today">Today</button>' +
       (isAdmin() ? '<button type="button" class="cal-plus" data-act="cal-add" aria-label="Add to the calendar" title="Add to the calendar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>' : "") + "</div></div>";
+    h += nextGameBanner();
     // A short key, under the calendar.
     var legend = '<div class="cal-legend muted small"><span class="k-game"><i></i>Game</span><span class="k-night"><i></i>Event</span><span class="k-practice"><i></i>Practice</span><span class="k-task"><i></i>Due</span><span class="k-late"><i></i>Overdue</span><span class="k-done"><i></i>Done</span></div>';
     var none = '<p class="muted cal-none">Nothing' + (mine ? " for you" : "") + ".</p>";
