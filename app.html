@@ -1882,10 +1882,11 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       created: Date.now(),
       tasks: m.tasks.map(function (t) {
         var off = t.dueOffset;
-        return { id: uid(), mtId: t.id, text: t.text, supporters: (t.supporters || []).slice(), owner: t.owner || "", details: t.details || "", links: t.links || "", notes: "", notesLog: [],
+        // People are assigned on each sheet; templates don't carry owners or helpers.
+        return { id: uid(), mtId: t.id, text: t.text, supporters: [], owner: "", details: t.details || "", links: t.links || "", notes: "", notesLog: [],
           due: info.date && off !== null && off !== "" && !isNaN(off) ? addDays(info.date, -Number(off)) : "",
           status: "Not Started", done: false, completed: "", optional: !!t.optional, confirmation: "", importance: imp(t),
-          subtasks: (t.subtasks || []).map(function (q) { return { id: uid(), text: q.text, owner: q.owner || "", done: false, by: "", files: [] }; }), files: [] };
+          subtasks: (t.subtasks || []).map(function (q) { return { id: uid(), text: q.text, owner: "", done: false, by: "", files: [] }; }), files: [] };
       })
     };
   }
@@ -2971,6 +2972,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Templates no longer assign people: template tasks and subtasks have no Owner or Helpers, and new sheets start with every task unassigned so owners are picked on each sheet."],
     ["2026-10-23", "Subtasks can have their own due date: pick one when you add the subtask, or tap the subtask to set or change it. Overdue subtasks show their date in red, and subtasks with dates appear on the Calendar."],
     ["2026-10-23", "Priority on a task is now a dropdown: Normal, Critical or Optional."],
     ["2026-10-23", "Dragging to reorder is easier to follow: the item you grab moves with your finger and the others slide out of the way as you go."],
@@ -3894,7 +3896,6 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     h += '<div class="card"><ul class="tasks" data-sortable="mtasks">';
     m.tasks.forEach(function (t, i) {
       var meta = [];
-      if (t.owner) meta.push("<span>" + esc(t.owner) + "</span>");
       if (t.dueOffset !== null && t.dueOffset !== "") meta.push("<span>Due " + esc(dueOffsetText(t.dueOffset, m)) + "</span>");
       if (t.optional) meta.push('<span class="tag">Optional</span>');
       if (t.needsConfirm) meta.push('<span class="tag">' + (t.confirmOffset === null || t.confirmOffset === undefined || t.confirmOffset === "" ? "Follow-up" : "Follow-up " + esc(dueOffsetText(t.confirmOffset, m))) + "</span>");
@@ -3903,7 +3904,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     });
     if (!m.tasks.length) h += '<li class="muted">No tasks yet.</li>';
     h += "</ul>";
-    if (admin) h += '<form class="add" data-form="add-master-task"><input type="text" id="new-master-task" placeholder="Add a task to this template (type @ to assign)" aria-label="New task" autocomplete="off" data-mention><button class="btn primary">Add</button></form>';
+    if (admin) h += '<form class="add" data-form="add-master-task"><input type="text" id="new-master-task" placeholder="Add a task to this template" aria-label="New task" autocomplete="off"><button class="btn primary">Add</button></form>';
     h += "</div>";
     h += tip("About this template", admin ? "Tap a task to set its default Owner, Due Date, Details, Links and Notes. Edits here apply to new sheets copied from this template. Sheets already created keep their own tasks." : "Only admins can change templates.");
     return h;
@@ -4453,21 +4454,18 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
 
   function masterTaskModal(m, t) {
-    var admin = isAdmin(), what = m.gameInfo ? "game" : "event", msup = (t.supporters || []).slice();
+    var admin = isAdmin(), what = m.gameInfo ? "game" : "event";
     var due = admin
       ? '<label class="field">Due Date<span class="row" style="gap:8px;flex-wrap:nowrap"><input type="number" id="mt-off" min="-60" max="365" step="1" style="width:6em" value="' + (t.dueOffset === null ? "" : esc(t.dueOffset)) + '"><span class="muted small" style="font-weight:400">days before the ' + what + " (0 = " + what + " day)</span></span></label>"
       : fld("Due Date", "", t.dueOffset === null || t.dueOffset === "" ? "" : dueOffsetText(t.dueOffset, m), false);
     openModal(taskHead(t) + '<form style="display:flex;flex-direction:column;gap:12px">' +
       (admin ? fld("Task", "mt-text", t.text, true) : "") +
-      '<div class="grid2">' + (admin ? ownerCombo("mt-owner", t.owner) : fld("Owner", "", t.owner, false)) + due + "</div>" +
+      due +
       '<div class="field fu-field"><span>Follow-up</span><label class="chk small"><input type="checkbox" id="mt-confirm"' + (t.needsConfirm ? " checked" : "") + (admin ? "" : " disabled") + "> Requires a follow-up confirmation</label>" +
         '<label class="row small fu-days" id="mt-fu-row"' + (t.needsConfirm ? "" : " hidden") + ' style="gap:8px;flex-wrap:nowrap">Confirm<input type="number" id="mt-fu" min="0" max="365" step="1" style="width:5em" value="' + (t.confirmOffset === null || t.confirmOffset === undefined ? "" : esc(t.confirmOffset)) + '"' + (admin ? "" : " disabled") + '><span class="muted">days before the ' + what + " (0 = " + what + " day)</span></label></div>" +
       prioField("mt", t, admin, "doesn't count toward progress; admins can change it on each sheet") +
-      supportersField("mt-sup", t.supporters || [], admin) +
       '<div class="field"><span>Subtasks <span class="muted small" style="font-weight:400">copied onto every new sheet</span></span><ul class="subs" id="mt-subs" data-sortable="subs"></ul>' +
-      (admin ? '<div class="sub-add"><input type="text" id="mt-subnew" placeholder="Add a subtask (type @ to assign)" autocomplete="off" aria-label="New subtask" data-mention>' +
-        '<div class="combo"><input type="text" id="mt-subwho" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="mt-subwho-list" placeholder="Assign to (optional)" aria-label="Assign the new subtask to">' +
-        '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="mt-subwho-list" role="listbox" hidden></ul></div>' +
+      (admin ? '<div class="sub-add"><input type="text" id="mt-subnew" placeholder="Add a subtask" autocomplete="off" aria-label="New subtask">' +
         '<button type="button" class="btn" id="mt-subadd">Add</button></div>' : "") + "</div>" +
       (admin ? fld("Details <span class=\"muted small\" style=\"font-weight:400\">how to do this task</span>", "mt-details", t.details, true, "area", ' rows="6" placeholder="Explain the steps, who to contact, and anything to watch out for."') : howToBlock(t.details, true)) +
       fld("Links", "mt-links", t.links, admin, "links", ' placeholder="https://"') +
@@ -4478,16 +4476,13 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         wireTemplateSubs(el, t, admin);
         if (!admin) return;
         wireCancel(el, [t]);
-        attachCombo(el, "mt-owner");
         var autosave = null;
-        attachSupporters(el, "mt-sup", msup, el.querySelector("#mt-owner"), function () { if (autosave) autosave(); });
         el.querySelector("#mt-remove").addEventListener("click", function () {
           m.tasks = m.tasks.filter(function (x) { return x.id !== t.id; }); save(); closeModal(); render(); toast("Task removed from template");
         });
         autosave = wireAutosave(el, function () {
           var name = el.querySelector("#mt-text").value.trim(); if (name) t.text = name;
-          t.owner = el.querySelector("#mt-owner").value.trim(); prioRead(el, "mt", t);
-          t.supporters = msup.filter(function (n) { return n.toLowerCase() !== t.owner.toLowerCase(); });
+          prioRead(el, "mt", t);
           t.needsConfirm = el.querySelector("#mt-confirm").checked; el.querySelector("#mt-fu-row").hidden = !t.needsConfirm;
           var fu = el.querySelector("#mt-fu").value.trim(); t.confirmOffset = fu === "" || isNaN(fu) ? null : Math.max(0, Math.round(Number(fu)));
           var off = el.querySelector("#mt-off").value.trim(); t.dueOffset = off === "" || isNaN(off) ? null : Math.round(Number(off));
@@ -4503,19 +4498,15 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       var subs = t.subtasks || [];
       list.innerHTML = subs.length ? subs.map(function (q, i) {
         if (editing === q.id) return '<li class="sub editing" data-sub="' + q.id + '"><input type="text" class="sub-edit-text" value="' + esc(q.text) + '" aria-label="Subtask">' +
-          '<div class="combo"><input type="text" id="mt-sewho" value="' + esc(q.owner || "") + '" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="mt-sewho-list" placeholder="Assign to" aria-label="Assigned to">' +
-          '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="mt-sewho-list" role="listbox" hidden></ul></div>' +
           '<div class="row spread"><button type="button" class="btn danger" data-tsub-del>Remove subtask</button><button type="button" class="btn primary" data-tsub-done>Done</button></div></li>';
-        return '<li class="sub" data-sub="' + q.id + '" data-sort-id="' + q.id + '">' + (admin ? gripBtn(q.text) : "") + '<span class="sub-num">' + (i + 1) + '</span><button type="button" class="sub-main" data-tsub-open' + (admin ? "" : " disabled") + '><span class="sub-txt">' + esc(q.text) + '</span><span class="meta">' +
-          (q.owner ? "<span>" + esc(q.owner) + "</span>" : '<span class="muted">Unassigned</span>') + "</span></button>" +
+        return '<li class="sub" data-sub="' + q.id + '" data-sort-id="' + q.id + '">' + (admin ? gripBtn(q.text) : "") + '<span class="sub-num">' + (i + 1) + '</span><button type="button" class="sub-main" data-tsub-open' + (admin ? "" : " disabled") + '><span class="sub-txt">' + esc(q.text) + "</span></button>" +
           "</li>";
       }).join("") : '<li class="muted small">No subtasks yet.</li>';
-      if (editing) attachCombo(list, "mt-sewho");
     }
     function commit() {
       var q = editing && byId(t.subtasks || [], editing); if (!q) return;
-      var nt = list.querySelector(".sub-edit-text").value.trim(), no = list.querySelector("#mt-sewho").value.trim();
-      if ((nt && nt !== q.text) || no !== (q.owner || "")) { if (nt) q.text = nt; q.owner = no; save(); render(); }
+      var nt = list.querySelector(".sub-edit-text").value.trim();
+      if (nt && nt !== q.text) { q.text = nt; save(); render(); }
     }
     if (admin) {
       list.addEventListener("click", function (e) {
@@ -4529,13 +4520,12 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         }
       });
       list.addEventListener("sorted", function (e) { var subs = t.subtasks || []; subs.splice(e.detail.to, 0, subs.splice(e.detail.from, 1)[0]); commit(); editing = null; draw(); save(); render(); });
-      list.addEventListener("change", function (e) { if (e.target.matches(".sub-edit-text") || e.target.id === "mt-sewho") commit(); });
-      attachCombo(el, "mt-subwho");
-      var nIn = el.querySelector("#mt-subnew"), wIn = el.querySelector("#mt-subwho");
+      list.addEventListener("change", function (e) { if (e.target.matches(".sub-edit-text")) commit(); });
+      var nIn = el.querySelector("#mt-subnew");
       var add = function () {
-        var tm = takeMentions(nIn.value), v = tm.text; if (!v) { nIn.focus(); return; }
-        (t.subtasks = t.subtasks || []).push({ id: uid(), text: v, owner: wIn.value.trim() || tm.names[0] || "" });
-        nIn.value = ""; wIn.value = ""; draw(); save(); render(); nIn.focus();
+        var v = nIn.value.trim(); if (!v) { nIn.focus(); return; }
+        (t.subtasks = t.subtasks || []).push({ id: uid(), text: v, owner: "" });
+        nIn.value = ""; draw(); save(); render(); nIn.focus();
       };
       el.querySelector("#mt-subadd").addEventListener("click", add);
       nIn.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); add(); } });
@@ -6394,7 +6384,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     var f = e.target, input = f.querySelector("input"), v = input.value.trim();
     if (f.dataset.form === "add-sheet-task") { newSheetTaskModal(byId(S.sheets, view.sheetId), v); input.value = ""; return; }
     if (!v) return;
-    if (f.dataset.form === "add-master-task") { var tm = byId(S.masters, view.masterId), mtm = takeMentions(v), mt = mkTask(mtm.text || v); mt.owner = mtm.names[0] || ""; mt.supporters = mtm.names.slice(1); tm.tasks.push(mt); save(); render(); masterTaskModal(tm, mt); return; }
+    if (f.dataset.form === "add-master-task") { var tm = byId(S.masters, view.masterId), mt = mkTask(v); tm.tasks.push(mt); save(); render(); masterTaskModal(tm, mt); return; }
     save(); render();
     var again = app.querySelector("#" + input.id); if (again) again.focus();
   });
