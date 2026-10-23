@@ -3082,6 +3082,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "On Home, the Month / Week / 3 days / Day menu only shows while Calendar is picked; My agenda doesn't need it."],
     ["2026-10-23", "On Home, the Agenda tab is now called My agenda."],
     ["2026-10-23", "The Calendar tab is now called Home, since it holds your tasks as well as the team schedule. Its Agenda and Calendar views are unchanged."],
     ["2026-10-23", "My Tasks now lives in the Calendar's Agenda (Just mine): an Overdue section at the top, your tasks by day, and a No due date section at the bottom. The Your tasks card is gone."],
@@ -6339,9 +6340,9 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     var chev = function (d) { return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; };
     var grid = view.calGrid || "month";
     var modeLabel = CAL_MODES.filter(function (x) { return x[0] === (mode === "agenda" ? grid : mode); })[0][1];
-    // Agenda / Calendar tabs sit under the date; the Month, Week, 3 days, Day menu stays top right and opens the calendar in that layout.
+    // My agenda / Calendar tabs sit under the date; the Month, Week, 3 days, Day menu (top right) only shows while Calendar is picked.
     var h = '<h1 class="sr-only">Home</h1>' + pushNudgeHtml() + '<div class="cal-corner">' +
-      ('<div class="menu-wrap"><button class="kebab cal-mode-btn" id="cal-mode" aria-label="Calendar view: ' + esc(modeLabel) + '" aria-haspopup="true" aria-expanded="false" data-menu="cal-mode">' + esc(modeLabel) +
+      (mode === "agenda" ? "" : '<div class="menu-wrap"><button class="kebab cal-mode-btn" id="cal-mode" aria-label="Calendar view: ' + esc(modeLabel) + '" aria-haspopup="true" aria-expanded="false" data-menu="cal-mode">' + esc(modeLabel) +
       ' <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>' +
       '<div class="menu" role="menu" id="cal-mode-items" hidden>' + CAL_MODES.filter(function (x) { return x[0] !== "agenda"; }).map(function (x) { return '<button role="menuitemradio" aria-checked="' + (x[0] === mode) + '" data-act="cal-mode" data-mode="' + x[0] + '">' + (x[0] === mode ? "✓ " : "") + esc(x[1]) + "</button>"; }).join("") + "</div></div>") +
       kebab("cal-menu", [["cal-subscribe", "Add to my calendar app"]], true) + "</div>";
