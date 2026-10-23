@@ -160,7 +160,8 @@ table.grid .clip { max-width: 200px; overflow-wrap: anywhere; display: table-cel
 .props .ro { padding: 0; border: 0; background: none; }
 .props .prop-hint { grid-column: 2; margin-top: -2px; font-weight: 400; }
 .props .prop-comp .field.is-blank input { display: none; }
-.st-wrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.st-wrap { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.st-track { flex: 1; min-width: 0; }
 .st-track { display: flex; align-items: flex-start; }
 .st-step { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; padding: 0; font: inherit; cursor: pointer; color: var(--muted); }
 .st-step + .st-step::before { content: ""; position: absolute; top: 12px; right: 50%; width: 100%; height: 3px; margin-right: 14px; background: var(--line); border-radius: 2px; }
@@ -177,7 +178,7 @@ table.grid .clip { max-width: 200px; overflow-wrap: anywhere; display: table-cel
 .st-lbl { font-size: .78rem; font-weight: 700; text-align: center; line-height: 1.15; }
 .st-step.now .st-lbl, .st-step[aria-checked="true"] .st-lbl { color: var(--ink); }
 .st-step:hover .st-dot { border-color: var(--ink); }
-.st-side { display: flex; gap: 6px; flex-wrap: wrap; }
+.st-side { display: flex; flex-direction: column; gap: 6px; flex: none; padding-left: 12px; border-left: 1px solid var(--line); }
 .st-flag { border: 1px dashed var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 3px 11px; font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; }
 .st-flag[aria-checked="false"] { background: transparent; }
 .st-flag[aria-checked="true"] { border-style: solid; border-color: transparent; }
@@ -3164,6 +3165,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Task pop-ups: Blocked and On Hold now sit to the right of the status track."],
     ["2026-10-23", "Quick status: tap the status pill on any task in a list (sheets, projects, Home) to pick Not Started, In Progress, Blocked, On Hold or Done without opening the task."],
     ["2026-10-23", "Task pop-ups: Status, Owner, Due and Completed are now tidy rows. Status is a progress track (Not Started, In Progress, Done) with Blocked and On Hold beside it, Due says how far off it is, and Completed fills itself in when you mark the task done."],
     ["2026-10-23", "On Home, the switch now reads Just mine, then Everyone."],
