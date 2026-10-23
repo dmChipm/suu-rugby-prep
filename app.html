@@ -2105,13 +2105,13 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   };
 
   var S = window.RUGBY_CONFIG && window.supabase ? null : normalize(store.load() || seed());
-  var view = { flagged: false, mine: false, expand: {}, tab: "dashboard", sheetId: null, masterId: null, projectId: null, convoId: null, drafts: {}, hideDone: false };
+  var view = { flagged: false, mine: false, expand: {}, tab: "calendar", sheetId: null, masterId: null, projectId: null, convoId: null, drafts: {}, hideDone: false };
   // Where you are (tab, open sheet, project or chat, and how far down), kept for this browser tab so a refresh or
   // pull-to-refresh reopens the same page instead of My Tasks.
   var PLACE_KEY = KEY + "-place", PLACE_FIELDS = ["tab", "sheetId", "masterId", "projectId", "convoId"], placeScroll = null;
   try {
     var place = JSON.parse(sessionStorage.getItem(PLACE_KEY) || "null");
-    if (place) { PLACE_FIELDS.forEach(function (k) { if (typeof place[k] === "string" || place[k] === null) view[k] = place[k] || (k === "tab" ? "dashboard" : null); }); placeScroll = place.y || 0; }
+    if (place) { PLACE_FIELDS.forEach(function (k) { if (typeof place[k] === "string" || place[k] === null) view[k] = place[k] || (k === "tab" ? "calendar" : null); }); placeScroll = place.y || 0; }
   } catch (e) {}
   function savePlace() {
     try { var o = { y: Math.round(window.scrollY || 0) }; PLACE_FIELDS.forEach(function (k) { o[k] = view[k]; }); sessionStorage.setItem(PLACE_KEY, JSON.stringify(o)); } catch (e) {}
@@ -2308,11 +2308,11 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     }
     if (vb) { vb.hidden = !as; vb.innerHTML = as ? "<span>Previewing the " + (as === "member" ? "non-admin" : "admin") + ' view</span><button type="button" data-dev-exit>Exit</button>' : ""; }
     document.getElementById("tab-analytics").hidden = !(isAdmin() && analyticsTabOn());
-    if (view.tab === "analytics" && !isAdmin()) view.tab = "dashboard";
-    if ((view.tab === "dev" || view.tab === "updates" || view.tab === "devdocs") && !isDev()) view.tab = "dashboard";
+    if (view.tab === "analytics" && !isAdmin()) view.tab = "calendar";
+    if ((view.tab === "dev" || view.tab === "updates" || view.tab === "devdocs") && !isDev()) view.tab = "calendar";
     // Messages is for admins only: everyone else doesn't see the tab or its unread count.
     document.getElementById("tab-messages").hidden = !isAdmin();
-    if (view.tab === "messages" && !isAdmin()) { view.tab = "dashboard"; view.convoId = null; }
+    if (view.tab === "messages" && !isAdmin()) { view.tab = "calendar"; view.convoId = null; }
     var unread = isAdmin() ? unreadTotal() : 0, badge = document.getElementById("msg-badge");
     badge.hidden = !unread; badge.textContent = unread > 99 ? "99+" : unread;
     // Templates and Projects live inside the "Game Prep & Projects" tab, so that tab stays highlighted there.
@@ -3034,7 +3034,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
-    ["2026-10-23", "The Calendar tab now comes before My Tasks in the tab bar."],
+    ["2026-10-23", "The app now opens on the Calendar, and the Calendar tab comes before My Tasks in the tab bar. Refreshing still keeps you on the page you were on."],
     ["2026-10-23", "Calendar has a new Agenda view, now the default: the next 2 weeks as a list with a heading per day, times or \"Due\" beside each item, game days highlighted, overdue items under Today and empty days folded into one line. Tap a day to open it; \"Show 2 more weeks\" reaches further."],
     ["2026-10-23", "Development usage stats use standard measures: active today, active this week, average daily users and stickiness, a daily active users chart with its average, and a people table with last active (red after a quiet week), days active, sessions and sessions per day."],
     ["2026-10-23", "The red header now slides up out of the way as you scroll down a page, and comes back as soon as you scroll up."],
@@ -6475,7 +6475,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       case "send-notice": if (isAdmin()) sendNoticeModal(); break;
       case "a-range": view.aRange = t.dataset.range; render(); break;
       case "open-updates": case "open-devdocs": view.tab = t.dataset.act.slice(5); render(); window.scrollTo(0, 0); break;
-      case "back-settings": view.tab = "dashboard"; render(); profileMenu(); break;
+      case "back-settings": view.tab = "calendar"; render(); profileMenu(); break;
       case "team-person": teamPersonModal(t.dataset.name); break;
       case "project-people": var ppj = byId(S.projects, view.projectId); if (ppj && canEditMembers(ppj)) projectPeopleModal(ppj); break;
       case "delete-project": if (isAdmin()) deleteProjectModal(byId(S.projects, view.projectId)); break;
