@@ -185,6 +185,17 @@ table.grid .clip { max-width: 200px; overflow-wrap: anywhere; display: table-cel
 .st-flag.st-hold[aria-checked="true"] { background: var(--hold-soft); color: var(--hold); }
 .st-flag:hover { border-color: var(--ink); color: var(--ink); }
 @media (max-width: 420px) { .props > .prop, .props > .field, .props > .prop-due, .props > .prop-comp { grid-template-columns: 1fr; } .props .prop-hint { grid-column: 1; } }
+.pill.qs { cursor: pointer; display: inline-flex; align-items: center; gap: 3px; }
+.pill.qs i { font-style: normal; font-size: .7em; opacity: .7; }
+.pill.qs:hover { filter: brightness(.95); box-shadow: 0 0 0 1px currentColor; }
+.pill.qs:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+#qs-pop { position: fixed; z-index: 60; min-width: 170px; padding: 6px; background: var(--surface); border: 2px solid var(--ink); border-radius: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 2px; animation: pop .14s ease-out; }
+#qs-pop button { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; border-radius: 8px; padding: 8px 10px; font: inherit; font-weight: 600; text-align: left; color: var(--ink); cursor: pointer; }
+#qs-pop button:hover, #qs-pop button:focus-visible { background: var(--red-soft); outline: none; }
+#qs-pop button[aria-checked="true"] { font-weight: 800; }
+.qs-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.qs-dot.st-ns { background: var(--muted); } .qs-dot.st-ip { background: var(--warn); } .qs-dot.st-blocked { background: var(--red); } .qs-dot.st-hold { background: var(--hold); } .qs-dot.st-done { background: var(--done); }
+.qs-on { margin-left: auto; color: var(--red); }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
 textarea { width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font: inherit; color: inherit; resize: vertical; }
 div.field { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: .9rem; }
@@ -2318,7 +2329,44 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   function flagChips(t) { return flagsOf(t).filter(function (x) { return x.k !== "blocked" && x.k !== "owner"; }).map(function (x) { return '<span class="flag ' + x.lv + '">⚑ ' + esc(x.tx) + "</span>"; }).join(""); }
   function noOwnerTag() { return '<span class="no-owner">No owner</span>'; }
   function flaggedCount(s) { return s.tasks.filter(function (t) { return flagsOf(t).length; }).length; }
-  function statusPill(t) { var c = { "Not Started": "st-ns", "In Progress": "st-ip", "Blocked": "st-blocked", "On Hold": "st-hold", "Complete": "st-done" }[t.status] || "st-ns"; return '<span class="pill ' + c + '">' + esc(t.status) + "</span>"; }
+  // A task's status pill. In lists it's also a quick switch: tap it for a small menu of statuses (see openQuickStatus).
+  function statusPill(t) { var c = ST_CLS[t.status] || "st-ns"; return '<span class="pill qs ' + c + '" role="button" tabindex="0" aria-haspopup="menu" data-qs="' + t.id + '" title="Change status">' + esc(t.status) + '<i aria-hidden="true">˅</i></span>'; }
+  function taskById(id) {
+    for (var i = 0; i < S.sheets.length; i++) { var t = byId(S.sheets[i].tasks, id); if (t) return t; }
+    var ps = S.projects || []; for (var k = 0; k < ps.length; k++) { var u = byId(ps[k].tasks, id); if (u) return u; }
+    return null;
+  }
+  function closeQuickStatus() { var el = document.getElementById("qs-pop"); if (el) el.remove(); }
+  function openQuickStatus(pill) {
+    var t = taskById(pill.dataset.qs); closeQuickStatus(); if (!t) return;
+    var el = document.createElement("div"); el.id = "qs-pop"; el.setAttribute("role", "menu"); el.setAttribute("aria-label", "Status for " + t.text);
+    el.innerHTML = STATUSES.map(function (x) { return '<button type="button" role="menuitemradio" aria-checked="' + (x === t.status) + '" data-qs-pick="' + esc(x) + '"><i class="qs-dot ' + ST_CLS[x] + '" aria-hidden="true"></i>' + esc(x === "Complete" ? "Done" : x) + (x === t.status ? '<span class="qs-on" aria-hidden="true">✓</span>' : "") + "</button>"; }).join("");
+    document.body.appendChild(el);
+    var r = pill.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight, top = r.bottom + 6;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    el.style.top = top + "px"; el.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + "px";
+    el.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-qs-pick]"); if (!b) return;
+      closeQuickStatus(); var v = b.dataset.qsPick; if (v === t.status) return;
+      setStatus(t, v); save(); render(); toast((v === "Complete" ? "Done" : v) + ": " + t.text);
+    });
+    var cur = el.querySelector('[aria-checked="true"]') || el.querySelector("button"); cur.focus({ preventScroll: true });
+  }
+  // Capture phase, so tapping the pill doesn't also open the task row it sits in.
+  document.addEventListener("click", function (e) {
+    var pill = e.target.closest && e.target.closest("[data-qs]"); if (!pill || pill.closest("#modal-root")) return;
+    e.preventDefault(); e.stopPropagation(); openQuickStatus(pill);
+  }, true);
+  document.addEventListener("keydown", function (e) {
+    var pill = e.target.closest && e.target.closest("[data-qs]");
+    if (pill && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); e.stopPropagation(); openQuickStatus(pill); return; }
+    var pop = document.getElementById("qs-pop"); if (!pop) return;
+    if (e.key === "Escape") { closeQuickStatus(); return; }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); var bs = [].slice.call(pop.querySelectorAll("button")), i = bs.indexOf(document.activeElement); bs[(i + (e.key === "ArrowDown" ? 1 : bs.length - 1)) % bs.length].focus(); }
+  }, true);
+  document.addEventListener("pointerdown", function (e) { var pop = document.getElementById("qs-pop"); if (pop && !pop.contains(e.target) && !(e.target.closest && e.target.closest("[data-qs]"))) closeQuickStatus(); }, true);
+  window.addEventListener("resize", closeQuickStatus);
+  document.addEventListener("scroll", function (e) { if (document.getElementById("qs-pop") && !(e.target.closest && e.target.closest("#qs-pop"))) closeQuickStatus(); }, true);
   function linkList(str) {
     return String(str || "").split(/\n+/).map(function (l) { return l.trim(); }).filter(Boolean).map(function (l) {
       var href = /^https?:\/\//i.test(l) ? l : (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(l) ? "https://" + l : "");
@@ -3116,6 +3164,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Quick status: tap the status pill on any task in a list (sheets, projects, Home) to pick Not Started, In Progress, Blocked, On Hold or Done without opening the task."],
     ["2026-10-23", "Task pop-ups: Status, Owner, Due and Completed are now tidy rows. Status is a progress track (Not Started, In Progress, Done) with Blocked and On Hold beside it, Due says how far off it is, and Completed fills itself in when you mark the task done."],
     ["2026-10-23", "On Home, the switch now reads Just mine, then Everyone."],
     ["2026-10-23", "On Home, the Month / Week / 3 days / Day menu only shows while Calendar is picked; My agenda doesn't need it."],
