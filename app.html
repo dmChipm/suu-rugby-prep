@@ -1618,7 +1618,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   // The piñata shows' sounds (thunder, the train, Pikachu) are made in the browser; no sound files.
   var audioCtx = null;
   function soundOn() { try { return localStorage.getItem(KEY + "-sound") !== "off"; } catch (e) { return true; } }
-  function peopleSort() { if (view.psort) return view.psort; try { var v = localStorage.getItem(KEY + "-psort"); return v === "role" || v === "za" ? v : "az"; } catch (e) { return "az"; } }
+  function peopleSort() { if (view.psort) return view.psort; try { var v = localStorage.getItem(KEY + "-psort"); return v === "az" || v === "za" ? v : "role"; } catch (e) { return "role"; } }
   function setPeopleSort(v) { view.psort = v; try { localStorage.setItem(KEY + "-psort", v); } catch (e) {} }
   function setSound(on) { try { localStorage.setItem(KEY + "-sound", on ? "on" : "off"); } catch (e) {} }
   // A volume node into the speakers, or null when sound is off or unsupported. Browsers only allow sound after a tap,
@@ -3009,6 +3009,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "The People page opens sorted by level (Coaches, Team Members, Volunteers)."],
     ["2026-10-23", "People now have one level (Coach, Team Member or Volunteer) plus tags: Admin, President, Vice President, Secretary, Treasury, Presidency Member and Developer. The Admin tag gives admin access, Developer shows the Development tab, and President, Vice President and Presidency Member can manage projects. The People page shows each person's level and tags, filters by tag, and groups by level; tap a person to change their level or tags. Document access is set per level in People settings."],
     ["2026-10-23", "Templates no longer assign people: template tasks and subtasks have no Owner or Helpers, and new sheets start with every task unassigned so owners are picked on each sheet."],
     ["2026-10-23", "Subtasks can have their own due date: pick one when you add the subtask, or tap the subtask to set or change it. Overdue subtasks show their date in red, and subtasks with dates appear on the Calendar."],
@@ -4692,7 +4693,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     var tf = view.ptag && act.some(function (p) { return hasTag(p, view.ptag); }) ? view.ptag : "";
     var used = TAGS.filter(function (t) { return act.some(function (p) { return hasTag(p, t); }); });
     var shown = tf ? act.filter(function (p) { return hasTag(p, tf); }) : act;
-    h += '<div class="people-bar"><div class="seg" role="group" aria-label="Sort people"><button data-act="psort-az" aria-pressed="' + (ps === "az") + '">A to Z</button><button data-act="psort-za" aria-pressed="' + (ps === "za") + '">Z to A</button><button data-act="psort-role" aria-pressed="' + byRole + '">By level</button></div>' +
+    h += '<div class="people-bar"><div class="seg" role="group" aria-label="Sort people"><button data-act="psort-role" aria-pressed="' + byRole + '">By level</button><button data-act="psort-az" aria-pressed="' + (ps === "az") + '">A to Z</button><button data-act="psort-za" aria-pressed="' + (ps === "za") + '">Z to A</button></div>' +
       (used.length ? '<div class="view-chips tag-filter" role="group" aria-label="Show people with a tag">' + [["", "Everyone"]].concat(used.map(function (t) { return [t, t]; })).map(function (x) {
         return '<button type="button" class="sf-chip' + (tf === x[0] ? " on" : "") + '" data-ptag="' + esc(x[0]) + '" aria-pressed="' + (tf === x[0]) + '">' + esc(x[1]) + "</button>"; }).join("") + "</div>" : "") +
       '<span class="muted small">' + shown.length + (shown.length === 1 ? " person" : " people") + "</span></div>";
