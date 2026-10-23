@@ -721,6 +721,10 @@ main.convo-mode { padding-bottom: 12px; }
 .convo-wrap .composer { position: static; }
 /* Typing on a phone: the header tucks away so the chat and the message box fill the space above the keyboard. */
 html.typing header.top { display: none; }
+/* Scrolling down tucks the header (and its wave) up out of the way; scrolling back up brings it back. */
+header.top { transition: transform .25s ease; }
+html.head-up header.top { transform: translateY(calc(-100% - 20px - env(safe-area-inset-top, 0px))); }
+@media (prefers-reduced-motion: reduce) { header.top { transition: none; } }
 html.typing main.convo-mode { padding-top: 10px; padding-bottom: 8px; }
 html.typing .convo-wrap { height: calc(var(--vvh, 100dvh) - 34px - env(safe-area-inset-top, 0px)); min-height: 0; gap: 8px; animation: fade-in .18s ease-out; }
 /* An open chat fills the whole screen under the header: no box around the messages, the composer pinned to the bottom edge.
@@ -3014,6 +3018,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "The red header now slides up out of the way as you scroll down a page, and comes back as soon as you scroll up."],
     ["2026-10-23", "Development usage table: tap any column heading (Person, Days used, Opens and the rest) to see what it counts and the exact date range it covers."],
     ["2026-10-23", "The People page opens sorted by level (Coaches, Team Members, Volunteers)."],
     ["2026-10-23", "People now have one level (Coach, Team Member or Volunteer) plus tags: Admin, President, Vice President, Secretary, Treasury, Presidency Member and Developer. The Admin tag gives admin access, Developer shows the Development tab, and President, Vice President and Presidency Member can manage projects. The People page shows each person's level and tags, filters by tag, and groups by level; tap a person to change their level or tags. Document access is set per level in People settings."],
@@ -6316,9 +6321,26 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
 
   // ---------- events ----------
+  // The header slides up while scrolling down the page and comes back on the way up (or near the top, or when something in it has focus).
+  (function () {
+    var lastY = window.scrollY, ticking = false;
+    function update() {
+      ticking = false;
+      var y = window.scrollY, root = document.documentElement, head = document.querySelector("header.top");
+      var h = head ? head.offsetHeight : 120, up = root.classList.contains("head-up");
+      if (y <= h || (head && head.contains(document.activeElement) && document.activeElement !== document.body)) up = false;
+      else if (y > lastY + 6) up = true;
+      else if (y < lastY - 6) up = false;
+      else return;
+      lastY = y; root.classList.toggle("head-up", up);
+    }
+    window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
+    document.addEventListener("focusin", function (e) { if (e.target.closest && e.target.closest("header.top")) document.documentElement.classList.remove("head-up"); });
+  })();
   // Scroll so the target sits just under the sticky header (and its wave), then flash it so the eye lands on it.
   function scrollBelowHeader(el) {
-    var head = document.querySelector("header.top"), off = head ? head.getBoundingClientRect().bottom + 24 : 16;
+    var head = document.querySelector("header.top"), down = el.getBoundingClientRect().top > (head ? head.getBoundingClientRect().bottom : 0) + 24;
+    var off = head && !down ? head.offsetHeight + 40 : 24;
     var smooth = !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     window.scrollTo({ top: Math.max(0, window.scrollY + el.getBoundingClientRect().top - off), behavior: smooth ? "smooth" : "auto" });
     el.classList.remove("jumped");
