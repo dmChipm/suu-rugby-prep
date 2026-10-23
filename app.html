@@ -955,6 +955,8 @@ table.a-grid td:first-child { min-width: 170px; }
 .ul-ver { display: inline-block; font-size: .75rem; font-weight: 800; color: var(--red); background: var(--red-soft); border-radius: 999px; padding: 1px 8px; margin-right: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dev-links { display: flex; flex-direction: column; gap: 8px; }
 .dev-as { align-self: flex-start; }
+.fu-field { gap: 6px; }
+.fu-field .fu-days { padding-left: 26px; }
 #dev-view-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 900; display: flex; align-items: center; gap: 10px;
   padding: 6px 6px 6px 14px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: .85rem; font-weight: 600; box-shadow: 0 6px 20px rgba(20, 8, 10, .25); white-space: nowrap; }
 #dev-view-bar button { border: 0; border-radius: 999px; padding: 5px 12px; background: var(--red); color: #fff; font: inherit; cursor: pointer; }
@@ -985,6 +987,10 @@ table.a-grid td:first-child { min-width: 170px; }
 .sub { display: flex; align-items: flex-start; gap: 10px; padding: 7px 10px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface); }
 .sub .check { flex: none; padding-top: 1px; }
 .sub-num { flex: none; width: 22px; height: 22px; border-radius: 999px; display: grid; place-items: center; background: var(--red-soft); color: var(--red); font-size: .75rem; font-weight: 800; margin-top: 1px; }
+.drag-handle { flex: none; align-self: center; display: grid; place-items: center; width: 28px; height: 36px; margin-left: -6px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: grab; touch-action: none; }
+.drag-handle:hover, .drag-handle:focus-visible { background: var(--red-soft); color: var(--ink); }
+.dragging { position: relative; z-index: 3; background: var(--surface); box-shadow: 0 8px 22px rgba(20, 8, 10, .22); border-radius: 10px; }
+html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
 .sub-move { display: flex; flex: none; }
 .sub-move .icon-btn { width: 28px; height: 28px; }
 .sub .check input { width: 22px; height: 22px; }
@@ -2962,6 +2968,8 @@ table.a-grid td:first-child { min-width: 170px; }
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Template tasks and their subtasks are reordered by dragging: grab the dotted handle on the left and drop the item where you want it. The up and down arrows are gone."],
+    ["2026-10-23", "On a template task, the follow-up setting now sits right under Owner and Due Date, with the days-before box just below its checkbox."],
     ["2026-10-22", "Task pop-ups have a Cancel button next to Done. Changes still save as you go, but Cancel puts the task back the way it was when you opened it."],
     ["2026-10-22", "Development tab: View the app as My role, Admin or Non-admin, to check what each kind of user sees. A small bar at the bottom shows when you're previewing, with an Exit button."],
     ["2026-10-22", "Links are checked as you type: a good link gets a green check (https:// is added for you if it's missing), and anything that isn't a web address turns red with a note and isn't saved until it's fixed."],
@@ -3801,6 +3809,53 @@ table.a-grid td:first-child { min-width: 170px; }
         });
       });
   }
+  // Drag to reorder: in a list marked data-sortable, grab an item's dotted handle and drag it (mouse or finger).
+  // Arrow Up/Down on a focused handle moves it one step. The list then gets a "sorted" event with {from, to, id}.
+  var GRIP = '<svg viewBox="0 0 10 16" width="10" height="16" aria-hidden="true"><g fill="currentColor"><circle cx="2" cy="2" r="1.6"/><circle cx="8" cy="2" r="1.6"/><circle cx="2" cy="8" r="1.6"/><circle cx="8" cy="8" r="1.6"/><circle cx="2" cy="14" r="1.6"/><circle cx="8" cy="14" r="1.6"/></g></svg>';
+  function gripBtn(label) { return '<button type="button" class="drag-handle" aria-label="Reorder ' + esc(label) + ' (drag, or use the arrow keys)" title="Drag to reorder">' + GRIP + "</button>"; }
+  function sortItems(ul) { return Array.prototype.filter.call(ul.children, function (x) { return x.hasAttribute("data-sort-id"); }); }
+  function sortDone(ul, from, to, id) {
+    if (from === to) return;
+    ul.dispatchEvent(new CustomEvent("sorted", { bubbles: true, detail: { from: from, to: to, id: id } }));
+    var h = document.querySelector('[data-sort-id="' + id + '"] .drag-handle'); if (h) h.focus({ preventScroll: true });
+  }
+  document.addEventListener("pointerdown", function (e) {
+    var h = e.target.closest(".drag-handle"), li = h && h.closest("[data-sort-id]"), ul = li && li.parentNode;
+    if (!ul || !ul.hasAttribute("data-sortable") || e.button > 0) return;
+    e.preventDefault();
+    var from = sortItems(ul).indexOf(li), scroller = ul.closest(".modal") || document.scrollingElement, tick = null, lastY = e.clientY;
+    li.classList.add("dragging"); document.documentElement.classList.add("is-dragging");
+    // Listen on the window: moving the item in the page drops pointer capture on its handle.
+    function place(y) {
+      var list = sortItems(ul), before = null;
+      for (var k = 0; k < list.length; k++) { if (list[k] === li) continue; var r = list[k].getBoundingClientRect(); if (y < r.top + r.height / 2) { before = list[k]; break; } }
+      if (before) { if (before !== li.nextElementSibling) ul.insertBefore(li, before); }
+      else { var last = list[list.length - 1]; if (last !== li) last.after(li); }
+    }
+    // Near the top or bottom edge, keep scrolling so a long list can be dragged end to end.
+    function edge() { var d = lastY < 70 ? -12 : lastY > window.innerHeight - 70 ? 12 : 0; if (d) { scroller.scrollTop += d; place(lastY); } }
+    function move(ev) { lastY = ev.clientY; place(lastY); }
+    function up() {
+      clearInterval(tick); window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up);
+      li.classList.remove("dragging"); document.documentElement.classList.remove("is-dragging");
+      sortDone(ul, from, sortItems(ul).indexOf(li), li.dataset.sortId);
+    }
+    tick = setInterval(edge, 30);
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
+  });
+  document.addEventListener("keydown", function (e) {
+    var h = e.target.closest && e.target.closest(".drag-handle"); if (!h || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+    var li = h.closest("[data-sort-id]"), ul = li && li.parentNode; if (!ul || !ul.hasAttribute("data-sortable")) return;
+    e.preventDefault();
+    var list = sortItems(ul), from = list.indexOf(li), to = Math.max(0, Math.min(list.length - 1, from + (e.key === "ArrowUp" ? -1 : 1)));
+    sortDone(ul, from, to, li.dataset.sortId);
+  });
+  app.addEventListener("sorted", function (e) {
+    if (e.target.dataset.sortable !== "mtasks" || !isAdmin()) return;
+    var m = byId(S.masters, view.masterId); if (!m) return;
+    m.tasks.splice(e.detail.to, 0, m.tasks.splice(e.detail.from, 1)[0]); save(); render();
+  });
+
   function masterDetail(m) {
     var admin = isAdmin();
     var h = '<div class="row spread"><button class="btn ghost" data-act="back">‹ All templates</button>' +
@@ -3809,17 +3864,15 @@ table.a-grid td:first-child { min-width: 170px; }
     h += '<div class="row spread"><span class="muted">' + m.tasks.length + " tasks" + (m.gameInfo ? " · asks for Opponent and Date" : "") + "</span>" +
       (admin ? '<button class="btn primary" data-act="use-master">Start a sheet from this template</button>' : "") + "</div>";
     h += rulesCard(m, false);
-    h += '<div class="card"><ul class="tasks">';
+    h += '<div class="card"><ul class="tasks" data-sortable="mtasks">';
     m.tasks.forEach(function (t, i) {
       var meta = [];
       if (t.owner) meta.push("<span>" + esc(t.owner) + "</span>");
       if (t.dueOffset !== null && t.dueOffset !== "") meta.push("<span>Due " + esc(dueOffsetText(t.dueOffset, m)) + "</span>");
       if (t.optional) meta.push('<span class="tag">Optional</span>');
       if (t.needsConfirm) meta.push('<span class="tag">' + (t.confirmOffset === null || t.confirmOffset === undefined || t.confirmOffset === "" ? "Follow-up" : "Follow-up " + esc(dueOffsetText(t.confirmOffset, m))) + "</span>");
-      h += '<li><span class="num">' + (i + 1) + '</span><button class="tmain" data-open-mtask="' + t.id + '"><span class="txt">' + ttl(t.text, t) + "</span>" +
-        (meta.length || extras(t) ? '<span class="meta">' + meta.join("") + extras(t) + "</span>" : "") + "</button>" +
-        (admin ? '<button class="icon-btn" aria-label="Move up" title="Move up" data-move="' + t.id + '" data-dir="-1" ' + (i === 0 ? "disabled" : "") + '>↑</button>' +
-          '<button class="icon-btn" aria-label="Move down" title="Move down" data-move="' + t.id + '" data-dir="1" ' + (i === m.tasks.length - 1 ? "disabled" : "") + '>↓</button>' : "") + "</li>";
+      h += '<li data-sort-id="' + t.id + '">' + (admin ? gripBtn(t.text) : "") + '<span class="num">' + (i + 1) + '</span><button class="tmain" data-open-mtask="' + t.id + '"><span class="txt">' + ttl(t.text, t) + "</span>" +
+        (meta.length || extras(t) ? '<span class="meta">' + meta.join("") + extras(t) + "</span>" : "") + "</button></li>";
     });
     if (!m.tasks.length) h += '<li class="muted">No tasks yet.</li>';
     h += "</ul>";
@@ -4376,15 +4429,15 @@ table.a-grid td:first-child { min-width: 170px; }
     openModal(taskHead(t) + '<form style="display:flex;flex-direction:column;gap:12px">' +
       (admin ? fld("Task", "mt-text", t.text, true) : "") +
       '<div class="grid2">' + (admin ? ownerCombo("mt-owner", t.owner) : fld("Owner", "", t.owner, false)) + due + "</div>" +
+      '<div class="field fu-field"><span>Follow-up</span><label class="chk small"><input type="checkbox" id="mt-confirm"' + (t.needsConfirm ? " checked" : "") + (admin ? "" : " disabled") + "> Requires a follow-up confirmation</label>" +
+        '<label class="row small fu-days" id="mt-fu-row"' + (t.needsConfirm ? "" : " hidden") + ' style="gap:8px;flex-wrap:nowrap">Confirm<input type="number" id="mt-fu" min="0" max="365" step="1" style="width:5em" value="' + (t.confirmOffset === null || t.confirmOffset === undefined ? "" : esc(t.confirmOffset)) + '"' + (admin ? "" : " disabled") + '><span class="muted">days before the ' + what + " (0 = " + what + " day)</span></label></div>" +
       prioField("mt", t, admin, "doesn't count toward progress; admins can change it on each sheet") +
       supportersField("mt-sup", t.supporters || [], admin) +
-      '<div class="field"><span>Subtasks <span class="muted small" style="font-weight:400">copied onto every new sheet</span></span><ul class="subs" id="mt-subs"></ul>' +
+      '<div class="field"><span>Subtasks <span class="muted small" style="font-weight:400">copied onto every new sheet</span></span><ul class="subs" id="mt-subs" data-sortable="subs"></ul>' +
       (admin ? '<div class="sub-add"><input type="text" id="mt-subnew" placeholder="Add a subtask (type @ to assign)" autocomplete="off" aria-label="New subtask" data-mention>' +
         '<div class="combo"><input type="text" id="mt-subwho" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="mt-subwho-list" placeholder="Assign to (optional)" aria-label="Assign the new subtask to">' +
         '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="mt-subwho-list" role="listbox" hidden></ul></div>' +
         '<button type="button" class="btn" id="mt-subadd">Add</button></div>' : "") + "</div>" +
-      '<div class="opts"><label class="chk small"><input type="checkbox" id="mt-confirm"' + (t.needsConfirm ? " checked" : "") + (admin ? "" : " disabled") + "> Requires a follow-up confirmation</label>" +
-        '<label class="row small fu-days" id="mt-fu-row"' + (t.needsConfirm ? "" : " hidden") + ' style="gap:8px;flex-wrap:nowrap">Confirm<input type="number" id="mt-fu" min="0" max="365" step="1" style="width:5em" value="' + (t.confirmOffset === null || t.confirmOffset === undefined ? "" : esc(t.confirmOffset)) + '"' + (admin ? "" : " disabled") + '><span class="muted">days before the ' + what + " (0 = " + what + " day)</span></label></div>" +
       (admin ? fld("Details <span class=\"muted small\" style=\"font-weight:400\">how to do this task</span>", "mt-details", t.details, true, "area", ' rows="6" placeholder="Explain the steps, who to contact, and anything to watch out for."') : howToBlock(t.details, true)) +
       fld("Links", "mt-links", t.links, admin, "links", ' placeholder="https://"') +
       '<p class="muted small" style="margin:0">Status, Date Completed and Other Notes are tracked on each game sheet. The due date is worked out from the ' + what + ' date when a sheet is created.</p>' +
@@ -4422,9 +4475,9 @@ table.a-grid td:first-child { min-width: 170px; }
           '<div class="combo"><input type="text" id="mt-sewho" value="' + esc(q.owner || "") + '" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="mt-sewho-list" placeholder="Assign to" aria-label="Assigned to">' +
           '<button type="button" class="combo-btn" aria-label="Show everyone" tabindex="-1">▾</button><ul class="combo-list" id="mt-sewho-list" role="listbox" hidden></ul></div>' +
           '<div class="row spread"><button type="button" class="btn danger" data-tsub-del>Remove subtask</button><button type="button" class="btn primary" data-tsub-done>Done</button></div></li>';
-        return '<li class="sub" data-sub="' + q.id + '"><span class="sub-num">' + (i + 1) + '</span><button type="button" class="sub-main" data-tsub-open' + (admin ? "" : " disabled") + '><span class="sub-txt">' + esc(q.text) + '</span><span class="meta">' +
+        return '<li class="sub" data-sub="' + q.id + '" data-sort-id="' + q.id + '">' + (admin ? gripBtn(q.text) : "") + '<span class="sub-num">' + (i + 1) + '</span><button type="button" class="sub-main" data-tsub-open' + (admin ? "" : " disabled") + '><span class="sub-txt">' + esc(q.text) + '</span><span class="meta">' +
           (q.owner ? "<span>" + esc(q.owner) + "</span>" : '<span class="muted">Unassigned</span>') + "</span></button>" +
-          (admin ? '<span class="sub-move"><button type="button" class="icon-btn" data-tsub-up aria-label="Move up"' + (i ? "" : " disabled") + '>↑</button><button type="button" class="icon-btn" data-tsub-down aria-label="Move down"' + (i < subs.length - 1 ? "" : " disabled") + ">↓</button></span>" : "") + "</li>";
+          "</li>";
       }).join("") : '<li class="muted small">No subtasks yet.</li>';
       if (editing) attachCombo(list, "mt-sewho");
     }
@@ -4443,9 +4496,8 @@ table.a-grid td:first-child { min-width: 170px; }
           if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Tap again to remove"; return; }
           subs.splice(i, 1); editing = null; draw(); save(); render();
         }
-        else if (b.hasAttribute("data-tsub-up") && i > 0) { subs.splice(i - 1, 0, subs.splice(i, 1)[0]); draw(); save(); render(); }
-        else if (b.hasAttribute("data-tsub-down") && i < subs.length - 1) { subs.splice(i + 1, 0, subs.splice(i, 1)[0]); draw(); save(); render(); }
       });
+      list.addEventListener("sorted", function (e) { var subs = t.subtasks || []; subs.splice(e.detail.to, 0, subs.splice(e.detail.from, 1)[0]); commit(); editing = null; draw(); save(); render(); });
       list.addEventListener("change", function (e) { if (e.target.matches(".sub-edit-text") || e.target.id === "mt-sewho") commit(); });
       attachCombo(el, "mt-subwho");
       var nIn = el.querySelector("#mt-subnew"), wIn = el.querySelector("#mt-subwho");
