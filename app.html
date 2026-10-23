@@ -178,22 +178,20 @@ table.grid .clip { max-width: 200px; overflow-wrap: anywhere; display: table-cel
 .st-step.now .st-lbl, .st-step[aria-checked="true"] .st-lbl { color: var(--ink); }
 .st-step:hover .st-dot { border-color: var(--ink); }
 .st-side { display: flex; gap: 6px; justify-content: flex-end; }
-.st-why { background: var(--red-soft); border-radius: 10px; padding: 8px 10px; font-size: .9rem; overflow-wrap: anywhere; }
-.st-why b { color: var(--red); }
-.st-ask { display: flex; flex-direction: column; gap: 6px; border: 2px solid var(--red); border-radius: 12px; padding: 10px; animation: fade-in .16s ease-out; }
-.st-ask label { font-weight: 700; font-size: .9rem; display: flex; flex-direction: column; gap: 2px; }
-.st-ask-msg { color: var(--red); font-size: .85rem; font-weight: 700; }
+.st-why { background: var(--bg); border-radius: 10px; padding: 8px 10px; font-size: .9rem; overflow-wrap: anywhere; }
+.st-ask { display: flex; flex-direction: column; gap: 6px; background: var(--bg); border-radius: 12px; padding: 10px; animation: fade-in .16s ease-out; }
+.st-ask label { font-weight: 600; font-size: .9rem; }
 .log-why { display: block; font-style: italic; color: var(--ink); margin-top: 2px; }
 #dl-blocked[aria-pressed="true"] { background: var(--red); border-color: var(--red); color: #fff; }
 .qs-why { display: flex; flex-direction: column; gap: 6px; padding: 4px; width: 230px; max-width: calc(100vw - 40px); }
-.qs-why textarea.bad { border-color: var(--red); outline: 2px solid var(--red); }
 .qs-why-acts { display: flex; justify-content: flex-end; gap: 6px; padding: 4px; }
-#qs-pop .qs-ok { background: var(--red); color: #fff; }
-#qs-pop .qs-ok:hover { background: var(--red); filter: brightness(1.08); }
+#qs-pop .qs-ok { background: var(--ink); color: var(--surface); }
+#qs-pop .qs-ok:hover { background: var(--ink); filter: brightness(1.15); }
+#qs-pop .qs-ok:disabled { opacity: .4; cursor: default; filter: none; }
 .st-flag { border: 1px dashed var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 3px 11px; font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; }
 .st-flag[aria-checked="false"] { background: transparent; }
 .st-flag[aria-checked="true"] { border-style: solid; border-color: transparent; }
-.st-flag.st-blocked[aria-checked="true"] { background: var(--red); color: var(--red-ink); }
+.st-flag.st-blocked[aria-checked="true"] { background: var(--red-soft); color: var(--red); }
 .st-flag.st-hold[aria-checked="true"] { background: var(--hold-soft); color: var(--hold); }
 .st-flag:hover { border-color: var(--ink); color: var(--ink); }
 @media (max-width: 420px) { .props > .prop, .props > .field, .props > .prop-due, .props > .prop-comp { grid-template-columns: 1fr; } .props .prop-hint { grid-column: 1; } }
@@ -2363,11 +2361,12 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       var b = e.target.closest("[data-qs-pick]"); if (!b) return;
       var v = b.dataset.qsPick;
       if (v === "Blocked") {
-        el.innerHTML = '<label class="qs-why" for="qs-why-in"><b>Why is it blocked?</b><textarea id="qs-why-in" rows="3" placeholder="Required"></textarea></label><div class="qs-why-acts"><button type="button" data-qs-back>Back</button><button type="button" class="qs-ok" data-qs-ok>Mark blocked</button></div>';
-        var ta = el.querySelector("textarea"); ta.value = t.status === "Blocked" ? t.blockedReason || "" : ""; ta.focus();
+        el.innerHTML = '<label class="qs-why" for="qs-why-in"><b>What\'s holding it up?</b><textarea id="qs-why-in" rows="3" placeholder="A quick note for the team"></textarea></label><div class="qs-why-acts"><button type="button" data-qs-back>Back</button><button type="button" class="qs-ok" data-qs-ok disabled>Save</button></div>';
+        var ta = el.querySelector("textarea"), okb = el.querySelector("[data-qs-ok]"); ta.value = t.status === "Blocked" ? t.blockedReason || "" : ""; okb.disabled = !ta.value.trim(); ta.focus();
+        ta.addEventListener("input", function () { okb.disabled = !ta.value.trim(); });
         el.querySelector("[data-qs-back]").addEventListener("click", function (ev) { ev.stopPropagation(); openQuickStatus(pill); });
         el.querySelector("[data-qs-ok]").addEventListener("click", function (ev) {
-          ev.stopPropagation(); var r = ta.value.trim(); if (!r) { ta.focus(); ta.classList.add("bad"); return; }
+          ev.stopPropagation(); var r = ta.value.trim(); if (!r) { ta.focus(); return; }
           closeQuickStatus(); setStatus(t, "Blocked", "", r); save(); render(); toast("Blocked: " + t.text);
         });
         return;
@@ -3189,6 +3188,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "The Blocked note is gentler: it asks \"What's holding it up?\" in calm colors, and Save turns on once something is typed."],
     ["2026-10-23", "Marking a task Blocked now asks why, and a reason is required (in the task pop-up and the quick status menu). The reason shows on the task, and admins can see every reason in the Status log (new Blocked reasons filter) and in each task's History. Blocked and On Hold moved below the status track, on the right."],
     ["2026-10-23", "Task pop-ups: Blocked and On Hold now sit to the right of the status track."],
     ["2026-10-23", "Quick status: tap the status pill on any task in a list (sheets, projects, Home) to pick Not Started, In Progress, Blocked, On Hold or Done without opening the task."],
@@ -4216,9 +4216,9 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       '<div class="prop prop-st"><span class="prop-k" id="' + p + '-st-k">Status</span><div class="st-wrap" role="radiogroup" aria-labelledby="' + p + '-st-k"><div class="st-track">' + ST_STEPS.map(function (x, i) {
         return '<button type="button" role="radio" class="st-step" data-st="' + esc(x) + '" data-i="' + i + '" aria-checked="' + (x === t.status) + '"><span class="st-dot" aria-hidden="true">' + (i + 1) + '</span><span class="st-lbl">' + esc(x === "Complete" ? "Done" : x) + "</span></button>"; }).join("") +
       '</div><div class="st-side">' + ["Blocked", "On Hold"].map(function (x) { return '<button type="button" role="radio" class="st-flag ' + ST_CLS[x] + '" data-st="' + x + '" aria-checked="' + (x === t.status) + '">' + x + "</button>"; }).join("") +
-      '</div>' + '<div class="st-why" id="' + p + '-why"' + (t.status === "Blocked" ? "" : " hidden") + '><b>Blocked:</b> <span class="st-why-t">' + esc(t.blockedReason || "No reason given") + '</span> <button type="button" class="linkish" data-why-edit>Change</button></div>' +
-      '<div class="st-ask" id="' + p + '-ask" hidden><label for="' + p + '-why-in">Why is it blocked? <span class="muted small">Required. Admins can see every reason in the status log.</span></label><textarea id="' + p + '-why-in" rows="2" placeholder="e.g. Waiting on the field office to confirm"></textarea>' +
-      '<div class="st-ask-msg" role="alert" hidden>Type a reason first.</div><div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-why-cancel>Cancel</button><button type="button" class="btn primary" data-why-ok>Mark blocked</button></div></div>' +
+      '</div>' + '<div class="st-why" id="' + p + '-why"' + (t.status === "Blocked" ? "" : " hidden") + '><span class="muted">Held up by:</span> <span class="st-why-t">' + esc(t.blockedReason || "No note yet") + '</span> <button type="button" class="linkish" data-why-edit>Change</button></div>' +
+      '<div class="st-ask" id="' + p + '-ask" hidden><label for="' + p + '-why-in">What\'s holding it up?</label><textarea id="' + p + '-why-in" rows="2" placeholder="e.g. Waiting on the field office to confirm"></textarea>' +
+      '<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-why-cancel>Cancel</button><button type="button" class="btn" data-why-ok disabled>Save</button></div></div>' +
       '<input type="hidden" id="' + p + '-breason" value="' + esc(t.blockedReason || "") + '"></div><select id="' + p + '-status" hidden aria-hidden="true" tabindex="-1">' + STATUSES.map(function (x) { return "<option" + (x === t.status ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></div>" +
       ownerHtml +
       '<div class="prop-due">' + fld("Due", p + "-due", t.due, dueEdit, "date") + '<span class="prop-hint muted small" id="' + p + '-rel">' + esc(rel()) + "</span></div>" +
@@ -4240,7 +4240,9 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       sel.dispatchEvent(new Event("change", { bubbles: true }));
       setTimeout(compShow, 0);
     }
-    function askWhy() { ask.hidden = false; why.hidden = true; ask.querySelector(".st-ask-msg").hidden = true; whyIn.value = sel.value === "Blocked" ? br.value : ""; whyIn.focus(); }
+    var ok = ask.querySelector("[data-why-ok]");
+    function askWhy() { ask.hidden = false; why.hidden = true; whyIn.value = sel.value === "Blocked" ? br.value : ""; ok.disabled = !whyIn.value.trim(); whyIn.focus(); }
+    whyIn.addEventListener("input", function () { ok.disabled = !whyIn.value.trim(); });
     el.querySelectorAll("[data-st]").forEach(function (b) {
       b.addEventListener("click", function () {
         if (b.dataset.st === "Blocked") { askWhy(); return; }
@@ -4251,7 +4253,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     el.querySelector("[data-why-edit]").addEventListener("click", askWhy);
     ask.querySelector("[data-why-cancel]").addEventListener("click", function () { ask.hidden = true; why.hidden = sel.value !== "Blocked"; });
     ask.querySelector("[data-why-ok]").addEventListener("click", function () {
-      var v = whyIn.value.trim(); if (!v) { ask.querySelector(".st-ask-msg").hidden = false; whyIn.focus(); return; }
+      var v = whyIn.value.trim(); if (!v) { whyIn.focus(); return; }
       br.value = v; why.querySelector(".st-why-t").textContent = v;
       if (sel.value === "Blocked") { why.hidden = false; ask.hidden = true; sel.dispatchEvent(new Event("change", { bubbles: true })); } else setTo("Blocked");
     });
