@@ -2323,7 +2323,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
   // Priority dropdown (id prefix-prio): Normal, Critical or Optional.
   function prioField(prefix, t, editable, optNote) {
-    if (!editable) return imp(t) ? '<div class="muted small">Critical task</div>' : t.optional ? '<div class="muted small">Optional task</div>' : "";
+    if (!editable) return ""; // Only admins set priority; critical tasks already show !!! in the title.
     var v = imp(t) ? "critical" : t.optional ? "optional" : "";
     return '<label class="field prio">Priority<select id="' + prefix + '-prio">' + [["", "Normal"], ["critical", "!!! Critical"], ["optional", "Optional"]].map(function (x) {
       return '<option value="' + x[0] + '"' + (x[0] === v ? " selected" : "") + ">" + x[1] + "</option>"; }).join("") + '</select><span class="muted small prio-note" style="font-weight:400"' + (v === "optional" ? "" : " hidden") + ">Optional " + esc(optNote || "doesn't count toward progress") + "</span></label>";
@@ -3189,6 +3189,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Team members no longer see a Priority line in the task pop-up. Only admins see and change it."],
     ["2026-10-23", "In the task pop-up, Status, Owner, Due and Completed no longer sit inside a box. They're plain rows with thin lines between them."],
     ["2026-10-23", "In a task pop-up, team members no longer see an empty How to do it section when the task has no instructions or links. Admins still see it so they can add them."],
     ["2026-10-23", "On game and event sheets, each task shows its due date first, then its status. Tasks on Home now show their status too, right after the due date, and you can tap it to change the status."],
