@@ -672,8 +672,9 @@ nav.tabs .badge { margin-left: 6px; }
   .cal-more { font-size: .72rem; color: var(--muted); padding-left: 5px; }
 }
 .cal-corner { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-.cal-switch { margin-right: auto; }
-.cal-switch button { display: inline-flex; align-items: center; gap: 6px; }
+.cal-tabs { display: flex; justify-content: center; gap: 24px; border-bottom: 1px solid var(--line); }
+.cal-tabs button { border: 0; background: transparent; padding: 6px 4px 8px; font: inherit; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.cal-tabs button[aria-selected="true"] { color: var(--ink); font-weight: 800; border-bottom-color: var(--red); }
 .k-practice { --k: #7a52d1; } .k-night { --k: #d2408f; }
 .wd-pick { display: flex; gap: 6px; flex-wrap: wrap; }
 .wd { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); font: inherit; font-weight: 800; color: var(--muted); }
@@ -3036,6 +3037,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "Calendar: the List / Calendar switch is now Calendar and Agenda tabs under the date range, and the calendar grid is the default again. The Month, Week, 3 days and Day menu stays top right and opens the calendar in that layout."],
     ["2026-10-23", "Calendar: a List / Calendar switch at the top swaps between the agenda list and the calendar grid. The Month, Week, 3 days and Day menu shows only in Calendar, and it remembers which one you last used."],
     ["2026-10-23", "The app now opens on the Calendar, and the Calendar tab comes before My Tasks in the tab bar. Refreshing still keeps you on the page you were on."],
     ["2026-10-23", "Calendar has a new Agenda view, now the default: the next 2 weeks as a list with a heading per day, times or \"Due\" beside each item, game days highlighted, overdue items under Today and empty days folded into one line. Tap a day to open it; \"Show 2 more weeks\" reaches further."],
@@ -6021,7 +6023,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     return by;
   }
   var CAL_MODES = [["agenda", "Agenda"], ["month", "Month"], ["week", "Week"], ["3day", "3 days"], ["day", "Day"]];
-  function calMode() { return view.calMode || "agenda"; }
+  function calMode() { return view.calMode || "month"; }
   var AGENDA_DAYS = 14;
   function calSel() { var tdy = todayIso(); return view.calDay || (calMonth() === tdy.slice(0, 7) ? tdy : calMonth() + "-01"); }
   // The days a week, 3-day or single-day view shows: the week (Sunday first) holding the picked day, or the picked day onward.
@@ -6260,18 +6262,18 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       : mode === "day" ? md(sel, { weekday: "short", month: "short", day: "numeric" })
       : md(span[0], { month: "short", day: "numeric" }) + " – " + md(span[span.length - 1], span[0].slice(0, 7) === span[span.length - 1].slice(0, 7) ? { day: "numeric" } : { month: "short", day: "numeric" });
     var chev = function (d) { return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; };
-    var modeLabel = CAL_MODES.filter(function (x) { return x[0] === mode; })[0][1];
-    // List / Calendar switch; the Month, Week, 3 days, Day menu only shows in Calendar.
-    var grid = view.calGrid || "month", ico = function (d) { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + "</svg>"; };
-    var h = '<h1 class="sr-only">Calendar</h1><div class="cal-corner"><div class="seg cal-switch" role="group" aria-label="Calendar layout">' +
-      '<button type="button" data-act="cal-mode" data-mode="agenda" aria-pressed="' + (mode === "agenda") + '">' + ico('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>') + "List</button>" +
-      '<button type="button" data-act="cal-mode" data-mode="' + grid + '" aria-pressed="' + (mode !== "agenda") + '">' + ico('<rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>') + "Calendar</button></div>" +
-      (mode === "agenda" ? "" : '<div class="menu-wrap"><button class="kebab cal-mode-btn" id="cal-mode" aria-label="Calendar view: ' + esc(modeLabel) + '" aria-haspopup="true" aria-expanded="false" data-menu="cal-mode">' + esc(modeLabel) +
+    var grid = view.calGrid || "month";
+    var modeLabel = CAL_MODES.filter(function (x) { return x[0] === (mode === "agenda" ? grid : mode); })[0][1];
+    // Agenda / Calendar tabs sit under the date; the Month, Week, 3 days, Day menu stays top right and opens the calendar in that layout.
+    var h = '<h1 class="sr-only">Calendar</h1><div class="cal-corner">' +
+      ('<div class="menu-wrap"><button class="kebab cal-mode-btn" id="cal-mode" aria-label="Calendar view: ' + esc(modeLabel) + '" aria-haspopup="true" aria-expanded="false" data-menu="cal-mode">' + esc(modeLabel) +
       ' <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>' +
       '<div class="menu" role="menu" id="cal-mode-items" hidden>' + CAL_MODES.filter(function (x) { return x[0] !== "agenda"; }).map(function (x) { return '<button role="menuitemradio" aria-checked="' + (x[0] === mode) + '" data-act="cal-mode" data-mode="' + x[0] + '">' + (x[0] === mode ? "✓ " : "") + esc(x[1]) + "</button>"; }).join("") + "</div></div>") +
       kebab("cal-menu", [["cal-subscribe", "Add to my calendar app"]], true) + "</div>";
     h += '<div class="cal-bar-top"><div class="cal-nav"><button type="button" class="icon-btn" data-act="cal-prev" aria-label="Previous ' + unit + '">' + chev("M15 18l-6-6 6-6") + "</button>" +
       '<div class="cal-month" aria-live="polite">' + esc(title) + '</div><button type="button" class="icon-btn" data-act="cal-next" aria-label="Next ' + unit + '">' + chev("M9 18l6-6-6-6") + "</button></div>" +
+      '<div class="cal-tabs" role="tablist" aria-label="Calendar layout"><button type="button" role="tab" data-act="cal-mode" data-mode="' + grid + '" aria-selected="' + (mode !== "agenda") + '">Calendar</button>' +
+      '<button type="button" role="tab" data-act="cal-mode" data-mode="agenda" aria-selected="' + (mode === "agenda") + '">Agenda</button></div>' +
       '<div class="cal-tools"><div class="seg" role="group" aria-label="Whose tasks"><button type="button" data-act="cal-who" data-who="all" aria-pressed="' + !mine + '">Everyone</button><button type="button" data-act="cal-who" data-who="mine" aria-pressed="' + mine + '">Just mine</button></div>' +
       '<button type="button" class="btn" data-act="cal-today">Today</button>' +
       (isAdmin() ? '<button type="button" class="cal-plus" data-act="cal-add" aria-label="Add to the calendar" title="Add to the calendar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>' : "") + "</div></div>";
