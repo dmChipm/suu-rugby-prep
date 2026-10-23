@@ -3082,6 +3082,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "On Home, the switch now reads Just mine, then Everyone."],
     ["2026-10-23", "On Home, the Month / Week / 3 days / Day menu only shows while Calendar is picked; My agenda doesn't need it."],
     ["2026-10-23", "On Home, the Agenda tab is now called My agenda."],
     ["2026-10-23", "The Calendar tab is now called Home, since it holds your tasks as well as the team schedule. Its Agenda and Calendar views are unchanged."],
@@ -6350,7 +6351,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       '<div class="cal-month" aria-live="polite">' + esc(title) + '</div><button type="button" class="icon-btn" data-act="cal-next" aria-label="Next ' + unit + '">' + chev("M9 18l6-6-6-6") + "</button></div>" +
       '<div class="cal-tabs" role="tablist" aria-label="Calendar layout"><button type="button" role="tab" data-act="cal-mode" data-mode="agenda" aria-selected="' + (mode === "agenda") + '">My agenda</button>' +
       '<button type="button" role="tab" data-act="cal-mode" data-mode="' + grid + '" aria-selected="' + (mode !== "agenda") + '">Calendar</button></div>' +
-      '<div class="cal-tools"><div class="seg" role="group" aria-label="Whose tasks"><button type="button" data-act="cal-who" data-who="all" aria-pressed="' + !mine + '">Everyone</button><button type="button" data-act="cal-who" data-who="mine" aria-pressed="' + mine + '">Just mine</button></div>' +
+      '<div class="cal-tools"><div class="seg" role="group" aria-label="Whose tasks"><button type="button" data-act="cal-who" data-who="mine" aria-pressed="' + mine + '">Just mine</button><button type="button" data-act="cal-who" data-who="all" aria-pressed="' + !mine + '">Everyone</button></div>' +
       '<button type="button" class="btn" data-act="cal-today">Today</button>' +
       (isAdmin() ? '<button type="button" class="cal-plus" data-act="cal-add" aria-label="Add to the calendar" title="Add to the calendar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>' : "") + "</div></div>";
     // A short key, under the calendar.
