@@ -1130,8 +1130,8 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   </div>
   <nav class="tabs" role="tablist">
     <button id="tab-messages" role="tab" data-tab="messages">Messages<span class="badge" id="msg-badge" hidden></span></button>
-    <button id="tab-dashboard" role="tab" data-tab="dashboard">My Tasks</button>
     <button id="tab-calendar" role="tab" data-tab="calendar">Calendar</button>
+    <button id="tab-dashboard" role="tab" data-tab="dashboard">My Tasks</button>
     <button id="tab-sheets" role="tab" data-tab="sheets">Game Prep &amp; Projects</button>
     <button id="tab-projects" role="tab" data-tab="projects" hidden>Projects</button>
     <button id="tab-people" role="tab" data-tab="people">People</button>
@@ -3034,6 +3034,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-23", "The Calendar tab now comes before My Tasks in the tab bar."],
     ["2026-10-23", "Calendar has a new Agenda view, now the default: the next 2 weeks as a list with a heading per day, times or \"Due\" beside each item, game days highlighted, overdue items under Today and empty days folded into one line. Tap a day to open it; \"Show 2 more weeks\" reaches further."],
     ["2026-10-23", "Development usage stats use standard measures: active today, active this week, average daily users and stickiness, a daily active users chart with its average, and a people table with last active (red after a quiet week), days active, sessions and sessions per day."],
     ["2026-10-23", "The red header now slides up out of the way as you scroll down a page, and comes back as soon as you scroll up."],
