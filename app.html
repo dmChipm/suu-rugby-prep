@@ -1505,8 +1505,9 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     for (i = 0; i < 90; i++) crowd += '<circle cx="' + (-190 + i * 8.8 + (i % 3)) + '" cy="' + (296 + (i % 4) * 7) + '" r="2.6" fill="' + cols[(i * 7) % cols.length] + '"/>';
     // The kick is taken wide, a few metres in from the left touchline, so the posts sit off to the right and look narrower from the angle.
     // Posts on the try line: crossbar at 3 m, uprights well above it, with red pads at the base.
-    var posts = '<g stroke="#fff" stroke-linecap="round"><path d="M268 342 V178" stroke-width="3.5"/><path d="M300 340 V176" stroke-width="3.5"/><path d="M268 316 L300 314" stroke-width="3"/></g>' +
-      '<rect x="263.5" y="328" width="9" height="16" rx="2" fill="#c8102e"/><rect x="295.5" y="326" width="9" height="16" rx="2" fill="#c8102e"/>';
+    // Real proportions: 5.6 m apart, crossbar at 3 m, uprights about 16 m tall.
+    var posts = '<g stroke="#fff" stroke-linecap="round"><path d="M254 342 V218" stroke-width="3"/><path d="M298 340 V216" stroke-width="3"/><path d="M254 318 L298 316" stroke-width="2.5"/></g>' +
+      '<rect x="250" y="331" width="8" height="12" rx="2" fill="#c8102e"/><rect x="294" y="329" width="8" height="12" rx="2" fill="#c8102e"/>';
     return '<defs><linearGradient id="fi-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fb2f5"/><stop offset="1" stop-color="#d8efff"/></linearGradient></defs>' +
       '<rect x="-200" y="-400" width="800" height="740" fill="url(#fi-sky)"/>' +
       '<g fill="#fff" opacity=".9"><ellipse cx="80" cy="110" rx="46" ry="14"/><ellipse cx="110" cy="100" rx="30" ry="14"/><ellipse cx="320" cy="70" rx="40" ry="11"/></g>' +
@@ -1529,9 +1530,9 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     var hello = (hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening") + (first ? ", " + first : "") + "!";
     var box = document.createElement("div"); box.className = "fpv-intro"; box.setAttribute("role", "status"); box.setAttribute("aria-label", hello);
     box.innerHTML = '<svg viewBox="0 0 400 720" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><g class="fi-cam">' + fpvField() +
-      '<g class="fi-tee"><path d="M186 700 L214 700 L206 682 L194 682 Z" fill="#ff8a1f"/></g>' +
-      '<g class="fi-ball"><g transform="translate(200 640)">' + FPV_BALL + "</g></g></g>" +
-      '<g class="fi-leg"><g transform="translate(262 700)">' + FPV_LEG + "</g></g>" +
+      '<g class="fi-tee"><path d="M190 688 L210 688 L205 676 L195 676 Z" fill="#ff8a1f"/></g>' +
+      '<g class="fi-ball"><g transform="translate(200 646) scale(.62)">' + FPV_BALL + "</g></g></g>" +
+      '<g class="fi-leg"><g transform="translate(250 690) scale(.72)">' + FPV_LEG + "</g></g>" +
       '<rect class="fi-flash" x="-200" y="-400" width="800" height="1200" fill="#fff" opacity="0"/></svg>' +
       '<div class="fi-good">It\'s Good!</div><div class="fi-sign"><b>' + esc(hello) + "</b><small>Let's get to work</small></div>" +
       '<div class="ps-skip">Tap to skip</div>';
@@ -1554,16 +1555,16 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       { duration: 900, easing: "linear", fill: "forwards" });
     // The kicking boot swings in from the bottom right and meets the ball.
     var kick = 1050;
-    anim(leg, [{ transform: "translate(150px,260px) rotate(30deg)", opacity: 1 }, { transform: "translate(-38px,-40px) rotate(-6deg)", opacity: 1, offset: .62 },
+    anim(leg, [{ transform: "translate(150px,260px) rotate(30deg)", opacity: 1 }, { transform: "translate(-26px,-34px) rotate(-6deg)", opacity: 1, offset: .62 },
       { transform: "translate(-120px,-260px) rotate(-32deg)", opacity: 0 }], { duration: 560, delay: kick - 350, easing: "cubic-bezier(.5,0,.6,1)", fill: "both" });
     at(kick, function () {
       fpvThud(out);
       anim(flash, [{ opacity: 0 }, { opacity: .3, offset: .15 }, { opacity: 0 }], { duration: 220 });
       // The ball flies off the tee, shrinking and tumbling as it heads high between the posts.
-      ball.style.transformOrigin = "200px 640px";
-      anim(ball, [{ transform: "translate(0,0) rotate(0deg) scale(1)" }, { transform: "translate(18px,-250px) rotate(260deg) scale(.42)", offset: .3 },
-        { transform: "translate(48px,-360px) rotate(520deg) scale(.2)", offset: .6 }, { transform: "translate(72px,-392px) rotate(760deg) scale(.11)", offset: .85 },
-        { transform: "translate(84px,-396px) rotate(860deg) scale(.08)", opacity: .9 }], { duration: 1500, easing: "cubic-bezier(.15,.7,.4,1)", fill: "forwards" });
+      ball.style.transformOrigin = "200px 646px";
+      anim(ball, [{ transform: "translate(0,0) rotate(0deg) scale(1)" }, { transform: "translate(16px,-250px) rotate(260deg) scale(.4)", offset: .3 },
+        { transform: "translate(44px,-362px) rotate(520deg) scale(.2)", offset: .6 }, { transform: "translate(68px,-390px) rotate(760deg) scale(.11)", offset: .85 },
+        { transform: "translate(76px,-394px) rotate(860deg) scale(.08)", opacity: .9 }], { duration: 1500, easing: "cubic-bezier(.15,.7,.4,1)", fill: "forwards" });
       // The kicker's head comes up to follow it.
       anim(cam, [{ transform: "translateY(-3px) scale(1.09)" }, { transform: "translateY(70px) scale(1.12)" }], { duration: 1400, easing: "ease-out", fill: "forwards" });
     });
@@ -3383,6 +3384,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-25", "The daily welcome kick is drawn more true to scale: a smaller ball, tee and boot, and posts shaped like real ones (5.6 m wide with the crossbar at 3 m)."],
     ["2026-10-25", "Past games have a Game recap for coaches, the presidency and admins. It shows how many tasks were done (on time and late) and lists every task that was missed, with its owner and due date. A past game's card in Game Prep shows the same numbers."],
     ["2026-10-25", "Let's get to work is bigger on the daily welcome."],
     ["2026-10-25", "Once a game is over, its tasks clear out on their own. The day after the game, every task due on or before game day is archived, finished or not, so it drops off Home and the task lists. Post-game tasks, the ones due after game day, stay. The cleared tasks are still in the sheet's Archived list."],
