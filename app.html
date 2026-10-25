@@ -1473,7 +1473,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   // "train" (a train runs it over), "ilona" (Ilona Maher tackles it). Left out, one is picked at random.
   function pinataShow(label, kind) {
     var sub = label ? String(label).replace(/!+$/, "") : "";
-    if (reduceFx()) { toast("Good Job! " + (sub ? sub + " 🏉" : "🏉")); return; }
+    if (reduceFx()) return stillShow(sub);
     if (SHOWS.indexOf(kind) < 0) kind = SHOWS[Math.floor(Math.random() * SHOWS.length)];
     var old = document.querySelector(".neon-party"); if (old) old.remove();
     var W = window.innerWidth, H = window.innerHeight, timers = [], anims = [], done = false;
@@ -1868,10 +1868,19 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     og.gain.setValueAtTime(.9, t0); og.gain.exponentialRampToValueAtTime(.001, t0 + .55); o.connect(og); og.connect(out); o.start(t0); o.stop(t0 + .6);
     if (big) crackle(.9, 1, delay + .05, out);
   }
+  // With Reduce Motion on (common on iPhones), the shows hold still: the dimmed sky and the Good Job! sign appear for a few seconds, no flying or confetti.
+  function stillShow(sub) {
+    var old = document.querySelector(".neon-party"); if (old) old.remove();
+    var box = document.createElement("div"); box.className = "neon-party pinata-show still-show"; box.setAttribute("role", "status");
+    box.innerHTML = '<div class="ps-sky"></div><div class="ps-sign"><b>Good Job!</b>' + (sub ? "<small>" + esc(sub) + "</small>" : "") + '</div><div class="ps-skip">Tap to close</div>';
+    document.body.appendChild(box);
+    var gone = false, end = function () { if (gone) return; gone = true; box.remove(); };
+    box.addEventListener("click", end); setTimeout(end, 2600);
+  }
   // The small celebration for an ordinary task: a cannon fires a rugby ball, it lands mid-screen and bursts into "Good Job!".
   function cannonShow(label) {
     var sub = label ? String(label).replace(/!+$/, "") : "";
-    if (reduceFx()) { toast("Good Job! " + (sub ? sub + " 🏉" : "🏉")); return; }
+    if (reduceFx()) return stillShow(sub);
     var old = document.querySelector(".neon-party"); if (old) old.remove();
     var W = window.innerWidth, H = window.innerHeight, timers = [], anims = [], done = false;
     var box = document.createElement("div"); box.className = "neon-party pinata-show cannon-show"; box.setAttribute("role", "status");
@@ -3189,6 +3198,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-25", "Checking off a subtask now plays the Good Job! celebration too. Phones with Reduce Motion turned on used to get only a small message at the bottom. They now see the Good Job! sign big in the middle of the screen, held still for a few seconds."],
     ["2026-10-23", "Team members no longer see a Priority line in the task pop-up. Only admins see and change it."],
     ["2026-10-23", "In the task pop-up, Status, Owner, Due and Completed no longer sit inside a box. They're plain rows with thin lines between them."],
     ["2026-10-23", "In a task pop-up, team members no longer see an empty How to do it section when the task has no instructions or links. Admins still see it so they can add them."],
@@ -4653,7 +4663,9 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       var tg = e.target;
       if (tg.matches("[data-sub-chk]")) {
         var q = byId(t.subtasks || [], tg.closest("[data-sub]").dataset.sub); if (!q) return;
-        q.done = tg.checked; q.by = tg.checked ? currentUser().name : ""; drawSubs(); changed(); return;
+        q.done = tg.checked; q.by = tg.checked ? currentUser().name : ""; drawSubs(); changed();
+        if (q.done) cannonShow("Done: " + q.text);
+        return;
       }
       if (tg.matches("[data-tf-doc]")) {
         var d = byId(S.documents || [], tg.value); if (!d) return;
