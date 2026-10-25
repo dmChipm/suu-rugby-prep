@@ -1940,13 +1940,21 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     });
     at(land + 3200, finish);
   }
-  // After a task is finished: the cannon for an ordinary task, or one of the piñata shows when it finishes a whole sheet or project.
+  // Every finished task or subtask gets the next show in turn (the cannon, then each piñata show), whatever its size.
+  // The turn is remembered on this device so people see them all; a whole sheet or project at 100% just changes the caption.
+  var FX_TURN = ["cannon"].concat(SHOWS);
+  function playShow(label) {
+    var i;
+    try { i = (Number(localStorage.getItem("rugby-fx-turn")) || 0) % FX_TURN.length; localStorage.setItem("rugby-fx-turn", String(i + 1)); }
+    catch (e) { i = Math.floor(Math.random() * FX_TURN.length); }
+    if (FX_TURN[i] === "cannon") cannonShow(label); else pinataShow(label, FX_TURN[i]);
+  }
   function celebrateTask(t) {
     var sh = (S.sheets || []).filter(function (x) { return x.tasks.indexOf(t) >= 0; })[0];
-    if (sh && req(sh).length && doneCount(sh) === req(sh).length) return pinataShow(sheetTitle(sh) + " is 100% ready!");
+    if (sh && req(sh).length && doneCount(sh) === req(sh).length) return playShow(sheetTitle(sh) + " is 100% ready!");
     var pj = (S.projects || []).filter(function (x) { return x.tasks.indexOf(t) >= 0; })[0];
-    if (pj && preq(pj).length && preq(pj).every(isDone)) return pinataShow(pj.name + " is 100% done!");
-    cannonShow(t.text ? "Done: " + t.text : "");
+    if (pj && preq(pj).length && preq(pj).every(isDone)) return playShow(pj.name + " is 100% done!");
+    playShow(t.text ? "Done: " + t.text : "");
   }
   // Blocked always carries a reason (asked for in the pop-up and the quick status menu); any other status clears it.
   function setStatus(t, status, completed, reason) {
@@ -3198,6 +3206,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-25", "Celebrations take turns: every task or subtask you finish plays the next one in order (the cannon, the Thunderbird, Thor, the train, then Ilona Maher), whether it's one small task or a whole game sheet."],
     ["2026-10-25", "Checking off a subtask now plays the Good Job! celebration too. Phones with Reduce Motion turned on used to get only a small message at the bottom. They now see the Good Job! sign big in the middle of the screen, held still for a few seconds."],
     ["2026-10-23", "Team members no longer see a Priority line in the task pop-up. Only admins see and change it."],
     ["2026-10-23", "In the task pop-up, Status, Owner, Due and Completed no longer sit inside a box. They're plain rows with thin lines between them."],
@@ -4664,7 +4673,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       if (tg.matches("[data-sub-chk]")) {
         var q = byId(t.subtasks || [], tg.closest("[data-sub]").dataset.sub); if (!q) return;
         q.done = tg.checked; q.by = tg.checked ? currentUser().name : ""; drawSubs(); changed();
-        if (q.done) cannonShow("Done: " + q.text);
+        if (q.done) playShow("Done: " + q.text);
         return;
       }
       if (tg.matches("[data-tf-doc]")) {
