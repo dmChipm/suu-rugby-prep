@@ -594,7 +594,7 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .fi-sign { position: absolute; left: 50%; top: 24%; transform: translate(-50%, -50%); width: max-content; max-width: calc(100vw - 32px); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0; }
 .fi-sign b { font-family: var(--display); font-style: italic; font-weight: 800; font-size: clamp(2rem, 10vw, 3.6rem); line-height: 1.05; color: #fff; padding: 12px 24px 14px; border-radius: 18px; background: rgba(168, 13, 38, .92); box-shadow: 0 6px 0 rgba(0, 0, 0, .25); text-wrap: balance; }
 .fi-good { position: absolute; left: 50%; top: 24%; transform: translate(-50%, -50%); width: max-content; font-family: var(--display); font-style: italic; font-weight: 800; font-size: clamp(2.8rem, 16vw, 5.6rem); line-height: 1; color: #fff; -webkit-text-stroke: 3px #a80d26; paint-order: stroke fill; text-shadow: 0 6px 0 rgba(0, 0, 0, .25); opacity: 0; }
-.fi-sign small { font-size: 1rem; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+.fi-sign small { font-size: clamp(1.35rem, 6vw, 1.9rem); font-weight: 800; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
 .fpv-intro .ps-skip { color: rgba(255, 255, 255, .8); text-shadow: 0 1px 2px rgba(0, 0, 0, .5); }
 .ps-skip { position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: .78rem; color: rgba(255, 255, 255, .55); }
 @keyframes ps-neon-on { 0% { opacity: 0; } 8% { opacity: 1; } 14% { opacity: .15; } 22% { opacity: 1; } 30% { opacity: .35; } 36%, 70% { opacity: 1; } 74% { opacity: .55; } 78%, 100% { opacity: 1; } }
@@ -3144,6 +3144,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   if (ONLINE) { S = emptyState(); APP_LINK = appUrl(); }
 
   function render() {
+    sweepPastGames();
     if (S && !!devAs() !== !!REAL) syncTestProfile();
     var ae = document.activeElement, keepMsg = ae && ae.id === "msg-input" ? { a: ae.selectionStart, b: ae.selectionEnd } : null;
     renderInner();
@@ -3285,6 +3286,22 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     t.archivedAt = Date.now(); t.archivedBy = currentUser().name; (owner.archived = owner.archived || []).push(t);
     save(); closeModal(); render(); toast(label || "Task archived");
   }
+  // Once a game's date has passed, its tasks are archived (out of Home, lists and counts) except post-game tasks, the ones due after game day.
+  // They stay in the sheet's Archived list and can be restored, but the next sweep archives a restored pre-game task again.
+  function sweepPastGames() {
+    if (REAL || !S || !S.sheets || (ONLINE && auth.state !== "ready")) return;
+    var today = todayIso(), moved = 0;
+    S.sheets.forEach(function (sh) {
+      if (!sh.gameInfo || !sh.date || sh.date >= today) return;
+      var keep = [];
+      sh.tasks.forEach(function (t) {
+        if (t.due && t.due > sh.date) { keep.push(t); return; }
+        t.archivedAt = Date.now(); t.archivedBy = "Game finished"; (sh.archived = sh.archived || []).push(t); moved++;
+      });
+      sh.tasks = keep;
+    });
+    if (moved) save(true);
+  }
   function restoreTask(owner, id) {
     var t = byId(owner.archived || [], id); if (!t) return;
     owner.archived = owner.archived.filter(function (x) { return x.id !== id; }); t.archivedAt = 0; t.archivedBy = ""; owner.tasks.push(t);
@@ -3324,6 +3341,8 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-25", "Let's get to work is bigger on the daily welcome."],
+    ["2026-10-25", "Once a game is over, its tasks clear out on their own. The day after the game, every task due on or before game day is archived, finished or not, so it drops off Home and the task lists. Post-game tasks, the ones due after game day, stay. The cleared tasks are still in the sheet's Archived list."],
     ["2026-10-25", "The daily welcome greeting no longer shows the date. It just says Let's get to work under the greeting."],
     ["2026-10-25", "A daily welcome: the first time you open the app each day, you kick a conversion through the kicker's eyes. You run up, the boot sends the ball off the tee and between the posts, It's Good! flashes up as it goes through the uprights, the crowd cheers, and a Good morning greeting comes up. Tap to skip it. Preview it under Effects on the Development tab."],
     ["2026-10-25", "Celebrations take turns: every task or subtask you finish plays the next one in order (the cannon, the Thunderbird, Thor, the train, then Ilona Maher), whether it's one small task or a whole game sheet."],
