@@ -596,6 +596,16 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .fi-good { position: absolute; left: 50%; top: 24%; transform: translate(-50%, -50%); width: max-content; font-family: var(--display); font-style: italic; font-weight: 800; font-size: clamp(2.8rem, 16vw, 5.6rem); line-height: 1; color: #fff; -webkit-text-stroke: 3px #a80d26; paint-order: stroke fill; text-shadow: 0 6px 0 rgba(0, 0, 0, .25); opacity: 0; }
 .fi-sign small { font-size: clamp(1.35rem, 6vw, 1.9rem); font-weight: 800; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
 .fpv-intro .ps-skip { color: rgba(255, 255, 255, .8); text-shadow: 0 1px 2px rgba(0, 0, 0, .5); }
+.recap { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.recap .rc-big { font-weight: 800; font-size: 1.15rem; }
+.recap .rc-pct { font-weight: 800; font-variant-numeric: tabular-nums; }
+.rc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rc-chip { font-size: .8rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); }
+.rc-chip.ok { color: var(--ok-ink); } .rc-chip.late { color: var(--warn); } .rc-chip.miss { color: var(--red); }
+.rc-sec summary { cursor: pointer; font-weight: 700; padding: 4px 0; }
+.rc-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; }
+.rc-list li { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-top: 1px solid var(--line); }
+.rc-task { font-weight: 600; }
 .ps-skip { position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: .78rem; color: rgba(255, 255, 255, .55); }
 @keyframes ps-neon-on { 0% { opacity: 0; } 8% { opacity: 1; } 14% { opacity: .15; } 22% { opacity: 1; } 30% { opacity: .35; } 36%, 70% { opacity: 1; } 74% { opacity: .55; } 78%, 100% { opacity: 1; } }
 @keyframes np-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1478,7 +1488,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   bootLoader = showLoader(false);
   // ---------- daily welcome kick ----------
   // The first time someone opens the app each day: a first-person conversion kick. The approach, the boot hits the ball off the tee,
-  // it sails between the posts ("It's Good!"), the crowd cheers, then a greeting. Tap to skip. Preview it under Effects on the Development tab.
+  // it curls in from out wide on the left and between the posts ("It's Good!"), the crowd cheers, then a greeting. Tap to skip. Preview it under Effects on the Development tab.
   var INTRO_KEY = KEY + "-intro-day", introChecked = false;
   function maybeDailyIntro() {
     if (introChecked) return; introChecked = true;
@@ -1493,16 +1503,20 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       bands += '<rect x="-200" y="' + y0.toFixed(1) + '" width="800" height="' + (y1 - y0 + .5).toFixed(1) + '" fill="' + (i % 2 ? "#4b9b44" : "#3f8c39") + '"/>';
     }
     for (i = 0; i < 90; i++) crowd += '<circle cx="' + (-190 + i * 8.8 + (i % 3)) + '" cy="' + (296 + (i % 4) * 7) + '" r="2.6" fill="' + cols[(i * 7) % cols.length] + '"/>';
-    // Posts on the try line: 5.6 m apart, crossbar at 3 m, uprights well above it, with red pads at the base.
-    var posts = '<g stroke="#fff" stroke-linecap="round"><path d="M170 346 V150" stroke-width="4"/><path d="M230 346 V150" stroke-width="4"/><path d="M170 314 H230" stroke-width="3.5"/></g>' +
-      '<rect x="165" y="330" width="10" height="18" rx="2" fill="#c8102e"/><rect x="225" y="330" width="10" height="18" rx="2" fill="#c8102e"/>';
+    // The kick is taken wide, a few metres in from the left touchline, so the posts sit off to the right and look narrower from the angle.
+    // Posts on the try line: crossbar at 3 m, uprights well above it, with red pads at the base.
+    var posts = '<g stroke="#fff" stroke-linecap="round"><path d="M268 342 V178" stroke-width="3.5"/><path d="M300 340 V176" stroke-width="3.5"/><path d="M268 316 L300 314" stroke-width="3"/></g>' +
+      '<rect x="263.5" y="328" width="9" height="16" rx="2" fill="#c8102e"/><rect x="295.5" y="326" width="9" height="16" rx="2" fill="#c8102e"/>';
     return '<defs><linearGradient id="fi-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fb2f5"/><stop offset="1" stop-color="#d8efff"/></linearGradient></defs>' +
       '<rect x="-200" y="-400" width="800" height="740" fill="url(#fi-sky)"/>' +
       '<g fill="#fff" opacity=".9"><ellipse cx="80" cy="110" rx="46" ry="14"/><ellipse cx="110" cy="100" rx="30" ry="14"/><ellipse cx="320" cy="70" rx="40" ry="11"/></g>' +
       '<rect x="-200" y="284" width="800" height="48" fill="#5b0d1a"/>' + crowd +
       '<rect x="-200" y="326" width="800" height="6" fill="#2d6e2a"/>' + bands +
-      '<path d="M-200 346 H600" stroke="#fff" stroke-width="2" opacity=".9"/><path d="M-200 338 H600" stroke="#fff" stroke-width="1" opacity=".5"/>' +
-      '<path d="M200 346 L200 720" stroke="#fff" stroke-width="1.5" opacity=".18"/>' + posts;
+      // Out of play beyond the left touchline, the try line running off to the right from the corner flag, and the touchline coming toward us.
+      '<path d="M-200 720 L-200 338 L66 346 L-60 720 Z" fill="#336f2f"/>' +
+      '<path d="M66 346 L600 330" stroke="#fff" stroke-width="2" opacity=".9"/><path d="M60 338 L600 324" stroke="#fff" stroke-width="1" opacity=".5"/>' +
+      '<path d="M66 346 L-60 720" stroke="#fff" stroke-width="3" opacity=".95"/>' +
+      '<path d="M66 346 V318" stroke="#fff" stroke-width="1.5"/><path d="M66 318 L80 322 L66 327 Z" fill="#c8102e"/>' + posts;
   }
   // Ball on its tee in the foreground, standing on its end the way kickers set it.
   var FPV_BALL = '<ellipse cx="0" cy="0" rx="30" ry="46" fill="#fff" stroke="#c9c9c9" stroke-width="2"/><path d="M-29 -8 Q0 -2 29 -8 L29 6 Q0 12 -29 6 Z" fill="#c8102e"/>' +
@@ -1547,9 +1561,9 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       anim(flash, [{ opacity: 0 }, { opacity: .3, offset: .15 }, { opacity: 0 }], { duration: 220 });
       // The ball flies off the tee, shrinking and tumbling as it heads high between the posts.
       ball.style.transformOrigin = "200px 640px";
-      anim(ball, [{ transform: "translate(0,0) rotate(0deg) scale(1)" }, { transform: "translate(-4px,-250px) rotate(260deg) scale(.42)", offset: .3 },
-        { transform: "translate(-2px,-360px) rotate(520deg) scale(.2)", offset: .6 }, { transform: "translate(0,-395px) rotate(760deg) scale(.11)", offset: .85 },
-        { transform: "translate(0,-398px) rotate(860deg) scale(.08)", opacity: .9 }], { duration: 1500, easing: "cubic-bezier(.15,.7,.4,1)", fill: "forwards" });
+      anim(ball, [{ transform: "translate(0,0) rotate(0deg) scale(1)" }, { transform: "translate(18px,-250px) rotate(260deg) scale(.42)", offset: .3 },
+        { transform: "translate(48px,-360px) rotate(520deg) scale(.2)", offset: .6 }, { transform: "translate(72px,-392px) rotate(760deg) scale(.11)", offset: .85 },
+        { transform: "translate(84px,-396px) rotate(860deg) scale(.08)", opacity: .9 }], { duration: 1500, easing: "cubic-bezier(.15,.7,.4,1)", fill: "forwards" });
       // The kicker's head comes up to follow it.
       anim(cam, [{ transform: "translateY(-3px) scale(1.09)" }, { transform: "translateY(70px) scale(1.12)" }], { duration: 1400, easing: "ease-out", fill: "forwards" });
     });
@@ -3224,13 +3238,41 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     }
   }
 
+  // Game recap for a past game: every task the game had (still on the sheet, or archived when the game finished).
+  // Coaches, the presidency and admins see it; it counts required tasks done, done late, and missed.
+  function canSeeRecap() { var me = currentUser(); return isAdmin() || (me && me.role === "Coach") || PROJECT_TAGS.some(function (t) { return hasTag(me, t); }); }
+  function isPastGame(s) { return !!(s.gameInfo && s.date && isPast(s.date)); }
+  function gameRecap(s) {
+    var all = s.tasks.concat((s.archived || []).filter(function (t) { return t.archivedBy === "Game finished"; }));
+    var rq = all.filter(function (t) { return !t.optional; }), done = rq.filter(isDone);
+    return { all: all, req: rq, done: done, missed: rq.filter(function (t) { return !isDone(t); }),
+      late: done.filter(function (t) { return t.due && t.completed && t.completed > t.due; }), optDone: all.filter(function (t) { return t.optional && isDone(t); }).length,
+      pct: rq.length ? Math.round(done.length * 100 / rq.length) : 0 };
+  }
+  function recapCard(s) {
+    var r = gameRecap(s), onTime = r.done.length - r.late.length;
+    function li(t, extra) { return '<li><span class="rc-task">' + esc(t.text) + '</span><span class="muted small">' + esc([t.owner || "No owner", extra].filter(Boolean).join(" · ")) + "</span></li>"; }
+    return '<div class="card recap"><div class="row spread"><strong>Game recap</strong><span class="muted small">Coaches and presidency</span></div>' +
+      '<div class="row spread"><span class="rc-big">' + r.done.length + " of " + r.req.length + ' tasks done</span><span class="rc-pct">' + r.pct + "%</span></div>" +
+      '<div class="bar"><i style="width:' + r.pct + '%"></i></div>' +
+      '<div class="rc-chips"><span class="rc-chip ok">' + onTime + " on time</span>" + (r.late.length ? '<span class="rc-chip late">' + r.late.length + " done late</span>" : "") +
+      '<span class="rc-chip miss">' + r.missed.length + " missed</span>" + (r.optDone ? '<span class="rc-chip">+ ' + r.optDone + " optional done</span>" : "") + "</div>" +
+      (r.missed.length ? '<details class="rc-sec" open><summary>Missed (' + r.missed.length + ')</summary><ul class="rc-list">' +
+        r.missed.map(function (t) { return li(t, (t.status && t.status !== "Not Started" ? t.status : "Not started") + (t.due ? " · was due " + fmtShort(t.due) : "")); }).join("") + "</ul></details>" : '<p class="muted small" style="margin:0">Nothing was missed. 🏉</p>') +
+      (r.late.length ? '<details class="rc-sec"><summary>Done late (' + r.late.length + ')</summary><ul class="rc-list">' +
+        r.late.map(function (t) { return li(t, "due " + fmtShort(t.due) + ", done " + fmtShort(t.completed)); }).join("") + "</ul></details>" : "") + "</div>";
+  }
   function sheetCard(s) {
     var p = pct(s);
     var meta = [];
     if (s.date) meta.push(fmtDate(s.date));
-    meta.push(doneCount(s) + " of " + req(s).length + " done" + (optCount(s) ? " (+" + optCount(s) + " optional)" : ""));
+    if (isPastGame(s)) {
+      // A finished game's own task list is cleared, so its card shows the recap numbers (or just the date for everyone else).
+      var r = gameRecap(s); p = r.pct;
+      if (canSeeRecap()) meta.push(r.done.length + " of " + r.req.length + " done" + (r.missed.length ? " · " + r.missed.length + " missed" : ""));
+    } else meta.push(doneCount(s) + " of " + req(s).length + " done" + (optCount(s) ? " (+" + optCount(s) + " optional)" : ""));
     return '<button class="item" data-open-sheet="' + s.id + '">' +
-      '<div class="ring" style="--p:' + p + '"><span>' + p + "%</span></div>" +
+      (isPastGame(s) && !canSeeRecap() ? '<div class="ring" style="--p:0"><span>🏉</span></div>' : '<div class="ring" style="--p:' + p + '"><span>' + p + "%</span></div>") +
       '<div class="grow"><div class="row"><span class="kind' + (p === 100 ? " done" : "") + '">' + esc(s.masterName.replace(/\s*Check Sheet$/i, "")) + "</span>" +
       (s.example ? '<span class="kind example">Example</span>' : "") + "</div>" +
       '<div class="title">' + esc(sheetTitle(s)) + '</div><div class="muted small">' + esc(meta.join(" · ")) + "</div>" +
@@ -3341,10 +3383,11 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-25", "Past games have a Game recap for coaches, the presidency and admins. It shows how many tasks were done (on time and late) and lists every task that was missed, with its owner and due date. A past game's card in Game Prep shows the same numbers."],
     ["2026-10-25", "Let's get to work is bigger on the daily welcome."],
     ["2026-10-25", "Once a game is over, its tasks clear out on their own. The day after the game, every task due on or before game day is archived, finished or not, so it drops off Home and the task lists. Post-game tasks, the ones due after game day, stay. The cleared tasks are still in the sheet's Archived list."],
     ["2026-10-25", "The daily welcome greeting no longer shows the date. It just says Let's get to work under the greeting."],
-    ["2026-10-25", "A daily welcome: the first time you open the app each day, you kick a conversion through the kicker's eyes. You run up, the boot sends the ball off the tee and between the posts, It's Good! flashes up as it goes through the uprights, the crowd cheers, and a Good morning greeting comes up. Tap to skip it. Preview it under Effects on the Development tab."],
+    ["2026-10-25", "A daily welcome: the first time you open the app each day, you kick a conversion through the kicker's eyes. You line up out wide near the left touchline, run up, and the boot sends the ball off the tee and curling in between the posts, It's Good! flashes up as it goes through the uprights, the crowd cheers, and a Good morning greeting comes up. Tap to skip it. Preview it under Effects on the Development tab."],
     ["2026-10-25", "Celebrations take turns: every task or subtask you finish plays the next one in order (the cannon, the Thunderbird, Thor, the train, then Ilona Maher), whether it's one small task or a whole game sheet."],
     ["2026-10-25", "Checking off a subtask now plays the Good Job! celebration too. Phones with Reduce Motion turned on used to get only a small message at the bottom. They now see the Good Job! sign big in the middle of the screen, held still for a few seconds."],
     ["2026-10-23", "Team members no longer see a Priority line in the task pop-up. Only admins see and change it."],
@@ -4131,9 +4174,10 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       (admin ? kebab("sheet-menu", [["edit-sheet", "Edit details"], ["rules-sheet", "Readiness rules"], ["archive-sheet", "Archive"], ["delete-sheet", "Delete"]]) : "") + "</div>";
     h += '<div class="row"><span class="kind">' + esc(s.masterName) + "</span>" + (s.example ? '<span class="kind example">Example</span>' : "") + "</div>";
     // Readiness sits beside the title; tapping it shows the rules behind it.
-    var rd = readiness(s);
+    var rd = isPastGame(s) ? { cls: "st-hold", label: "Game over" } : readiness(s);
     h += '<div class="sheet-title"><h1>' + esc(sheetTitle(s)) + '</h1><button type="button" class="pill rd-pill ' + rd.cls + '" data-act="rules-view" aria-label="Readiness: ' + rd.label + '. See the rules">' + rd.label + ' <span aria-hidden="true">ⓘ</span></button></div>';
     if (s.date) h += '<div class="muted">' + esc(fmtDate(s.date)) + "</div>";
+    if (isPastGame(s) && canSeeRecap()) h += recapCard(s);
     h += '<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">' +
       '<div class="row spread"><strong>' + doneCount(s) + " of " + req(s).length + " tasks done" + (optCount(s) ? ' <span class="muted small" style="font-weight:400">+ ' + optCount(s) + " optional</span>" : "") + '</strong><span class="muted small" style="font-variant-numeric:tabular-nums">' + p + "%</span></div>" +
       '<div class="bar"><i style="width:' + p + '%"></i></div>' + sfChips(tasks, view.sf) +
