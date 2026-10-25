@@ -586,6 +586,16 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
   90.5% { transform: translate(278px, 96px) rotate(150deg) scale(.9); } 93.5% { transform: translate(324px, 56px) rotate(330deg) scale(.7); }
   97% { transform: translate(366px, 44px) rotate(520deg) scale(.35); opacity: 1; } 99%, 100% { transform: translate(376px, 42px) rotate(560deg) scale(0); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .bl-cloud, .bl-pos, .bl-pose, .bl-carry, .bl-kick, .boot-loader .ps-runner * { animation: none !important; } .bl-pos { transform: translate(150px, 182px); } .bl-kick { opacity: 0; } }
+/* Daily welcome: the first open of the day, seen through the kicker's eyes as they kick the conversion. */
+.fpv-intro { position: fixed; inset: 0; z-index: 300; overflow: hidden; background: #7cc4ff; cursor: pointer; transition: opacity .45s; }
+.fpv-intro.out { opacity: 0; pointer-events: none; }
+.fpv-intro > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fpv-intro .fi-cam, .fpv-intro .fi-ball, .fpv-intro .fi-leg { transform-box: view-box; }
+.fi-sign { position: absolute; left: 50%; top: 24%; transform: translate(-50%, -50%); width: max-content; max-width: calc(100vw - 32px); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0; }
+.fi-sign b { font-family: var(--display); font-style: italic; font-weight: 800; font-size: clamp(2rem, 10vw, 3.6rem); line-height: 1.05; color: #fff; padding: 12px 24px 14px; border-radius: 18px; background: rgba(168, 13, 38, .92); box-shadow: 0 6px 0 rgba(0, 0, 0, .25); text-wrap: balance; }
+.fi-good { position: absolute; left: 50%; top: 24%; transform: translate(-50%, -50%); width: max-content; font-family: var(--display); font-style: italic; font-weight: 800; font-size: clamp(2.8rem, 16vw, 5.6rem); line-height: 1; color: #fff; -webkit-text-stroke: 3px #a80d26; paint-order: stroke fill; text-shadow: 0 6px 0 rgba(0, 0, 0, .25); opacity: 0; }
+.fi-sign small { font-size: 1rem; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+.fpv-intro .ps-skip { color: rgba(255, 255, 255, .8); text-shadow: 0 1px 2px rgba(0, 0, 0, .5); }
 .ps-skip { position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: .78rem; color: rgba(255, 255, 255, .55); }
 @keyframes ps-neon-on { 0% { opacity: 0; } 8% { opacity: 1; } 14% { opacity: .15; } 22% { opacity: 1; } 30% { opacity: .35; } 36%, 70% { opacity: 1; } 74% { opacity: .55; } 78%, 100% { opacity: 1; } }
 @keyframes np-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1466,6 +1476,112 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     setTimeout(function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 420); }, Math.max(0, 900 - (Date.now() - bootStart)));
   }
   bootLoader = showLoader(false);
+  // ---------- daily welcome kick ----------
+  // The first time someone opens the app each day: a first-person conversion kick. The approach, the boot hits the ball off the tee,
+  // it sails between the posts ("It's Good!"), the crowd cheers, then a greeting. Tap to skip. Preview it under Effects on the Development tab.
+  var INTRO_KEY = KEY + "-intro-day", introChecked = false;
+  function maybeDailyIntro() {
+    if (introChecked) return; introChecked = true;
+    try { if (localStorage.getItem(INTRO_KEY) === todayIso()) return; localStorage.setItem(INTRO_KEY, todayIso()); } catch (e) { return; }
+    // Wait for the loading screen to finish fading so the two don't overlap.
+    var tries = 0; (function go() { if (document.querySelector(".boot-loader") && tries++ < 30) return setTimeout(go, 200); dailyIntro(); })();
+  }
+  function fpvField() {
+    var h = 330, bands = "", i, n = 14, crowd = "", cols = ["#c8102e", "#fff", "#1d1d1f", "#ffd166", "#a80d26", "#e8e8e8"];
+    for (i = 0; i < n; i++) {
+      var y0 = h + 390 * Math.pow(i / n, 2), y1 = h + 390 * Math.pow((i + 1) / n, 2);
+      bands += '<rect x="-200" y="' + y0.toFixed(1) + '" width="800" height="' + (y1 - y0 + .5).toFixed(1) + '" fill="' + (i % 2 ? "#4b9b44" : "#3f8c39") + '"/>';
+    }
+    for (i = 0; i < 90; i++) crowd += '<circle cx="' + (-190 + i * 8.8 + (i % 3)) + '" cy="' + (296 + (i % 4) * 7) + '" r="2.6" fill="' + cols[(i * 7) % cols.length] + '"/>';
+    // Posts on the try line: 5.6 m apart, crossbar at 3 m, uprights well above it, with red pads at the base.
+    var posts = '<g stroke="#fff" stroke-linecap="round"><path d="M170 346 V150" stroke-width="4"/><path d="M230 346 V150" stroke-width="4"/><path d="M170 314 H230" stroke-width="3.5"/></g>' +
+      '<rect x="165" y="330" width="10" height="18" rx="2" fill="#c8102e"/><rect x="225" y="330" width="10" height="18" rx="2" fill="#c8102e"/>';
+    return '<defs><linearGradient id="fi-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fb2f5"/><stop offset="1" stop-color="#d8efff"/></linearGradient></defs>' +
+      '<rect x="-200" y="-400" width="800" height="740" fill="url(#fi-sky)"/>' +
+      '<g fill="#fff" opacity=".9"><ellipse cx="80" cy="110" rx="46" ry="14"/><ellipse cx="110" cy="100" rx="30" ry="14"/><ellipse cx="320" cy="70" rx="40" ry="11"/></g>' +
+      '<rect x="-200" y="284" width="800" height="48" fill="#5b0d1a"/>' + crowd +
+      '<rect x="-200" y="326" width="800" height="6" fill="#2d6e2a"/>' + bands +
+      '<path d="M-200 346 H600" stroke="#fff" stroke-width="2" opacity=".9"/><path d="M-200 338 H600" stroke="#fff" stroke-width="1" opacity=".5"/>' +
+      '<path d="M200 346 L200 720" stroke="#fff" stroke-width="1.5" opacity=".18"/>' + posts;
+  }
+  // Ball on its tee in the foreground, standing on its end the way kickers set it.
+  var FPV_BALL = '<ellipse cx="0" cy="0" rx="30" ry="46" fill="#fff" stroke="#c9c9c9" stroke-width="2"/><path d="M-29 -8 Q0 -2 29 -8 L29 6 Q0 12 -29 6 Z" fill="#c8102e"/>' +
+    '<path d="M0 -46 Q10 0 0 46" fill="none" stroke="#bbb" stroke-width="1.5"/><path d="M-6 -30 h12 M-7 -22 h14 M-7 22 h14 M-6 30 h12" stroke="#999" stroke-width="1.5"/>';
+  var FPV_LEG = '<path d="M60 -20 L150 160 L95 190 L20 20 Z" fill="#a80d26"/><path d="M40 10 L118 172" stroke="#e8455c" stroke-width="6"/>' +
+    '<path d="M-44 0 Q-50 -26 -18 -30 L44 -26 Q70 -22 62 10 L56 30 Q20 40 -30 26 Q-46 20 -44 0 Z" fill="#1d1d1f"/><path d="M-30 22 L50 26" stroke="#c8102e" stroke-width="4"/>';
+  function dailyIntro(preview) {
+    var old = document.querySelector(".fpv-intro"); if (old) old.remove();
+    var hr = new Date().getHours(), first = ((currentUser() || {}).name || "").trim().split(/\s+/)[0];
+    var hello = (hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening") + (first ? ", " + first : "") + "!";
+    var box = document.createElement("div"); box.className = "fpv-intro"; box.setAttribute("role", "status"); box.setAttribute("aria-label", hello);
+    box.innerHTML = '<svg viewBox="0 0 400 720" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><g class="fi-cam">' + fpvField() +
+      '<g class="fi-tee"><path d="M186 700 L214 700 L206 682 L194 682 Z" fill="#ff8a1f"/></g>' +
+      '<g class="fi-ball"><g transform="translate(200 640)">' + FPV_BALL + "</g></g></g>" +
+      '<g class="fi-leg"><g transform="translate(262 700)">' + FPV_LEG + "</g></g>" +
+      '<rect class="fi-flash" x="-200" y="-400" width="800" height="1200" fill="#fff" opacity="0"/></svg>' +
+      '<div class="fi-good">It\'s Good!</div><div class="fi-sign"><b>' + esc(hello) + "</b><small>" + esc(fmtDate(todayIso())) + " · let's get to work</small></div>" +
+      '<div class="ps-skip">Tap to skip</div>';
+    document.body.appendChild(box);
+    var cam = box.querySelector(".fi-cam"), ball = box.querySelector(".fi-ball"), leg = box.querySelector(".fi-leg"), flash = box.querySelector(".fi-flash"), sign = box.querySelector(".fi-sign"), good = box.querySelector(".fi-good");
+    var timers = [], anims = [], done = false, out = sfxOut();
+    function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
+    function anim(el, kf, o) { var a = el.animate(kf, o); anims.push(a); return a; }
+    function finish() {
+      if (done) return; done = true; timers.forEach(clearTimeout);
+      if (out) { try { out.gain.setTargetAtTime(0, out.context.currentTime, .08); } catch (e) {} }
+      box.classList.add("out"); setTimeout(function () { box.remove(); }, 480);
+    }
+    box.addEventListener("click", finish);
+    if (reduceFx()) { sign.style.opacity = "1"; at(2400, finish); return; }
+    leg.style.opacity = "0"; leg.style.transformOrigin = "330px 720px"; cam.style.transformOrigin = "200px 640px";
+    // The run-up: a few steps toward the ball, the view bobbing with each stride.
+    anim(cam, [{ transform: "translateY(0) scale(1)" }, { transform: "translateY(-6px) scale(1.02)", offset: .2 }, { transform: "translateY(0) scale(1.04)", offset: .4 },
+      { transform: "translateY(-6px) scale(1.06)", offset: .6 }, { transform: "translateY(0) scale(1.08)", offset: .8 }, { transform: "translateY(-3px) scale(1.09)" }],
+      { duration: 900, easing: "linear", fill: "forwards" });
+    // The kicking boot swings in from the bottom right and meets the ball.
+    var kick = 1050;
+    anim(leg, [{ transform: "translate(150px,260px) rotate(30deg)", opacity: 1 }, { transform: "translate(-38px,-40px) rotate(-6deg)", opacity: 1, offset: .62 },
+      { transform: "translate(-120px,-260px) rotate(-32deg)", opacity: 0 }], { duration: 560, delay: kick - 350, easing: "cubic-bezier(.5,0,.6,1)", fill: "both" });
+    at(kick, function () {
+      fpvThud(out);
+      anim(flash, [{ opacity: 0 }, { opacity: .3, offset: .15 }, { opacity: 0 }], { duration: 220 });
+      // The ball flies off the tee, shrinking and tumbling as it heads high between the posts.
+      ball.style.transformOrigin = "200px 640px";
+      anim(ball, [{ transform: "translate(0,0) rotate(0deg) scale(1)" }, { transform: "translate(-4px,-250px) rotate(260deg) scale(.42)", offset: .3 },
+        { transform: "translate(-2px,-360px) rotate(520deg) scale(.2)", offset: .6 }, { transform: "translate(0,-395px) rotate(760deg) scale(.11)", offset: .85 },
+        { transform: "translate(0,-398px) rotate(860deg) scale(.08)", opacity: .9 }], { duration: 1500, easing: "cubic-bezier(.15,.7,.4,1)", fill: "forwards" });
+      // The kicker's head comes up to follow it.
+      anim(cam, [{ transform: "translateY(-3px) scale(1.09)" }, { transform: "translateY(70px) scale(1.12)" }], { duration: 1400, easing: "ease-out", fill: "forwards" });
+    });
+    // Between the posts: "It's Good!" and the crowd roars, then the greeting comes up.
+    at(kick + 1150, function () {
+      fpvCheer(out);
+      anim(good, [{ opacity: 0, transform: "translate(-50%,-50%) scale(.4) rotate(-8deg)" }, { opacity: 1, transform: "translate(-50%,-50%) scale(1.12) rotate(-4deg)", offset: .25 },
+        { opacity: 1, transform: "translate(-50%,-50%) scale(1) rotate(-4deg)", offset: .4 }, { opacity: 1, transform: "translate(-50%,-50%) scale(1) rotate(-4deg)", offset: .85 },
+        { opacity: 0, transform: "translate(-50%,-60%) scale(.9) rotate(-4deg)" }], { duration: 1500, easing: "ease-out", fill: "forwards" });
+    });
+    at(kick + 2600, function () {
+      anim(sign, [{ opacity: 0, transform: "translate(-50%,-40%) scale(.8)" }, { opacity: 1, transform: "translate(-50%,-50%) scale(1.04)", offset: .7 }, { opacity: 1, transform: "translate(-50%,-50%) scale(1)" }],
+        { duration: 450, easing: "ease-out", fill: "forwards" });
+    });
+    at(kick + 4800, finish);
+  }
+  function fpvThud(out) {
+    if (!out) return;
+    var ctx = out.context, t0 = ctx.currentTime + .01, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(160, t0); o.frequency.exponentialRampToValueAtTime(55, t0 + .18);
+    g.gain.setValueAtTime(.9, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + .22); o.connect(g); g.connect(out); o.start(t0); o.stop(t0 + .25);
+    var nb = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), ng = ctx.createGain();
+    nb.buffer = noiseBuf(ctx, .1); bp.type = "bandpass"; bp.frequency.value = 900; ng.gain.setValueAtTime(.5, t0); ng.gain.exponentialRampToValueAtTime(.001, t0 + .08);
+    nb.connect(bp); bp.connect(ng); ng.connect(out); nb.start(t0);
+  }
+  function fpvCheer(out) {
+    if (!out) return;
+    var ctx = out.context, t0 = ctx.currentTime + .01, nb = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+    nb.buffer = noiseBuf(ctx, 2.6); bp.type = "bandpass"; bp.frequency.value = 1100; bp.Q.value = .7;
+    g.gain.setValueAtTime(.001, t0); g.gain.exponentialRampToValueAtTime(.35, t0 + .35); g.gain.setValueAtTime(.35, t0 + .9); g.gain.exponentialRampToValueAtTime(.001, t0 + 2.5);
+    nb.connect(bp); bp.connect(g); g.connect(out); nb.start(t0);
+  }
   // Archived shows keep their code but never play: add one back to SHOWS to bring it back. "pika" archived Oct 20, 2026.
   var SHOWS = ["bird", "thor", "train", "ilona"], ARCHIVED_SHOWS = ["pika"];
   // The 100% show. Every version ends the same way: the piñata bursts and a red neon "Good Job!" sign lights up.
@@ -3033,6 +3149,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     renderInner();
     if (!(ONLINE && auth.state === "loading")) hideBootLoader();
     if (!ONLINE || auth.state === "ready") {
+      maybeDailyIntro();
       if (placeScroll !== null) { var y = placeScroll; placeScroll = null; requestAnimationFrame(function () { window.scrollTo(0, y); }); }
       savePlace();
     }
@@ -3078,10 +3195,10 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         '<p class="muted small" style="margin:0">Explore the app as a test profile with its own tasks: Jane Doe is a Coach with the Admin tag; John Doe is a Team Member with no tags. ' +
         "They use a private copy of the team's data on this device: nothing you change is saved or sent, and they never appear in the real People list. Tap Exit or Me to come back.</p></div>" +
         '<div class="card" style="padding:16px;display:flex;flex-direction:column;gap:12px"><strong>Effects</strong>' +
-        '<div class="row"><button class="btn primary" id="dev-small">💥 Task complete (cannon)</button><button class="btn" id="dev-big">🎉 Sheet or project 100% (random piñata)</button><button class="btn" id="dev-loader">🏉 Loading screen</button></div>' +
+        '<div class="row"><button class="btn primary" id="dev-small">💥 Task complete (cannon)</button><button class="btn" id="dev-big">🎉 Sheet or project 100% (random piñata)</button><button class="btn" id="dev-loader">🏉 Loading screen</button><button class="btn" id="dev-intro">🥅 Daily welcome kick</button></div>' +
         '<div class="row" style="flex-wrap:wrap;gap:8px"><span class="small muted">Or pick one:</span>' + [["bird", "Thunderbird"], ["thor", "Thor"], ["pika", "Pikachu"], ["train", "Train"], ["ilona", "Ilona Maher"]].filter(function (x) { return SHOWS.indexOf(x[0]) >= 0; }).map(function (x) { return '<button class="btn" data-show="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
         '<label class="row small" style="gap:8px"><input type="checkbox" id="dev-sound"' + (soundOn() ? " checked" : "") + '> Play sounds on this device</label>' +
-        '<p class="muted small" style="margin:0">The cannon plays when a task is checked off. One of the ' + ["", "one", "two", "three", "four", "five"][SHOWS.length] + ' piñata shows plays at random when that finishes a whole game sheet or project. Tap the screen to skip either.</p></div>' +
+        '<p class="muted small" style="margin:0">Each finished task or subtask plays the next celebration in turn: the cannon, then each piñata show. The daily welcome kick plays the first time someone opens the app each day. Tap the screen to skip any of them.</p></div>' +
         '<h2>App usage</h2><div id="dev-usage">' + usageShell() + "</div>" +
         '<h2>Documentation</h2><div class="dev-links">' + devLink("open-devdocs", "Developer docs", "Tech stack, how it's built and where everything lives") + devLink("open-updates", "Update log", "Version " + appVersion() + " · everything that has changed") + "</div>" +
         '<h2>App info</h2><div class="card"><ul class="tasks dev-info">' + info.map(function (x) { return '<li><span class="muted small">' + esc(x[0]) + '</span><span class="dev-v">' + esc(String(x[1])) + "</span></li>"; }).join("") + "</ul></div>";
@@ -3089,6 +3206,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       app.querySelector("#dev-small").addEventListener("click", function () { cannonShow("Done: Book the field"); });
       app.querySelector("#dev-big").addEventListener("click", function () { pinataShow("Home Game is 100% ready!"); });
       app.querySelector("#dev-loader").addEventListener("click", function () { showLoader(true); });
+      app.querySelector("#dev-intro").addEventListener("click", function () { dailyIntro(true); });
       app.querySelectorAll("[data-show]").forEach(function (b) { b.addEventListener("click", function () { pinataShow("Home Game is 100% ready!", b.dataset.show); }); });
       app.querySelector("#dev-sound").addEventListener("change", function (e) { setSound(e.target.checked); });
       app.querySelectorAll("[data-dev-as]").forEach(function (b) { b.addEventListener("click", function () { var v = b.dataset.devAs; setDevAs(v); render(); toast(v ? "Now exploring as " + TEST_PROFILES[v].name : "Back to your own profile"); }); });
@@ -3206,6 +3324,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-25", "A daily welcome: the first time you open the app each day, you kick a conversion through the kicker's eyes. You run up, the boot sends the ball off the tee and between the posts, It's Good! flashes up as it goes through the uprights, the crowd cheers, and a Good morning greeting comes up. Tap to skip it. Preview it under Effects on the Development tab."],
     ["2026-10-25", "Celebrations take turns: every task or subtask you finish plays the next one in order (the cannon, the Thunderbird, Thor, the train, then Ilona Maher), whether it's one small task or a whole game sheet."],
     ["2026-10-25", "Checking off a subtask now plays the Good Job! celebration too. Phones with Reduce Motion turned on used to get only a small message at the bottom. They now see the Good Job! sign big in the middle of the screen, held still for a few seconds."],
     ["2026-10-23", "Team members no longer see a Priority line in the task pop-up. Only admins see and change it."],
