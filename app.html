@@ -1519,7 +1519,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       '<g class="fi-ball"><g transform="translate(200 640)">' + FPV_BALL + "</g></g></g>" +
       '<g class="fi-leg"><g transform="translate(262 700)">' + FPV_LEG + "</g></g>" +
       '<rect class="fi-flash" x="-200" y="-400" width="800" height="1200" fill="#fff" opacity="0"/></svg>' +
-      '<div class="fi-good">It\'s Good!</div><div class="fi-sign"><b>' + esc(hello) + "</b><small>" + esc(fmtDate(todayIso())) + " · let's get to work</small></div>" +
+      '<div class="fi-good">It\'s Good!</div><div class="fi-sign"><b>' + esc(hello) + "</b><small>Let's get to work</small></div>" +
       '<div class="ps-skip">Tap to skip</div>';
     document.body.appendChild(box);
     var cam = box.querySelector(".fi-cam"), ball = box.querySelector(".fi-ball"), leg = box.querySelector(".fi-leg"), flash = box.querySelector(".fi-flash"), sign = box.querySelector(".fi-sign"), good = box.querySelector(".fi-good");
@@ -3324,6 +3324,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-10-25", "The daily welcome greeting no longer shows the date. It just says Let's get to work under the greeting."],
     ["2026-10-25", "A daily welcome: the first time you open the app each day, you kick a conversion through the kicker's eyes. You run up, the boot sends the ball off the tee and between the posts, It's Good! flashes up as it goes through the uprights, the crowd cheers, and a Good morning greeting comes up. Tap to skip it. Preview it under Effects on the Development tab."],
     ["2026-10-25", "Celebrations take turns: every task or subtask you finish plays the next one in order (the cannon, the Thunderbird, Thor, the train, then Ilona Maher), whether it's one small task or a whole game sheet."],
     ["2026-10-25", "Checking off a subtask now plays the Good Job! celebration too. Phones with Reduce Motion turned on used to get only a small message at the bottom. They now see the Good Job! sign big in the middle of the screen, held still for a few seconds."],
