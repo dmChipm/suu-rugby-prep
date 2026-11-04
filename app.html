@@ -747,7 +747,7 @@ nav.tabs .badge { margin-left: 6px; }
   .cal-more { font-size: .72rem; color: var(--muted); padding-left: 5px; }
 }
 .cal-corner { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-@media (max-width: 499px) { .cal-tabs { display: flex; justify-content: center; gap: 24px; border-bottom: 1px solid var(--line); }
+.cal-tabs { display: flex; justify-content: center; gap: 24px; border-bottom: 1px solid var(--line); }
 .cal-tabs button { border: 0; background: transparent; padding: 6px 4px 8px; font: inherit; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -1px; }
 .cal-tabs button[aria-selected="true"] { color: var(--ink); font-weight: 800; border-bottom-color: var(--red); }
 .k-practice { --k: #7a52d1; } .k-night { --k: #d2408f; }
@@ -3384,6 +3384,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-11-04", "Fixed the app's look on tablets and computers. Since Oct 23 a styling mistake left many screens wider than a phone partly unstyled, including the Home agenda, task pop-ups, game recaps and the welcome kick. Phones were not affected."],
     ["2026-10-25", "The daily welcome kick is drawn more true to scale: a smaller ball, tee and boot, and posts shaped like real ones (5.6 m wide with the crossbar at 3 m)."],
     ["2026-10-25", "Past games have a Game recap for coaches, the presidency and admins. It shows how many tasks were done (on time and late) and lists every task that was missed, with its owner and due date. A past game's card in Game Prep shows the same numbers."],
     ["2026-10-25", "Let's get to work is bigger on the daily welcome."],
