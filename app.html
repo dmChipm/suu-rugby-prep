@@ -606,6 +606,26 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
 .rc-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; }
 .rc-list li { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-top: 1px solid var(--line); }
 .rc-task { font-weight: 600; }
+/* Phones: the main tabs move to a bar at the bottom, in thumb reach. Messages, Analytics, Development and settings sit under More. */
+#bnav, #more-pop { display: none; }
+@media (max-width: 699px) {
+  nav.tabs { display: none; }
+  #bnav { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--surface); border-top: 1px solid var(--line); padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -4px 14px rgba(0, 0, 0, .06); }
+  #bnav button { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 52px; justify-content: center; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: .72rem; font-weight: 700; border-radius: 12px; }
+  #bnav button svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #bnav button[aria-selected="true"] { color: var(--red); }
+  #bnav button[aria-selected="true"] svg { stroke-width: 2.4; }
+  #bnav .badge { position: absolute; top: 3px; left: calc(50% + 6px); margin: 0; }
+  body { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  .toast { bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
+  #dev-view-bar { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+  .composer { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+  #more-pop:not([hidden]) { display: flex; flex-direction: column; position: fixed; right: 8px; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); z-index: 31; min-width: 220px; padding: 6px; background: var(--surface); border: 2px solid var(--ink); border-radius: 14px; box-shadow: var(--shadow); }
+  #more-pop button { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px; border: 0; background: transparent; font: inherit; font-weight: 700; color: var(--ink); border-radius: 10px; text-align: left; }
+  #more-pop button:hover, #more-pop button[aria-current="true"] { background: var(--bg); }
+  #more-pop svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  #more-pop .badge { margin-left: auto; }
+}
 .ps-skip { position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: .78rem; color: rgba(255, 255, 255, .55); }
 @keyframes ps-neon-on { 0% { opacity: 0; } 8% { opacity: 1; } 14% { opacity: .15; } 22% { opacity: 1; } 30% { opacity: .35; } 36%, 70% { opacity: 1; } 74% { opacity: .55; } 78%, 100% { opacity: 1; } }
 @keyframes np-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1221,6 +1241,14 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     <button id="tab-dev" role="tab" data-tab="dev" hidden>Development</button>
   </nav>
 </header>
+<nav id="bnav" aria-label="Main">
+  <button type="button" data-tab="calendar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Home</button>
+  <button type="button" data-tab="sheets"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M8.5 11l2 2 4-4"/><path d="M8.5 17h7"/></svg>Game Prep</button>
+  <button type="button" data-tab="people"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c2.8.2 5 2.6 5 5.8"/></svg>People</button>
+  <button type="button" data-tab="docs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h6"/></svg>Docs</button>
+  <button type="button" data-more><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>More<span class="badge" id="more-badge" hidden></span></button>
+</nav>
+<div id="more-pop" role="menu" aria-label="More" hidden></div>
 <main id="app"></main>
 <div id="modal-root"></div>
 
@@ -2617,15 +2645,57 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     badge.hidden = !unread; badge.textContent = unread > 99 ? "99+" : unread;
     // Templates and Projects live inside the "Game Prep & Projects" tab, so that tab stays highlighted there.
     ["calendar", "sheets", "projects", "people", "docs", "messages", "analytics", "dev"].forEach(function (k) { document.getElementById("tab-" + k).setAttribute("aria-selected", String(view.tab === k || (k === "sheets" && (view.tab === "masters" || view.tab === "projects")) || (k === "dev" && (view.tab === "updates" || view.tab === "devdocs")))); });
+    paintBottomNav(unread);
     var onTab = document.querySelector('nav.tabs button[aria-selected="true"]'), nav = onTab && onTab.parentNode;
     if (nav && nav.scrollWidth > nav.clientWidth) { var l = onTab.offsetLeft - nav.offsetLeft, r = l + onTab.offsetWidth; if (l < nav.scrollLeft || r > nav.scrollLeft + nav.clientWidth) nav.scrollLeft = Math.max(0, l - 24); }
   }
   document.getElementById("me-btn").addEventListener("click", function () { if (ONLINE) accountModal(); else switchUserModal(); });
+  function goTab(tab) {
+    if (tab === "analytics") { view.aLog = null; view.aErr = false; }
+    view.tab = tab; view.sheetId = null; view.masterId = null; view.projectId = null; view.convoId = null; lastMsgRoute = ""; render(); window.scrollTo(0, 0);
+  }
   document.querySelector("nav.tabs").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b) return;
-    if (b.dataset.tab === "analytics") { view.aLog = null; view.aErr = false; }
-    view.tab = b.dataset.tab; view.sheetId = null; view.masterId = null; view.projectId = null; view.convoId = null; lastMsgRoute = ""; render(); window.scrollTo(0, 0);
+    goTab(b.dataset.tab);
   });
+  // Bottom bar on phones. Projects and Templates count as Game Prep; anything under More lights up More.
+  var MORE_ITEMS = [
+    ["messages", "Messages", '<path d="M4 5h16v11H9l-5 4z"/>'],
+    ["analytics", "Analytics", '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'],
+    ["dev", "Development", '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/>']];
+  function moreShown() { return MORE_ITEMS.filter(function (x) { return !document.getElementById("tab-" + x[0]).hidden; }); }
+  function paintBottomNav(unread) {
+    var t = view.tab, inMore = moreShown().some(function (x) { return x[0] === t || (x[0] === "dev" && (t === "updates" || t === "devdocs")); });
+    document.querySelectorAll("#bnav [data-tab]").forEach(function (b) {
+      var k = b.dataset.tab, on = t === k || (k === "sheets" && (t === "masters" || t === "projects"));
+      b.setAttribute("aria-selected", String(on)); if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
+    document.querySelector("#bnav [data-more]").setAttribute("aria-selected", String(inMore));
+    var mb = document.getElementById("more-badge"); mb.hidden = !unread; mb.textContent = unread > 99 ? "99+" : unread;
+  }
+  function closeMore() { var m = document.getElementById("more-pop"); m.hidden = true; m.innerHTML = ""; }
+  function openMore() {
+    var m = document.getElementById("more-pop"), unread = isAdmin() ? unreadTotal() : 0;
+    m.innerHTML = moreShown().map(function (x) {
+      return '<button type="button" role="menuitem" data-more-tab="' + x[0] + '"' + (view.tab === x[0] ? ' aria-current="true"' : "") + '><svg viewBox="0 0 24 24" aria-hidden="true">' + x[2] + "</svg>" + x[1] +
+        (x[0] === "messages" && unread ? '<span class="badge">' + (unread > 99 ? "99+" : unread) + "</span>" : "") + "</button>";
+    }).join("") + '<button type="button" role="menuitem" data-more-me><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Profile &amp; settings</button>';
+    m.hidden = false;
+    var first = m.querySelector("button"); if (first) first.focus();
+  }
+  document.getElementById("bnav").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    if (b.hasAttribute("data-more")) { if (document.getElementById("more-pop").hidden) openMore(); else closeMore(); return; }
+    closeMore(); goTab(b.dataset.tab);
+  });
+  document.getElementById("more-pop").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    closeMore();
+    if (b.hasAttribute("data-more-me")) { document.getElementById("me-btn").click(); return; }
+    goTab(b.dataset.moreTab);
+  });
+  document.addEventListener("click", function (e) { if (!e.target.closest("#more-pop, #bnav")) closeMore(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !document.getElementById("more-pop").hidden) closeMore(); });
 
   // ---------- views ----------
   var app = document.getElementById("app");
