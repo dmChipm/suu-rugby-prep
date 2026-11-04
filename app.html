@@ -1246,6 +1246,72 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   .me > span:last-child { min-width: 0; }
   header.top { padding-bottom: 6px; }
 }
+/* Team features: availability, announcements, player file, match day */
+ul.plain, ol.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.linkish { border: 0; background: none; padding: 0; color: var(--red); font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.btn.small { padding: 5px 10px; font-size: .85rem; }
+.r-in { color: var(--done); } .r-maybe { color: var(--warn); } .r-out { color: var(--red); }
+.avail { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.avail-q { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+.rsvp-seg button { padding: 7px 12px; font-size: .9rem; min-height: 36px; }
+.rsvp-seg button.r-in[aria-pressed="true"] { background: var(--done); color: #fff; }
+.rsvp-seg button.r-maybe[aria-pressed="true"] { background: var(--warn); color: #1d1300; }
+.rsvp-seg button.r-out[aria-pressed="true"] { background: var(--red); color: var(--red-ink); }
+.avail-counts { display: flex; flex-wrap: wrap; gap: 4px 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.avail-counts .muted { font-weight: 600; }
+.avail-list summary { cursor: pointer; font-weight: 700; font-size: .9rem; color: var(--red); }
+.avail-list ul { margin-top: 8px; }
+.avail-list li, .elig li, .tr-list li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.avail-list li .grow, .elig li .grow, .tr-list li .grow { flex: 1; min-width: 8em; }
+.rs { width: 22px; text-align: center; font-weight: 800; }
+.rs.r-none { color: var(--muted); }
+label.att { display: inline-flex; align-items: center; gap: 4px; font-size: .88rem; font-weight: 600; }
+label.att input { width: 20px; height: 20px; }
+.rsvp-why { width: 100%; }
+.team-card { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.team-card h2 { margin: 0; font-size: 1.1rem; }
+.rsvp-row { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--line); }
+.rsvp-row:first-of-type { border-top: 0; padding-top: 0; }
+.rsvp-row .grow { flex: 1; min-width: 10em; display: flex; flex-direction: column; }
+.ann { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); }
+.ann.unread { border-color: var(--red); background: var(--red-soft); }
+.ann-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ann-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ann-foot { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; }
+.ann-foot .btn { margin-left: auto; }
+.ann-list { display: flex; flex-direction: column; gap: 10px; }
+.team-panel { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.team-panel h2 { margin: 0; font-size: 1.1rem; }
+.tp-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.tp-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); min-width: 0; }
+.tp-btn:hover { border-color: var(--red); }
+.tp-btn small { color: var(--muted); overflow-wrap: anywhere; }
+.clr-card { margin-bottom: 12px; }
+.pf-sec { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+.pf-sec h2 { margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
+.elig li { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.elig li .grow { flex: 1 1 100%; font-weight: 600; }
+.elig select, .elig input[type=date] { flex: 1 1 8em; min-width: 0; }
+.inj { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.inj.closed { opacity: .75; }
+.grtp { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 3px; font-size: .9rem; color: var(--muted); }
+.grtp li.past { text-decoration: line-through; }
+.grtp li.now { color: var(--ink); font-weight: 700; }
+.inj-new { display: flex; flex-direction: column; gap: 10px; }
+.inj-new[open] { gap: 10px; }
+.inj-new summary { cursor: pointer; font-weight: 700; color: var(--red); }
+.sel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px 12px; }
+.sel-row { display: grid; grid-template-columns: 2em 1fr; grid-template-rows: auto auto; gap: 0 8px; align-items: center; font-size: .9rem; }
+.sel-row select { grid-column: 2; width: 100%; }
+.sel-n { grid-row: span 2; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; color: var(--red); }
+.sel-pos { font-weight: 600; color: var(--muted); font-size: .8rem; }
+.sel-view li { display: flex; gap: 10px; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.sel-view li.me b { color: var(--red); }
+.sel-view .sel-n { grid-row: auto; min-width: 1.6em; }
+.tr-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.tr-row input[type=text] { flex: 1; min-width: 8em; }
+.tr-list select { max-width: 9em; }
+table.med td { vertical-align: top; }
 </style>
 
 <header class="top">
@@ -2370,6 +2436,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       });
     }
     delete s.role; delete s.name;
+    teamInit(s);
     return s;
   }
 
@@ -2729,7 +2796,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     m.innerHTML = moreShown().map(function (x) {
       return '<button type="button" role="menuitem" data-more-tab="' + x[0] + '"' + (view.tab === x[0] ? ' aria-current="true"' : "") + '><svg viewBox="0 0 24 24" aria-hidden="true">' + x[2] + "</svg>" + x[1] +
         (x[0] === "messages" && unread ? '<span class="badge">' + (unread > 99 ? "99+" : unread) + "</span>" : "") + "</button>";
-    }).join("") + '<button type="button" role="menuitem" data-more-me><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Profile &amp; settings</button>';
+    }).join("") + '<button type="button" role="menuitem" data-more-file><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h3"/></svg>My player file</button><button type="button" role="menuitem" data-more-me><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Profile &amp; settings</button>';
     m.hidden = false;
     var first = m.querySelector("button"); if (first) first.focus();
   }
@@ -2742,10 +2809,514 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     var b = e.target.closest("button"); if (!b) return;
     closeMore();
     if (b.hasAttribute("data-more-me")) { document.getElementById("me-btn").click(); return; }
+    if (b.hasAttribute("data-more-file")) { playerModal(currentUser()); return; }
     goTab(b.dataset.moreTab);
   });
   document.addEventListener("click", function (e) { if (!e.target.closest("#more-pop, #bnav")) closeMore(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !document.getElementById("more-pop").hidden) closeMore(); });
+
+  // ---------- team: availability, announcements, eligibility, health, emergency plans, selection, travel ----------
+  // Staff = the Admin tag or Coach level. Leaders = staff plus the presidency tags. The database enforces the same rules.
+  function isStaff() { var me = currentUser(); return isAdmin() || (!!me && me.role === "Coach"); }
+  function isLeader() { var me = currentUser(); return isStaff() || PROJECT_TAGS.some(function (t) { return hasTag(me, t); }); }
+  function teamInit(s) { ["rsvps", "anns", "annReads", "elig", "health", "injuries", "venues", "selections", "trips"].forEach(function (k) { if (!Array.isArray(s[k])) s[k] = []; }); return s; }
+  function tIso(ms) { return new Date(ms || 0).toISOString(); }
+  function livePeople() { return S.people.filter(function (p) { return p.id !== "_" && p.status !== "Inactive"; }).sort(function (a, b) { return a.name.localeCompare(b.name); }); }
+  function squad() { return livePeople().filter(function (p) { return p.role === "Team Member"; }); }
+  function pname(id) { var p = byId(S.people, id); return p ? p.name : "Someone"; }
+  function mapLink(addr, label) { return addr ? '<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addr) + '" target="_blank" rel="noopener">' + esc(label || addr) + "</a>" : ""; }
+  function mHead(title) { return '<div class="m-head"><h1 style="font-size:1.3rem">' + title + '</h1><button type="button" class="icon-btn m-close" data-close aria-label="Close">✕</button></div>'; }
+
+  // ----- availability (RSVP) and attendance -----
+  // Row: { id: key + ":" + personId, key, personId, status: "" | "in" | "maybe" | "out", reason, attended: true | false | null, markedBy, at }.
+  // key is "ev:<team event id>" for a practice or team night, "sheet:<sheet id>" for a game or event day.
+  var RSVP = { "in": ["In", "✓"], maybe: ["Maybe", "?"], out: ["Out", "✕"] };
+  function rsvpOf(key, pid) { var l = S.rsvps || []; for (var i = 0; i < l.length; i++) if (l[i].key === key && l[i].personId === pid) return l[i]; return null; }
+  function rsvpRow(key, pid) {
+    var r = rsvpOf(key, pid);
+    if (!r) { r = { id: key + ":" + pid, key: key, personId: pid, status: "", reason: "", attended: null, markedBy: "", at: Date.now() }; S.rsvps.push(r); }
+    return r;
+  }
+  // Everyone asked: the players, plus coaches, volunteers and anyone else who has answered.
+  function asked(key) { var sq = squad(); return sq.concat(livePeople().filter(function (p) { var r = rsvpOf(key, p.id); return sq.indexOf(p) < 0 && r && r.status; })); }
+  function availCounts(key) { var c = { "in": 0, maybe: 0, out: 0, none: 0 }; asked(key).forEach(function (p) { var r = rsvpOf(key, p.id); c[r && r.status ? r.status : "none"]++; }); return c; }
+  function countsHtml(key) {
+    var c = availCounts(key);
+    return '<div class="avail-counts small"><span class="r-in">✓ ' + c["in"] + " in</span><span class=\"r-maybe\">? " + c.maybe + ' maybe</span><span class="r-out">✕ ' + c.out + ' out</span><span class="muted">' + c.none + " no answer</span></div>";
+  }
+  function rsvpSeg(st) {
+    return '<div class="seg rsvp-seg" role="group" aria-label="Your availability">' + ["in", "maybe", "out"].map(function (k) {
+      return '<button type="button" data-rsvp="' + k + '" class="r-' + k + '" aria-pressed="' + (st === k) + '">' + RSVP[k][1] + " " + RSVP[k][0] + "</button>"; }).join("") + "</div>";
+  }
+  function availBlock(key, date) {
+    var me = S.currentUserId, mine = rsvpOf(key, me), st = mine ? mine.status : "", tdy = todayIso(), past = !!date && date < tdy;
+    var staff = isStaff(), att = staff && !!date && date <= tdy, taken = squad().some(function (p) { var r = rsvpOf(key, p.id); return r && r.attended !== null && r.attended !== undefined; });
+    var h = '<div class="avail" data-avail="' + esc(key) + '" data-date="' + esc(date || "") + '">';
+    if (!past) {
+      h += '<div class="avail-q"><b>' + (st ? "Your answer" : "Are you in?") + "</b>" + rsvpSeg(st) + "</div>";
+      if (st === "out" || st === "maybe") h += '<input type="text" class="rsvp-why" data-rsvp-why maxlength="120" placeholder="Reason (optional): class, work, injury..." value="' + esc(mine.reason || "") + '" aria-label="Reason">';
+    } else if (st) h += '<div class="small">You said <b class="r-' + st + '">' + RSVP[st][0] + "</b></div>";
+    h += countsHtml(key);
+    if (att && taken) { var here = squad().filter(function (p) { var r = rsvpOf(key, p.id); return r && r.attended; }).length; h += '<div class="small"><b>Attendance:</b> ' + here + " of " + squad().length + " players here</div>"; }
+    h += '<details class="avail-list"><summary>' + (att ? "Take attendance" : "Who's coming") + '</summary><ul class="plain">' + asked(key).map(function (p) {
+      var r = rsvpOf(key, p.id), s2 = (r && r.status) || "";
+      return '<li><span class="rs r-' + (s2 || "none") + '" aria-label="' + (s2 ? RSVP[s2][0] : "No answer") + '">' + (s2 ? RSVP[s2][1] : "–") + '</span><span class="grow">' + esc(p.name) +
+        (r && r.reason && (staff || p.id === me) ? ' <small class="muted">· ' + esc(r.reason) + "</small>" : "") + "</span>" +
+        (att ? '<label class="att"><input type="checkbox" data-attend="' + p.id + '"' + (r && r.attended ? " checked" : "") + "> Here</label>" : "") + "</li>";
+    }).join("") + "</ul>" + (att ? '<p class="muted small" style="margin:6px 0 0">Ticking anyone counts everyone else on this list as missed, so attendance rates stay accurate.</p>' : "") + "</details></div>";
+    return h;
+  }
+  function repaintAvail(box) {
+    if (box.dataset.compact) { render(); return; }
+    var d = box.querySelector("details"), open = d && d.open, tmp = document.createElement("div");
+    tmp.innerHTML = availBlock(box.dataset.avail, box.dataset.date);
+    var nb = tmp.firstChild; box.replaceWith(nb); var nd = nb.querySelector("details"); if (nd && open) nd.open = true;
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-rsvp]"); if (!b) return;
+    var box = b.closest("[data-avail]"); if (!box) return;
+    var r = rsvpRow(box.dataset.avail, S.currentUserId), v = b.dataset.rsvp;
+    r.status = r.status === v ? "" : v; if (r.status === "in" || !r.status) r.reason = ""; r.at = Date.now();
+    save(true); notice(r.status ? "You're marked " + RSVP[r.status][0].toLowerCase() : "Answer cleared"); repaintAvail(box);
+  });
+  document.addEventListener("change", function (e) {
+    var t = e.target; if (!t.closest) return;
+    var box = t.closest("[data-avail]"); if (!box) return;
+    if (t.hasAttribute("data-rsvp-why")) { var r = rsvpRow(box.dataset.avail, S.currentUserId); r.reason = t.value.trim(); r.at = Date.now(); save(); return; }
+    if (t.dataset.attend) {
+      var key = box.dataset.avail, by = currentUser().name;
+      squad().forEach(function (p) { var x = rsvpRow(key, p.id); if (x.attended === null || x.attended === undefined) { x.attended = false; x.markedBy = by; x.at = Date.now(); } });
+      var row = rsvpRow(key, t.dataset.attend); row.attended = t.checked; row.markedBy = by; row.at = Date.now();
+      save(true); repaintAvail(box);
+    }
+  });
+  // Practices, team nights and game or event days in the next week that you haven't answered.
+  function rsvpPrompts() {
+    var me = currentUser(); if (!me || me.role !== "Team Member") return [];
+    var tdy = todayIso(), end = addDays(tdy, 7), out = [];
+    (S.events || []).forEach(function (e) { if (e.date >= tdy && e.date <= end) out.push({ key: "ev:" + e.id, date: e.date, at: e.start || "", label: evName(e), sub: fmtShort(e.date) + (e.start ? " · " + fmtTime(e.start) : "") }); });
+    S.sheets.forEach(function (s) { if (s.date && s.date >= tdy && s.date <= end && !s.example) out.push({ key: "sheet:" + s.id, date: s.date, at: "", label: sheetTitle(s), sub: fmtShort(s.date) + (s.gameInfo ? " · Game" : "") }); });
+    return out.filter(function (x) { var r = rsvpOf(x.key, me.id); return !r || !r.status; }).sort(function (a, b) { return (a.date + a.at).localeCompare(b.date + b.at); }).slice(0, 4);
+  }
+  // Attendance rate: of the practices and games where attendance was taken, how many they were at.
+  function attendanceStats(pid) {
+    var o = { prac: [0, 0], game: [0, 0], outs: 0 };
+    (S.rsvps || []).forEach(function (r) {
+      if (r.personId !== pid) return;
+      var kind = "game";
+      if (r.key.indexOf("ev:") === 0) { var ev = byId(S.events || [], r.key.slice(3)); if (!ev) return; kind = "prac"; }
+      else { var sh = byId(S.sheets.concat(S.archivedSheets || []), r.key.slice(6)); if (!sh) return; kind = sh.gameInfo ? "game" : "prac"; }
+      if (r.attended === true || r.attended === false) { o[kind][1]++; if (r.attended) o[kind][0]++; }
+    });
+    return o;
+  }
+  function rateText(x, label) { return x[1] ? label + " " + x[0] + " of " + x[1] + " (" + Math.round(x[0] * 100 / x[1]) + "%)" : label + ": none taken yet"; }
+
+  // ----- announcements -----
+  // { id, title, body, author, pinned, at }; reads { id: annId + ":" + personId, annId, personId, at }.
+  function annRead(a, pid) { return (S.annReads || []).some(function (x) { return x.annId === a.id && x.personId === (pid || S.currentUserId); }); }
+  function markAnnRead(a) { if (annRead(a)) return; S.annReads.push({ id: a.id + ":" + S.currentUserId, annId: a.id, personId: S.currentUserId, at: Date.now() }); }
+  function annsSorted() { return (S.anns || []).slice().sort(function (a, b) { return (b.pinned - a.pinned) || b.at - a.at; }); }
+  function annItem(a, full) {
+    var unread = !annRead(a), seen = isLeader() ? (S.annReads || []).filter(function (x) { return x.annId === a.id; }).length : 0;
+    return '<article class="ann' + (unread ? " unread" : "") + (a.pinned ? " pinned" : "") + '"><div class="ann-top"><b>' + (a.pinned ? '<span aria-label="Pinned">📌</span> ' : "") + esc(a.title || "Announcement") + "</b>" +
+      (isAdmin() ? '<button type="button" class="btn ghost small" data-ann-edit="' + a.id + '">Edit</button>' : "") + "</div>" +
+      '<div class="ann-body">' + linkify(esc(a.body)) + "</div>" +
+      '<div class="ann-foot muted small"><span>' + esc(a.author || "") + " · " + esc(timeAgo(a.at)) + "</span>" +
+      (isLeader() ? '<button type="button" class="linkish" data-ann-seen="' + a.id + '">Seen by ' + seen + " of " + livePeople().length + "</button>" : "") +
+      (unread ? '<button type="button" class="btn small" data-ann-read="' + a.id + '">Got it</button>' : full ? "" : "") + "</div></article>";
+  }
+  function annCard() {
+    var all = annsSorted(), recent = Date.now() - 3 * 864e5, shown = all.filter(function (a) { return a.pinned || !annRead(a) || a.at > recent; }).slice(0, 3);
+    if (!shown.length && !isAdmin()) return "";
+    var h = '<section class="card team-card"><div class="row spread"><h2>Announcements</h2><div class="row">' + (all.length ? '<button type="button" class="btn ghost small" data-act="ann-all">All (' + all.length + ")</button>" : "") +
+      (isAdmin() ? '<button type="button" class="btn small" data-act="ann-new">+ Post</button>' : "") + "</div></div>";
+    h += shown.length ? shown.map(function (a) { return annItem(a); }).join("") : '<p class="muted small" style="margin:0">Nothing new. Post one to reach the whole team, with a push notification.</p>';
+    return h + "</section>";
+  }
+  function annModal(a) {
+    var isNew = !a; a = a || { title: "", body: "", pinned: false };
+    openModal(mHead(isNew ? "New announcement" : "Edit announcement") + '<form id="f-ann" style="display:flex;flex-direction:column;gap:12px">' +
+      fld("Title", "an-title", a.title, true, "text", ' placeholder="e.g. Kit pickup Thursday" maxlength="80"') +
+      fld("Message", "an-body", a.body, true, "area", ' rows="5" required placeholder="What does the team need to know?"') +
+      '<label class="chk"><input type="checkbox" id="an-pin"' + (a.pinned ? " checked" : "") + "><span>Pin to the top of Home</span></label>" +
+      (ONLINE && isNew ? '<label class="chk"><input type="checkbox" id="an-push" checked><span>Send everyone a notification</span></label>' : "") +
+      '<div class="row spread">' + (isNew ? "<span></span>" : '<button type="button" class="btn danger" id="an-del">Delete</button>') + '<button class="btn primary">' + (isNew ? "Post" : "Save") + "</button></div></form>",
+      function (el) {
+        var del = el.querySelector("#an-del");
+        if (del) armTap(del, "Tap again to delete", function () { S.anns = S.anns.filter(function (x) { return x.id !== a.id; }); S.annReads = S.annReads.filter(function (x) { return x.annId !== a.id; }); save(); closeModal(); render(); toast("Deleted"); });
+        el.querySelector("#f-ann").addEventListener("submit", function (ev) {
+          ev.preventDefault();
+          var body = el.querySelector("#an-body").value.trim(); if (!body) return;
+          a.title = el.querySelector("#an-title").value.trim(); a.body = body; a.pinned = el.querySelector("#an-pin").checked;
+          if (isNew) { a.id = uid(); a.author = currentUser().name; a.at = Date.now(); S.anns.push(a); markAnnRead(a); }
+          var push = el.querySelector("#an-push"), notify = push && push.checked && !REAL;
+          save(); closeModal(); render(); toast(isNew ? "Posted" : "Saved");
+          if (notify) sb.functions.invoke("notify", { body: { type: "send", to: "team", title: a.title || "Team announcement", body: body.slice(0, 180) } }).then(function (r) { if (r.error) toast("Posted, but the notification didn't send"); });
+        });
+      });
+  }
+  function annAllModal() {
+    var all = annsSorted();
+    openModal(mHead("Announcements") + (all.length ? '<div class="ann-list">' + all.map(function (a) { return annItem(a, true); }).join("") + "</div>" : '<p class="muted">No announcements yet.</p>') +
+      (isAdmin() ? '<div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-act="ann-new">+ Post</button></div>' : ""));
+  }
+  function annSeenModal(a) {
+    var ppl = livePeople(), seen = ppl.filter(function (p) { return annRead(a, p.id); }), not = ppl.filter(function (p) { return !annRead(a, p.id); });
+    openModal(mHead("Who has seen it") + '<p class="muted small" style="margin:0">' + esc(a.title || a.body.slice(0, 60)) + "</p>" +
+      '<h2 class="small">Not yet (' + not.length + ")</h2><p>" + (not.map(function (p) { return esc(p.name); }).join(", ") || '<span class="muted">Everyone has seen it.</span>') + "</p>" +
+      '<h2 class="small">Seen (' + seen.length + ")</h2><p>" + (seen.map(function (p) { return esc(p.name); }).join(", ") || '<span class="muted">No one yet.</span>') + "</p>");
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest && e.target.closest("[data-ann-read],[data-ann-edit],[data-ann-seen],[data-act=ann-new],[data-act=ann-all],[data-act=my-file],[data-act=clearance]");
+    if (!t) return;
+    var a = byId(S.anns || [], t.dataset.annRead || t.dataset.annEdit || t.dataset.annSeen);
+    if (t.dataset.annRead && a) { markAnnRead(a); save(true); if (document.getElementById("modal-root").firstChild) annAllModal(); render(); return; }
+    if (t.dataset.annEdit && a) { annModal(a); return; }
+    if (t.dataset.annSeen && a) { annSeenModal(a); return; }
+    closeMenus();
+    var act = t.dataset.act;
+    if (act === "ann-new") annModal(null);
+    else if (act === "ann-all") annAllModal();
+    else if (act === "my-file") playerModal(currentUser());
+    else if (act === "clearance") clearanceModal();
+  });
+
+  // ----- eligibility and waivers -----
+  // { id: personId + ":" + item, personId, item, status: "ok" | "pending" | "missing" | "na", expires, note, by, at }. The third value marks items that expire.
+  var ELIG_ITEMS = [["usar", "USA Rugby registration", true], ["dues", "Club dues paid", false], ["waiver", "Liability waiver signed", true], ["physical", "Physical or medical clearance", true], ["concussion-ed", "Concussion education", true], ["academic", "Academically eligible", false]];
+  var ELIG_ST = [["ok", "Done"], ["pending", "Pending"], ["missing", "Missing"], ["na", "Not needed"]];
+  function eligOf(pid, item) { var l = S.elig || []; for (var i = 0; i < l.length; i++) if (l[i].personId === pid && l[i].item === item) return l[i]; return null; }
+  function eligState(p) {
+    var miss = [], tdy = todayIso();
+    ELIG_ITEMS.forEach(function (it) {
+      var r = eligOf(p.id, it[0]), st = r ? r.status : "missing";
+      if (st === "na") return;
+      if (st === "ok" && r.expires && r.expires < tdy) miss.push(it[1] + " (expired)");
+      else if (st !== "ok") miss.push(it[1] + (st === "pending" ? " (pending)" : ""));
+    });
+    return { ok: !miss.length, missing: miss };
+  }
+  function openInjury(pid) { return (S.injuries || []).filter(function (x) { return x.personId === pid && !x.closed; })[0] || null; }
+  function clearanceCard() {
+    var sq = squad(); if (!sq.length) return "";
+    var ok = sq.filter(function (p) { return eligState(p).ok; }).length, hurt = isStaff() ? sq.filter(function (p) { return openInjury(p.id); }).length : 0;
+    return '<button type="button" class="item clr-card" data-act="clearance"><div class="grow"><div class="title">Player clearance</div><div class="muted small">' + ok + " of " + sq.length + " players cleared to play" + (hurt ? " · " + hurt + " injured" : "") + "</div></div>" +
+      '<span class="pill ' + (ok === sq.length ? "st-done" : "st-ip") + '">' + (ok === sq.length ? "All clear" : sq.length - ok + " to sort") + '</span><span class="chev" aria-hidden="true">›</span></button>';
+  }
+  function clearanceModal() {
+    var sq = squad(), staff = isStaff();
+    var rows = sq.map(function (p) { return { p: p, e: eligState(p), inj: staff ? openInjury(p.id) : null }; }).sort(function (a, b) { return (a.e.ok && !a.inj) - (b.e.ok && !b.inj) || a.p.name.localeCompare(b.p.name); });
+    openModal(mHead("Player clearance") + '<p class="muted small" style="margin:0">Cleared means every item on the checklist is done and in date' + (staff ? ", and no open injury" : "") + ". Tap a player to update their checklist, or tick one item for many players at once.</p>" +
+      '<div class="row"><select id="clr-item" aria-label="Checklist item"><option value="">Tick one item for many players...</option>' + ELIG_ITEMS.map(function (it) { return '<option value="' + it[0] + '">' + esc(it[1]) + "</option>"; }).join("") + "</select></div>" +
+      '<div class="list">' + rows.map(function (x) {
+        var good = x.e.ok && !x.inj;
+        return '<button type="button" class="item" data-file="' + x.p.id + '"><div class="grow"><div class="title">' + esc(x.p.name) + '</div><div class="muted small">' +
+          (good ? "Cleared" : esc((x.e.missing.length === ELIG_ITEMS.length ? ["Checklist not started"] : x.e.missing).concat(x.inj ? [injLabel(x.inj)] : []).join(" · "))) + "</div></div><span class=\"pill " + (good ? "st-done" : x.inj ? "st-blocked" : "st-ip") + '">' + (good ? "Clear" : x.inj ? "Injured" : x.e.missing.length + " to do") + "</span></button>";
+      }).join("") + "</div>",
+      function (el) {
+        el.querySelectorAll("[data-file]").forEach(function (b) { b.addEventListener("click", function () { playerModal(byId(S.people, b.dataset.file), clearanceModal); }); });
+        el.querySelector("#clr-item").addEventListener("change", function (e) { if (e.target.value) eligBulkModal(e.target.value); });
+      });
+  }
+  function eligBulkModal(item) {
+    var it = ELIG_ITEMS.filter(function (x) { return x[0] === item; })[0];
+    openModal(mHead(esc(it[1])) + '<p class="muted small" style="margin:0">Tick everyone who has this done. It saves as you go.</p>' +
+      (it[2] ? fld("Expires (for the ones you tick now)", "bulk-exp", "", true, "date") : "") +
+      '<ul class="plain elig">' + squad().map(function (p) { var r = eligOf(p.id, item);
+        return '<li><label class="att grow"><input type="checkbox" data-bulk="' + p.id + '"' + (r && r.status === "ok" ? " checked" : "") + "> " + esc(p.name) + "</label>" + (r && r.status === "na" ? '<small class="muted">Not needed</small>' : r && r.expires ? '<small class="muted">to ' + esc(fmtShort(r.expires)) + "</small>" : "") + "</li>"; }).join("") + "</ul>" +
+      '<div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" id="bulk-done">Done</button></div>', function (el) {
+      el.querySelector("#bulk-done").addEventListener("click", function () { clearanceModal(); render(); });
+      el.querySelectorAll("[data-bulk]").forEach(function (c) { c.addEventListener("change", function () {
+        var pid = c.dataset.bulk, r = eligOf(pid, item), exp = el.querySelector("#bulk-exp");
+        if (!r) { r = { id: pid + ":" + item, personId: pid, item: item, status: "missing", expires: "", note: "" }; S.elig.push(r); }
+        r.status = c.checked ? "ok" : "missing"; if (c.checked && exp && exp.value) r.expires = exp.value; r.by = currentUser().name; r.at = Date.now(); save(true);
+      }); });
+    });
+  }
+
+  // ----- health, emergency contact and injuries (staff and the player only) -----
+  var HEALTH_F = [["emergencyName", "Emergency contact name", "text"], ["emergencyPhone", "Emergency contact phone", "tel"], ["emergencyRelation", "Relationship", "text"], ["allergies", "Allergies", "area"], ["conditions", "Medical conditions (asthma, diabetes...)", "area"], ["medications", "Medications", "area"]];
+  function healthOf(pid) { return (S.health || []).filter(function (x) { return x.personId === pid; })[0] || null; }
+  // Graduated return to play after a concussion. Each step takes at least 24 hours; if symptoms come back, drop back a step.
+  var GRTP = ["Rest (24 to 48 hours of relative rest)", "Daily activities that don't bring on symptoms", "Light aerobic exercise (walking, stationary bike)", "Running drills, no head impact", "Non-contact training drills", "Full-contact practice, after a doctor clears them", "Back to playing"];
+  function injLabel(x) { return x.kind === "concussion" ? "Concussion: step " + (x.stage + 1) + " of " + GRTP.length : "Injured" + (x.description ? ": " + x.description : ""); }
+  function playerModal(p, back) {
+    if (!p) return;
+    var me = p.id === S.currentUserId, lead = isLeader(), staff = isStaff(), med = staff || me;
+    if (!me && !lead) return;
+    var h = mHead(esc(p.name) + ' <span class="muted small" style="font-weight:400">Player file</span>');
+    if (back) h += '<button type="button" class="btn ghost small" id="pf-back" style="align-self:flex-start">‹ Back</button>';
+    var a = attendanceStats(p.id);
+    h += '<section class="pf-sec"><h2>Attendance</h2><div class="small">' + rateText(a.prac, "Practices") + "<br>" + rateText(a.game, "Games") + "</div></section>";
+    // Eligibility checklist
+    var es = eligState(p);
+    h += '<section class="pf-sec"><h2>Eligibility <span class="pill ' + (es.ok ? "st-done" : "st-ip") + '">' + (es.ok ? "Cleared" : es.missing.length + " to do") + "</span></h2>" +
+      '<ul class="plain elig">' + ELIG_ITEMS.map(function (it) {
+        var r = eligOf(p.id, it[0]), st = r ? r.status : "missing", exp = r && r.expires ? r.expires : "", gone = st === "ok" && exp && exp < todayIso();
+        if (!lead) return '<li><span class="grow">' + esc(it[1]) + '</span><span class="pill ' + (st === "ok" && !gone ? "st-done" : st === "na" ? "st-ns" : "st-ip") + '">' + (gone ? "Expired" : esc(ELIG_ST.filter(function (x) { return x[0] === st; })[0][1])) + "</span>" + (exp ? '<small class="muted">to ' + esc(fmtShort(exp)) + "</small>" : "") + "</li>";
+        return '<li><span class="grow">' + esc(it[1]) + '</span><select data-elig="' + it[0] + '" aria-label="' + esc(it[1]) + '">' + ELIG_ST.map(function (x) { return '<option value="' + x[0] + '"' + (x[0] === st ? " selected" : "") + ">" + x[1] + "</option>"; }).join("") + "</select>" +
+          (it[2] ? '<input type="date" data-elig-exp="' + it[0] + '" value="' + esc(exp) + '" aria-label="' + esc(it[1]) + ' expires" title="Expires">' : "") + (gone ? '<small class="late">Expired</small>' : "") + "</li>";
+      }).join("") + "</ul>" + (lead ? '<p class="muted small" style="margin:0">Dates are when an item expires. Leaders and the player can see this checklist.</p>' : "") + "</section>";
+    if (med) {
+      var hi = healthOf(p.id) || {};
+      h += '<section class="pf-sec"><h2>Emergency and medical</h2><p class="muted small" style="margin:0">Only coaches, admins and ' + (me ? "you" : esc(p.name.split(" ")[0])) + " can see this.</p>" +
+        '<div class="grid2">' + HEALTH_F.slice(0, 3).map(function (f) { return fld(f[1], "pf-" + f[0], hi[f[0]] || "", true, f[2]); }).join("") + "</div>" +
+        HEALTH_F.slice(3).map(function (f) { return fld(f[1], "pf-" + f[0], hi[f[0]] || "", true, "area", ' rows="2" placeholder="None"'); }).join("") + "</section>";
+      var inj = (S.injuries || []).filter(function (x) { return x.personId === p.id; }).sort(function (x, y) { return (x.closed - y.closed) || (y.injuredOn || "").localeCompare(x.injuredOn || ""); });
+      h += '<section class="pf-sec"><h2>Injuries</h2>' + (inj.length ? inj.map(function (x) { return injuryHtml(x, staff); }).join("") : '<p class="muted small" style="margin:0">None reported.</p>') +
+        (staff ? '<details class="inj-new"><summary>Report an injury</summary><div class="grid2">' + fld("Date", "in-date", todayIso(), true, "date") +
+          '<label class="field">Type<select id="in-kind"><option value="other">Injury</option><option value="concussion">Concussion (suspected or confirmed)</option></select></label></div>' +
+          fld("What happened", "in-desc", "", true, "text", ' placeholder="e.g. Rolled left ankle in a tackle"') + '<button type="button" class="btn primary" id="in-add">Add injury</button></details>' : "") + "</section>";
+    }
+    openModal(h, function (el) {
+      var bb = el.querySelector("#pf-back"); if (bb) bb.addEventListener("click", back);
+      var by = currentUser().name;
+      el.querySelectorAll("[data-elig],[data-elig-exp]").forEach(function (inp) { inp.addEventListener("change", function () {
+        var item = inp.dataset.elig || inp.dataset.eligExp, r = eligOf(p.id, item);
+        if (!r) { r = { id: p.id + ":" + item, personId: p.id, item: item, status: "missing", expires: "", note: "" }; S.elig.push(r); }
+        if (inp.dataset.elig) r.status = inp.value; else r.expires = inp.value;
+        r.by = by; r.at = Date.now(); save(); playerModal(p, back);
+      }); });
+      HEALTH_F.forEach(function (f) { var inp = el.querySelector("#pf-" + f[0]); if (inp) inp.addEventListener("change", function () {
+        var hi2 = healthOf(p.id);
+        if (!hi2) { hi2 = { id: p.id, personId: p.id }; HEALTH_F.forEach(function (g) { hi2[g[0]] = ""; }); S.health.push(hi2); }
+        hi2[f[0]] = inp.value.trim(); hi2.at = Date.now(); save();
+      }); });
+      var add = el.querySelector("#in-add");
+      if (add) add.addEventListener("click", function () {
+        var kind = el.querySelector("#in-kind").value;
+        S.injuries.push({ id: uid(), personId: p.id, injuredOn: el.querySelector("#in-date").value || todayIso(), kind: kind, description: el.querySelector("#in-desc").value.trim(), reportedBy: by, stage: 0, clearedOn: "", clearedBy: "", log: [{ at: Date.now(), by: by, text: "Reported" }], closed: false, at: Date.now() });
+        save(); playerModal(p, back); toast(kind === "concussion" ? "Concussion logged. They start at rest." : "Injury logged");
+      });
+      el.querySelectorAll("[data-inj]").forEach(function (b) { b.addEventListener("click", function () {
+        var x = byId(S.injuries, b.dataset.inj), act = b.dataset.injAct; if (!x) return;
+        var step = function (txt) { x.log = (x.log || []).concat([{ at: Date.now(), by: by, text: txt }]); };
+        if (act === "next") {
+          if (x.stage >= GRTP.length - 1) { x.closed = true; x.clearedOn = todayIso(); x.clearedBy = by; step("Cleared to play"); }
+          else { x.stage++; step("Moved to step " + (x.stage + 1) + ": " + GRTP[x.stage]); }
+        } else if (act === "back") { if (x.stage > 0) { x.stage--; step("Symptoms back: dropped to step " + (x.stage + 1)); } }
+        else if (act === "clear") { x.closed = true; x.clearedOn = todayIso(); x.clearedBy = by; step("Cleared to play"); }
+        else if (act === "reopen") { x.closed = false; x.clearedOn = ""; x.clearedBy = ""; step("Reopened"); }
+        save(); playerModal(p, back);
+      }); });
+    });
+  }
+  function injuryHtml(x, staff) {
+    var h = '<div class="inj' + (x.closed ? " closed" : "") + '"><div class="row spread"><b>' + (x.kind === "concussion" ? "Concussion" : "Injury") + (x.description ? ": " + esc(x.description) : "") + '</b><span class="pill ' + (x.closed ? "st-done" : "st-blocked") + '">' + (x.closed ? "Cleared" : "Out") + "</span></div>" +
+      '<div class="muted small">' + esc(fmtShort(x.injuredOn)) + (x.reportedBy ? " · reported by " + esc(x.reportedBy) : "") + (x.closed && x.clearedOn ? " · cleared " + esc(fmtShort(x.clearedOn)) + (x.clearedBy ? " by " + esc(x.clearedBy) : "") : "") + "</div>";
+    if (x.kind === "concussion" && !x.closed) {
+      var lastAt = (x.log || []).length ? x.log[x.log.length - 1].at : x.at, wait = Date.now() - lastAt < 864e5;
+      h += '<ol class="grtp">' + GRTP.map(function (g, i) { return '<li class="' + (i < x.stage ? "past" : i === x.stage ? "now" : "") + '">' + esc(g) + "</li>"; }).join("") + "</ol>" +
+        '<p class="muted small" style="margin:0">Each step takes at least 24 hours with no symptoms. If symptoms come back, drop back a step. Follow the doctor\'s advice over this list.</p>' +
+        (wait ? '<p class="small" style="margin:0;color:var(--warn)">Less than 24 hours on this step.</p>' : "");
+      if (staff) h += '<div class="row"><button type="button" class="btn primary small" data-inj="' + x.id + '" data-inj-act="next">' + (x.stage === 4 ? "Doctor cleared: start full contact" : x.stage >= GRTP.length - 1 ? "Clear to play" : "Step " + (x.stage + 1) + " done") + "</button>" +
+        (x.stage > 0 ? '<button type="button" class="btn small" data-inj="' + x.id + '" data-inj-act="back">Symptoms back</button>' : "") + "</div>";
+    } else if (staff) h += '<div class="row">' + (x.closed ? '<button type="button" class="btn ghost small" data-inj="' + x.id + '" data-inj-act="reopen">Reopen</button>' : '<button type="button" class="btn small" data-inj="' + x.id + '" data-inj-act="clear">Cleared to play</button>') + "</div>";
+    if (staff && (x.log || []).length > 1) h += '<details class="small"><summary>History</summary><ul class="plain">' + x.log.map(function (l) { return "<li>" + esc(fmtShort(isoOf(new Date(l.at)))) + " · " + esc(l.text) + (l.by ? ' <span class="muted">' + esc(l.by) + "</span>" : "") + "</li>"; }).join("") + "</ul></details>";
+    return h + "</div>";
+  }
+
+  // ----- emergency action plan per venue -----
+  // Venue: { id, name, address, hospital, hospitalAddress, aed, notes }. A sheet points at one with venueId.
+  function eapModal(s) {
+    var v = s.venueId && byId(S.venues || [], s.venueId), lead = isLeader();
+    var h = mHead("Emergency plan");
+    h += '<div class="note"><b>Serious injury: call 911 first.</b> Then send someone to meet the ambulance at the entrance and tell a coach.</div>';
+    if (v) h += '<div class="field"><span>Venue</span><div class="ro"><b>' + esc(v.name) + "</b>" + (v.address ? "<br>" + mapLink(v.address) : "") + "</div></div>" +
+      '<div class="field"><span>Nearest hospital</span><div class="ro">' + (v.hospital ? esc(v.hospital) : '<span class="muted">Not set</span>') + (v.hospitalAddress ? "<br>" + mapLink(v.hospitalAddress, v.hospitalAddress + " (directions)") : "") + "</div></div>" +
+      '<div class="field"><span>AED (defibrillator)</span><div class="ro">' + (v.aed ? esc(v.aed) : '<span class="muted">Not set</span>') + "</div></div>" +
+      (v.notes ? '<div class="field"><span>Notes</span><div class="ro">' + esc(v.notes) + "</div></div>" : "");
+    else h += '<p class="muted">' + (lead ? "Pick the venue for this game, or add it." : "The venue for this game hasn't been set yet.") + "</p>";
+    if (lead) h += '<div class="row"><select id="eap-v" aria-label="Venue"><option value="">Pick a venue</option>' + (S.venues || []).slice().sort(function (a, b) { return a.name.localeCompare(b.name); }).map(function (x) { return '<option value="' + x.id + '"' + (v && v.id === x.id ? " selected" : "") + ">" + esc(x.name) + "</option>"; }).join("") + "</select>" +
+      (v ? '<button type="button" class="btn" id="eap-edit">Edit venue</button>' : "") + '<button type="button" class="btn" id="eap-new">+ New venue</button></div>';
+    openModal(h, function (el) {
+      if (!lead) return;
+      el.querySelector("#eap-v").addEventListener("change", function (e) { s.venueId = e.target.value || null; save(); eapModal(s); render(); });
+      var ed = el.querySelector("#eap-edit"); if (ed) ed.addEventListener("click", function () { venueModal(v, s); });
+      el.querySelector("#eap-new").addEventListener("click", function () { venueModal(null, s); });
+    });
+  }
+  function venueModal(v, s) {
+    var isNew = !v; v = v || { name: "", address: "", hospital: "", hospitalAddress: "", aed: "", notes: "" };
+    openModal(mHead(isNew ? "New venue" : "Edit venue") + '<form id="f-ven" style="display:flex;flex-direction:column;gap:12px">' +
+      fld("Name", "vn-name", v.name, true, "text", ' required placeholder="e.g. SUU Rugby Field"') + fld("Address", "vn-addr", v.address, true, "text") +
+      '<div class="grid2">' + fld("Nearest hospital", "vn-hosp", v.hospital, true, "text", ' placeholder="e.g. Cedar City Hospital"') + fld("Hospital address", "vn-haddr", v.hospitalAddress, true, "text") + "</div>" +
+      fld("Where the AED is", "vn-aed", v.aed, true, "text", ' placeholder="e.g. Trainer\'s kit by the home bench"') + fld("Notes", "vn-notes", v.notes, true, "area", ' rows="2" placeholder="Ambulance entrance, gate codes, the athletic trainer\'s number..."') +
+      '<div class="row spread"><button type="button" class="btn" id="vn-cancel">Back</button><button class="btn primary">Save</button></div></form>', function (el) {
+      el.querySelector("#vn-cancel").addEventListener("click", function () { eapModal(s); });
+      el.querySelector("#f-ven").addEventListener("submit", function (ev) {
+        ev.preventDefault(); var name = el.querySelector("#vn-name").value.trim(); if (!name) return;
+        v.name = name; v.address = el.querySelector("#vn-addr").value.trim(); v.hospital = el.querySelector("#vn-hosp").value.trim(); v.hospitalAddress = el.querySelector("#vn-haddr").value.trim();
+        v.aed = el.querySelector("#vn-aed").value.trim(); v.notes = el.querySelector("#vn-notes").value.trim();
+        if (isNew) { v.id = uid(); v.at = Date.now(); S.venues.push(v); s.venueId = v.id; }
+        save(); eapModal(s); render();
+      });
+    });
+  }
+
+  // ----- team selection: the match-day 23 -----
+  var POS = ["Loosehead prop", "Hooker", "Tighthead prop", "Lock", "Lock", "Blindside flanker", "Openside flanker", "Number 8", "Scrum-half", "Fly-half", "Left wing", "Inside centre", "Outside centre", "Right wing", "Fullback"];
+  function posName(n) { return n <= 15 ? POS[n - 1] : "Replacement"; }
+  function selOf(s) { return (S.selections || []).filter(function (x) { return x.sheetId === s.id; })[0] || null; }
+  function selPicked(sel) { return sel ? sel.slots.filter(function (x) { return x.personId; }) : []; }
+  function playerMarks(p, key) {
+    var r = rsvpOf(key, p.id), st = (r && r.status) || "", m = st ? RSVP[st][1] : "–";
+    if (isLeader() && !eligState(p).ok) m += " ⚠";
+    if (isStaff() && openInjury(p.id)) m += " ✚";
+    return m;
+  }
+  function selectionModal(s) {
+    var sel = selOf(s), staff = isStaff(), key = "sheet:" + s.id;
+    if (!staff) {
+      openModal(mHead("Team for " + esc(sheetTitle(s))) + (sel && sel.published ? '<ol class="plain sel-view">' + sel.slots.filter(function (x) { return x.personId; }).sort(function (a, b) { return a.n - b.n; }).map(function (x) {
+        return '<li' + (x.personId === S.currentUserId ? ' class="me"' : "") + '><span class="sel-n">' + x.n + '</span><span class="grow"><b>' + esc(pname(x.personId)) + '</b> <small class="muted">' + esc(posName(x.n)) + "</small></span></li>"; }).join("") + "</ol>" : '<p class="muted">The team hasn\'t been named yet.</p>'));
+      return;
+    }
+    if (!sel) { sel = { id: s.id + "-sel", sheetId: s.id, slots: [], published: false, by: "", at: Date.now() }; }
+    var slot = function (n) { for (var i = 0; i < sel.slots.length; i++) if (sel.slots[i].n === n) return sel.slots[i].personId; return ""; };
+    var groups = [["in", "In"], ["maybe", "Maybe"], ["", "No answer"], ["out", "Out"]], sq = squad();
+    function opts(cur) {
+      return '<option value="">Empty</option>' + groups.map(function (g) {
+        var ps = sq.filter(function (p) { var r = rsvpOf(key, p.id); return ((r && r.status) || "") === g[0]; }); if (!ps.length) return "";
+        return '<optgroup label="' + g[1] + '">' + ps.map(function (p) { return '<option value="' + p.id + '"' + (p.id === cur ? " selected" : "") + ">" + esc(p.name + "  " + playerMarks(p, key)) + "</option>"; }).join("") + "</optgroup>";
+      }).join("");
+    }
+    var c = availCounts(key), n = selPicked(sel).length;
+    var h = mHead("Team selection") + '<div class="muted small">' + esc(sheetTitle(s)) + " · " + c["in"] + " in, " + c.maybe + " maybe. ✓ in · ? maybe · ✕ out · ⚠ not cleared · ✚ injured</div>";
+    var row = function (i) { return '<label class="sel-row"><span class="sel-n">' + i + '</span><span class="sel-pos">' + esc(posName(i)) + '</span><select data-slot="' + i + '" aria-label="' + i + " " + esc(posName(i)) + '">' + opts(slot(i)) + "</select></label>"; };
+    h += "<h2 class=\"small\">Starting 15</h2><div class=\"sel-grid\">"; for (var i = 1; i <= 15; i++) h += row(i);
+    h += '</div><h2 class="small">Replacements</h2><div class="sel-grid">'; for (i = 16; i <= 23; i++) h += row(i);
+    h += '</div><div class="row spread"><span class="muted small" id="sel-n">' + n + ' of 23 picked</span><button type="button" class="btn ' + (sel.published ? "" : "primary") + '" id="sel-pub">' + (sel.published ? "Unpublish" : "Publish to team") + "</button></div>" +
+      '<p class="muted small" style="margin:0">' + (sel.published ? "Published: everyone can see the team on the game page." : "Only coaches and admins see it until you publish.") + "</p>";
+    openModal(h, function (el) {
+      function store() {
+        sel.slots = []; el.querySelectorAll("[data-slot]").forEach(function (x) { if (x.value) sel.slots.push({ n: +x.dataset.slot, personId: x.value }); });
+        sel.by = currentUser().name; sel.at = Date.now();
+        if (S.selections.indexOf(sel) < 0) S.selections.push(sel);
+        el.querySelector("#sel-n").textContent = sel.slots.length + " of 23 picked"; save(true);
+      }
+      el.querySelectorAll("[data-slot]").forEach(function (x) { x.addEventListener("change", function () {
+        if (x.value) el.querySelectorAll("[data-slot]").forEach(function (o) { if (o !== x && o.value === x.value) o.value = ""; });
+        store();
+      }); });
+      el.querySelector("#sel-pub").addEventListener("click", function () {
+        store(); sel.published = !sel.published; save(); selectionModal(s); render();
+        if (sel.published && ONLINE && !REAL) sb.functions.invoke("notify", { body: { type: "send", to: "team", title: "Team named: " + sheetTitle(s), body: "The match-day 23 is up. Open the game in the app to see it." } }).then(function () {}, function () {});
+      });
+    });
+  }
+
+  // ----- travel for away games -----
+  // Trip: { id, sheetId, departAt, meetPoint, returnAt, notes, vehicles [{ id, label, driverId, seats }], rooms [{ id, label }],
+  // roster [{ personId, car, room }], roll { personId: true } }.
+  function tripOf(s) { return (S.trips || []).filter(function (x) { return x.sheetId === s.id; })[0] || null; }
+  function isAway(s) { return /away/i.test(s.masterName || ""); }
+  function fmtDT(v) { if (!v) return ""; var d = new Date(v); return isNaN(d) ? v : d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
+  function tripModal(s) {
+    var tr = tripOf(s), lead = isLeader(), me = S.currentUserId;
+    if (!tr && !lead) return;
+    if (!tr) tr = { id: s.id + "-trip", sheetId: s.id, departAt: "", meetPoint: "", returnAt: "", notes: "", vehicles: [], rooms: [], roster: [], roll: {}, at: Date.now() };
+    var lbl = function (list, id) { var x = byId(list, id); return x ? x.label : ""; };
+    var h = mHead("Travel");
+    if (!lead) {
+      var mine = tr.roster.filter(function (x) { return x.personId === me; })[0];
+      h += '<div class="field"><span>Leave</span><div class="ro">' + (esc(fmtDT(tr.departAt)) || '<span class="muted">Not set</span>') + (tr.meetPoint ? " from " + esc(tr.meetPoint) : "") + "</div></div>" +
+        (tr.returnAt ? '<div class="field"><span>Back</span><div class="ro">' + esc(fmtDT(tr.returnAt)) + "</div></div>" : "") +
+        (tr.notes ? '<div class="field"><span>Notes</span><div class="ro">' + esc(tr.notes) + "</div></div>" : "");
+      if (mine) { var car = byId(tr.vehicles, mine.car); h += '<div class="note"><b>You:</b> ' + (car ? esc(car.label) + (car.driverId ? " (driver " + esc(pname(car.driverId)) + ")" : "") : "No car yet") + (mine.room ? " · Room " + esc(lbl(tr.rooms, mine.room)) : "") + "</div>"; }
+      else h += '<p class="muted small">You\'re not on the travel list for this game.</p>';
+      h += tr.vehicles.map(function (v) { return '<div class="field"><span>' + esc(v.label) + (v.driverId ? " · driver " + esc(pname(v.driverId)) : "") + '</span><div class="ro">' + (tr.roster.filter(function (x) { return x.car === v.id; }).map(function (x) { return esc(pname(x.personId)); }).join(", ") || '<span class="muted">No one yet</span>') + "</div></div>"; }).join("");
+      openModal(h); return;
+    }
+    var ppl = livePeople(), here = tr.roster.filter(function (x) { return tr.roll[x.personId]; }).length;
+    var pOpts = function (cur, none) { return '<option value="">' + none + "</option>" + ppl.map(function (p) { return '<option value="' + p.id + '"' + (p.id === cur ? " selected" : "") + ">" + esc(p.name) + "</option>"; }).join(""); };
+    h += '<div class="grid2">' + fld("Leave", "tr-dep", tr.departAt, true, "datetime-local") + fld("Meet at", "tr-meet", tr.meetPoint, true, "text", ' placeholder="e.g. Centrum parking lot"') + "</div>" +
+      '<div class="grid2">' + fld("Back", "tr-ret", tr.returnAt, true, "datetime-local") + fld("Notes", "tr-notes", tr.notes, true, "text", ' placeholder="Hotel, what to bring, meal money..."') + "</div>";
+    h += '<section class="pf-sec"><h2>Vehicles</h2>' + tr.vehicles.map(function (v) {
+      var used = tr.roster.filter(function (x) { return x.car === v.id; }).length;
+      return '<div class="tr-row" data-veh="' + v.id + '"><input type="text" data-vf="label" value="' + esc(v.label) + '" aria-label="Vehicle name"><select data-vf="driverId" aria-label="Driver">' + pOpts(v.driverId, "Driver") + "</select>" +
+        '<input type="number" min="1" max="60" data-vf="seats" value="' + esc(v.seats || "") + '" aria-label="Seats" placeholder="Seats" style="width:5.5em"><span class="small ' + (v.seats && used > v.seats ? "late" : "muted") + '">' + used + (v.seats ? "/" + v.seats : "") + '</span><button type="button" class="icon-btn" data-vdel="' + v.id + '" aria-label="Remove vehicle">✕</button></div>';
+    }).join("") + '<button type="button" class="btn small" id="tr-addv">+ Add vehicle</button></section>';
+    h += '<section class="pf-sec"><h2>Rooms</h2>' + tr.rooms.map(function (r) { return '<div class="tr-row" data-room="' + r.id + '"><input type="text" data-rf value="' + esc(r.label) + '" aria-label="Room"><span class="small muted">' + tr.roster.filter(function (x) { return x.room === r.id; }).length + ' in it</span><button type="button" class="icon-btn" data-rdel="' + r.id + '" aria-label="Remove room">✕</button></div>'; }).join("") +
+      '<button type="button" class="btn small" id="tr-addr">+ Add room</button></section>';
+    var carOpts = function (cur) { return '<option value="">No car</option>' + tr.vehicles.map(function (v) { return '<option value="' + v.id + '"' + (v.id === cur ? " selected" : "") + ">" + esc(v.label) + "</option>"; }).join(""); };
+    var roomOpts = function (cur) { return '<option value="">No room</option>' + tr.rooms.map(function (r) { return '<option value="' + r.id + '"' + (r.id === cur ? " selected" : "") + ">" + esc(r.label) + "</option>"; }).join(""); };
+    h += '<section class="pf-sec"><div class="row spread"><h2>Travelling (' + tr.roster.length + ')</h2><span class="small"><b>Roll call:</b> ' + here + " of " + tr.roster.length + " here</span></div>" +
+      '<div class="row">' + (selPicked(selOf(s)).length ? '<button type="button" class="btn small" id="tr-fill">Add the team selection and coaches</button>' : "") + '<select id="tr-addp" aria-label="Add a person">' + pOpts("", "+ Add a person") + "</select>" + (here ? '<button type="button" class="btn ghost small" id="tr-roll0">Clear roll call</button>' : "") + "</div>" +
+      '<ul class="plain tr-list">' + tr.roster.slice().sort(function (a, b) { return pname(a.personId).localeCompare(pname(b.personId)); }).map(function (x) {
+        return '<li data-trp="' + x.personId + '"><label class="att"><input type="checkbox" data-roll' + (tr.roll[x.personId] ? " checked" : "") + ' aria-label="' + esc(pname(x.personId)) + ' is here"></label><span class="grow">' + esc(pname(x.personId)) + "</span>" +
+          '<select data-pf="car" aria-label="Car">' + carOpts(x.car) + '</select><select data-pf="room" aria-label="Room">' + roomOpts(x.room) + '</select><button type="button" class="icon-btn" data-pdel aria-label="Take off the list">✕</button></li>';
+      }).join("") + "</ul></section>";
+    openModal(h, function (el) {
+      function keep(redraw) { tr.at = Date.now(); if (S.trips.indexOf(tr) < 0) S.trips.push(tr); save(true); if (redraw) { tripModal(s); render(); } }
+      [["tr-dep", "departAt"], ["tr-meet", "meetPoint"], ["tr-ret", "returnAt"], ["tr-notes", "notes"]].forEach(function (f) { el.querySelector("#" + f[0]).addEventListener("change", function (e) { tr[f[1]] = e.target.value.trim(); keep(); }); });
+      el.querySelector("#tr-addv").addEventListener("click", function () { tr.vehicles.push({ id: uid(), label: "Vehicle " + (tr.vehicles.length + 1), driverId: "", seats: "" }); keep(true); });
+      el.querySelector("#tr-addr").addEventListener("click", function () { tr.rooms.push({ id: uid(), label: "Room " + (tr.rooms.length + 1) }); keep(true); });
+      el.querySelectorAll("[data-veh] [data-vf]").forEach(function (inp) { inp.addEventListener("change", function () { var v = byId(tr.vehicles, inp.closest("[data-veh]").dataset.veh); v[inp.dataset.vf] = inp.dataset.vf === "seats" ? (+inp.value || "") : inp.value.trim(); keep(inp.dataset.vf !== "label"); }); });
+      el.querySelectorAll("[data-room] [data-rf]").forEach(function (inp) { inp.addEventListener("change", function () { byId(tr.rooms, inp.closest("[data-room]").dataset.room).label = inp.value.trim(); keep(); }); });
+      el.querySelectorAll("[data-vdel]").forEach(function (b) { b.addEventListener("click", function () { var id = b.dataset.vdel; tr.vehicles = tr.vehicles.filter(function (v) { return v.id !== id; }); tr.roster.forEach(function (x) { if (x.car === id) x.car = ""; }); keep(true); }); });
+      el.querySelectorAll("[data-rdel]").forEach(function (b) { b.addEventListener("click", function () { var id = b.dataset.rdel; tr.rooms = tr.rooms.filter(function (r) { return r.id !== id; }); tr.roster.forEach(function (x) { if (x.room === id) x.room = ""; }); keep(true); }); });
+      var fill = el.querySelector("#tr-fill");
+      if (fill) fill.addEventListener("click", function () {
+        var ids = selPicked(selOf(s)).map(function (x) { return x.personId; }).concat(livePeople().filter(function (p) { return p.role === "Coach"; }).map(function (p) { return p.id; }));
+        ids.forEach(function (id) { if (!tr.roster.some(function (x) { return x.personId === id; })) tr.roster.push({ personId: id, car: "", room: "" }); }); keep(true);
+      });
+      el.querySelector("#tr-addp").addEventListener("change", function (e) { var id = e.target.value; if (id && !tr.roster.some(function (x) { return x.personId === id; })) tr.roster.push({ personId: id, car: "", room: "" }); keep(true); });
+      var r0 = el.querySelector("#tr-roll0"); if (r0) r0.addEventListener("click", function () { tr.roll = {}; keep(true); });
+      el.querySelectorAll("[data-trp]").forEach(function (li) {
+        var pid = li.dataset.trp, x = tr.roster.filter(function (y) { return y.personId === pid; })[0];
+        li.querySelector("[data-roll]").addEventListener("change", function (e) { if (e.target.checked) tr.roll[pid] = true; else delete tr.roll[pid]; keep(true); });
+        li.querySelectorAll("[data-pf]").forEach(function (sl) { sl.addEventListener("change", function () { x[sl.dataset.pf] = sl.value; keep(true); }); });
+        li.querySelector("[data-pdel]").addEventListener("click", function () { tr.roster = tr.roster.filter(function (y) { return y.personId !== pid; }); delete tr.roll[pid]; keep(true); });
+      });
+    });
+  }
+  // Staff: emergency contacts and medical notes for everyone going to this game.
+  function medSheetModal(s) {
+    var tr = tripOf(s), ids = tr && tr.roster.length ? tr.roster.map(function (x) { return x.personId; }) : selPicked(selOf(s)).length ? selPicked(selOf(s)).map(function (x) { return x.personId; }) : squad().map(function (p) { return p.id; });
+    var from = tr && tr.roster.length ? "the travel list" : selPicked(selOf(s)).length ? "the team selection" : "the whole squad";
+    openModal(mHead("Medical info") + '<p class="muted small" style="margin:0">For ' + from + ". Only coaches and admins can see this.</p>" +
+      '<div class="tablewrap"><table class="grid med"><thead><tr><th>Player</th><th>Emergency contact</th><th>Allergies</th><th>Conditions and medications</th></tr></thead><tbody>' + ids.map(function (id) {
+        var hi = healthOf(id) || {}, inj = openInjury(id);
+        return "<tr><td><b>" + esc(pname(id)) + "</b>" + (inj ? '<br><span class="pill st-blocked">' + esc(inj.kind === "concussion" ? "Concussion" : "Injured") + "</span>" : "") + "</td><td>" + (hi.emergencyName ? esc(hi.emergencyName) + (hi.emergencyRelation ? " (" + esc(hi.emergencyRelation) + ")" : "") + "<br>" : "") +
+          (hi.emergencyPhone ? '<a href="tel:' + esc(hi.emergencyPhone.replace(/[^\d+]/g, "")) + '">' + esc(hi.emergencyPhone) + "</a>" : '<span class="late">Missing</span>') + "</td><td>" + (esc(hi.allergies) || '<span class="muted">None</span>') + "</td><td>" + esc([hi.conditions, hi.medications].filter(Boolean).join(" · ")) + "</td></tr>";
+      }).join("") + "</tbody></table></div>");
+  }
+
+  // ----- the game page panel -----
+  function teamPanel(s) {
+    var key = "sheet:" + s.id, h = '<section class="card team-panel"><h2>' + (s.gameInfo ? "Match day" : "Who's coming") + "</h2>" + availBlock(key, s.date);
+    if (s.gameInfo) {
+      var sel = selOf(s), tr = tripOf(s), v = s.venueId && byId(S.venues || [], s.venueId), b = [];
+      if (isStaff()) b.push(["sel", "Team selection", sel && sel.published ? "Published" : selPicked(sel).length + " of 23 picked"]);
+      else if (sel && sel.published) b.push(["sel", "Team selection", selPicked(sel).some(function (x) { return x.personId === S.currentUserId; }) ? "You're in" : "See the team"]);
+      if (tr || (isLeader() && isAway(s))) b.push(["trip", "Travel", tr ? (tr.departAt ? "Leave " + fmtDT(tr.departAt) : tr.roster.length + " travelling") : "Not planned yet"]);
+      if (v || isLeader()) b.push(["eap", "Emergency plan", v ? v.name : "Pick the venue"]);
+      if (isStaff()) b.push(["med", "Medical info", "Contacts and allergies"]);
+      if (b.length) h += '<div class="tp-btns">' + b.map(function (x) { return '<button type="button" class="tp-btn" data-tp="' + x[0] + '"><b>' + esc(x[1]) + "</b><small>" + esc(x[2]) + "</small></button>"; }).join("") + "</div>";
+      if (isLeader() && !isPastGame(s)) {
+        var ids = selPicked(sel).length ? selPicked(sel).map(function (x) { return x.personId; }) : squad().filter(function (p) { var r = rsvpOf(key, p.id); return r && r.status === "in"; }).map(function (p) { return p.id; });
+        var bad = ids.map(function (id) { return byId(S.people, id); }).filter(function (p) { return p && (!eligState(p).ok || (isStaff() && openInjury(p.id))); });
+        if (bad.length) h += '<div class="note small"><b>Not cleared to play (' + bad.length + "):</b> " + bad.map(function (p) { return '<button type="button" class="linkish" data-file="' + p.id + '">' + esc(p.name) + "</button>"; }).join(", ") + "</div>";
+      }
+    }
+    return h + "</section>";
+  }
+  document.getElementById("app").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-tp],[data-file]"); if (!b) return;
+    if (b.dataset.file) { playerModal(byId(S.people, b.dataset.file)); return; }
+    var s = view.sheetId && byId(S.sheets, view.sheetId); if (!s) return;
+    ({ sel: selectionModal, trip: tripModal, eap: eapModal, med: medSheetModal })[b.dataset.tp](s);
+  });
+
+  // Home: announcements and the "are you in?" questions for the coming week.
+  function teamHome() {
+    var h = annCard(), ps = rsvpPrompts();
+    if (ps.length) h += '<section class="card team-card"><h2>Are you in?</h2>' + ps.map(function (x) {
+      return '<div class="rsvp-row" data-avail="' + esc(x.key) + '" data-date="' + x.date + '" data-compact="1"><div class="grow"><b>' + esc(x.label) + "</b><small class=\"muted\">" + esc(x.sub) + "</small></div>" + rsvpSeg("") + "</div>"; }).join("") + "</section>";
+    return h;
+  }
 
   // ---------- views ----------
   var app = document.getElementById("app");
@@ -2765,13 +3336,13 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   // Arriving from a "reset your password" email: show the new-password form before entering the app.
   try { auth.recovery = /type=recovery/.test(location.hash); } catch (e) { auth.recovery = false; }
   var meId = null, last = null, pushChain = Promise.resolve(), pushing = 0, pendingPull = false, pullTimer = null;
-  var TABLES = ["role_access", "people", "masters", "master_tasks", "sheets", "sheet_tasks", "task_notes", "documents", "projects", "project_tasks", "conversations", "messages", "message_reactions", "conversation_reads", "team_events"];
+  var TABLES = ["role_access", "people", "masters", "master_tasks", "venues", "sheets", "sheet_tasks", "task_notes", "documents", "projects", "project_tasks", "conversations", "messages", "message_reactions", "conversation_reads", "team_events", "rsvps", "announcements", "announcement_reads", "eligibility", "health_info", "injuries", "selections", "trips"];
   var KEYCOL = { role_access: "role" };
 
   function localLayout() { try { return localStorage.getItem(KEY + "-layout") || "list"; } catch (e) { return "list"; } }
   function emptyState() {
     return { layout: localLayout(), docTier: {}, masters: [], sheets: [], documents: [], projects: [], convos: [], msgs: [], reads: {}, events: [], currentUserId: "_",
-      people: [{ id: "_", name: "", email: "", phone: "", role: "Team Member", tags: [], status: "Active" }] };
+      people: [{ id: "_", name: "", email: "", phone: "", role: "Team Member", tags: [], status: "Active" }], rsvps: [], anns: [], annReads: [], elig: [], health: [], injuries: [], venues: [], selections: [], trips: [] };
   }
   function nul(v) { return v ? v : null; }
 
@@ -2792,7 +3363,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     });
     st.sheets.concat(st.archivedSheets || []).forEach(function (s) {
       r.sheets[s.id] = { archived_at: arcIso(s), archived_by: s.archivedBy || "", id: s.id, master_id: nul(s.masterId), master_name: s.masterName, game_info: !!s.gameInfo, opponent: s.opponent || "", date: nul(s.date),
-        label: s.label || "", example: !!s.example, rules: s.rules ? cleanRules(s.rules) : null, created_at: new Date(s.created || Date.now()).toISOString() };
+        label: s.label || "", example: !!s.example, rules: s.rules ? cleanRules(s.rules) : null, venue_id: s.venueId || null, created_at: new Date(s.created || Date.now()).toISOString() };
       s.tasks.concat(s.archived || []).forEach(function (t, i) {
         r.sheet_tasks[t.id] = { archived_at: arcIso(t), archived_by: t.archivedBy || "", id: t.id, sheet_id: s.id, master_task_id: nul(t.mtId), text: t.text, owner: t.owner || "", details: t.details || "", links: t.links || "", notes: "",
           due: nul(t.due), status: t.status, completed: nul(t.completed), done_by: nul(t.by), position: i, supporters: t.supporters || [], optional: !!t.optional, confirmation: t.confirmation || "", subtasks: t.subtasks || [], files: t.files || [], importance: imp(t), optional: !!t.optional, completed_at: t.completedAt || null, blocked_reason: t.blockedReason || "" };
@@ -2829,6 +3400,17 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       r.documents[d.id] = { id: d.id, name: d.name, notes: d.notes || "", category: d.category || "", file_path: d.path, mime: d.mime || "", size: d.size || 0,
         text_content: d.text || "", min_tier: d.tier || 3, uploaded_by: d.by || "", created_at: new Date(d.created).toISOString(), archived_at: arcIso(d), archived_by: d.archivedBy || "" };
     });
+    var pids = {}; st.people.forEach(function (p) { pids[p.id] = 1; });
+    var sids = {}; st.sheets.concat(st.archivedSheets || []).forEach(function (s) { sids[s.id] = 1; });
+    (st.rsvps || []).forEach(function (x) { if (pids[x.personId]) r.rsvps[x.id] = { id: x.id, event_key: x.key, person_id: x.personId, status: x.status || "", reason: x.reason || "", attended: x.attended === true ? true : x.attended === false ? false : null, marked_by: x.markedBy || "", updated_at: tIso(x.at) }; });
+    (st.anns || []).forEach(function (x) { r.announcements[x.id] = { id: x.id, title: x.title || "", body: x.body, author: x.author || "", pinned: !!x.pinned, created_at: tIso(x.at) }; });
+    (st.annReads || []).forEach(function (x) { if (pids[x.personId] && r.announcements[x.annId]) r.announcement_reads[x.id] = { id: x.id, announcement_id: x.annId, person_id: x.personId, read_at: tIso(x.at) }; });
+    (st.elig || []).forEach(function (x) { if (pids[x.personId]) r.eligibility[x.id] = { id: x.id, person_id: x.personId, item: x.item, status: x.status, expires: x.expires || null, note: x.note || "", updated_by: x.by || "", updated_at: tIso(x.at) }; });
+    (st.health || []).forEach(function (x) { if (pids[x.personId]) r.health_info[x.id] = { id: x.id, person_id: x.personId, emergency_name: x.emergencyName || "", emergency_phone: x.emergencyPhone || "", emergency_relation: x.emergencyRelation || "", allergies: x.allergies || "", conditions: x.conditions || "", medications: x.medications || "", updated_at: tIso(x.at) }; });
+    (st.injuries || []).forEach(function (x) { if (pids[x.personId]) r.injuries[x.id] = { id: x.id, person_id: x.personId, injured_on: x.injuredOn, kind: x.kind, description: x.description || "", reported_by: x.reportedBy || "", stage: x.stage || 0, cleared_on: x.clearedOn || null, cleared_by: x.clearedBy || "", log: x.log || [], closed: !!x.closed, created_at: tIso(x.at) }; });
+    (st.venues || []).forEach(function (x) { r.venues[x.id] = { id: x.id, name: x.name, address: x.address || "", hospital: x.hospital || "", hospital_address: x.hospitalAddress || "", aed: x.aed || "", notes: x.notes || "", created_at: tIso(x.at) }; });
+    (st.selections || []).forEach(function (x) { if (sids[x.sheetId]) r.selections[x.id] = { id: x.id, sheet_id: x.sheetId, slots: x.slots || [], published: !!x.published, updated_by: x.by || "", updated_at: tIso(x.at) }; });
+    (st.trips || []).forEach(function (x) { if (sids[x.sheetId]) r.trips[x.id] = { id: x.id, sheet_id: x.sheetId, depart_at: x.departAt || "", meet_point: x.meetPoint || "", return_at: x.returnAt || "", notes: x.notes || "", vehicles: x.vehicles || [], rooms: x.rooms || [], roster: x.roster || [], roll: x.roll || {}, updated_at: tIso(x.at) }; });
     return r;
   }
   function snapshot(rows) { var o = {}; TABLES.forEach(function (t) { o[t] = {}; Object.keys(rows[t]).forEach(function (id) { o[t][id] = JSON.stringify(rows[t][id]); }); }); return o; }
@@ -2852,7 +3434,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     });
     st.sheets = d.sheets.map(function (s) {
       return { id: s.id, masterId: s.master_id, masterName: s.master_name, gameInfo: s.game_info, opponent: s.opponent, date: s.date || "", label: s.label,
-        example: s.example, rules: s.rules || null, created: Date.parse(s.created_at), archivedAt: arcMs(s), archivedBy: s.archived_by || "",
+        example: s.example, rules: s.rules || null, venueId: s.venue_id || null, created: Date.parse(s.created_at), archivedAt: arcMs(s), archivedBy: s.archived_by || "",
         tasks: (stx[s.id] || []).filter(function (t) { return !t.archivedAt; }), archived: (stx[s.id] || []).filter(function (t) { return t.archivedAt; }) };
     });
     st.archivedSheets = st.sheets.filter(function (s) { return s.archivedAt; }); st.sheets = st.sheets.filter(function (s) { return !s.archivedAt; });
@@ -2876,6 +3458,16 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     st.documents = (d.documents || []).map(function (x) {
       return { id: x.id, name: x.name, notes: x.notes, category: x.category, path: x.file_path, mime: x.mime, size: Number(x.size) || 0, text: x.text_content, tier: Number(x.min_tier) || 3, by: x.uploaded_by, created: Date.parse(x.created_at), archivedAt: arcMs(x), archivedBy: x.archived_by || "" };
     });
+    var tp = function (v) { return v ? Date.parse(v) : 0; };
+    st.rsvps = (d.rsvps || []).map(function (x) { return { id: x.id, key: x.event_key, personId: x.person_id, status: x.status || "", reason: x.reason || "", attended: x.attended === true ? true : x.attended === false ? false : null, markedBy: x.marked_by || "", at: tp(x.updated_at) }; });
+    st.anns = (d.announcements || []).map(function (x) { return { id: x.id, title: x.title || "", body: x.body, author: x.author || "", pinned: !!x.pinned, at: tp(x.created_at) }; });
+    st.annReads = (d.announcement_reads || []).map(function (x) { return { id: x.id, annId: x.announcement_id, personId: x.person_id, at: tp(x.read_at) }; });
+    st.elig = (d.eligibility || []).map(function (x) { return { id: x.id, personId: x.person_id, item: x.item, status: x.status, expires: x.expires || "", note: x.note || "", by: x.updated_by || "", at: tp(x.updated_at) }; });
+    st.health = (d.health_info || []).map(function (x) { return { id: x.id, personId: x.person_id, emergencyName: x.emergency_name || "", emergencyPhone: x.emergency_phone || "", emergencyRelation: x.emergency_relation || "", allergies: x.allergies || "", conditions: x.conditions || "", medications: x.medications || "", at: tp(x.updated_at) }; });
+    st.injuries = (d.injuries || []).map(function (x) { return { id: x.id, personId: x.person_id, injuredOn: x.injured_on, kind: x.kind, description: x.description || "", reportedBy: x.reported_by || "", stage: x.stage || 0, clearedOn: x.cleared_on || "", clearedBy: x.cleared_by || "", log: x.log || [], closed: !!x.closed, at: tp(x.created_at) }; });
+    st.venues = (d.venues || []).map(function (x) { return { id: x.id, name: x.name, address: x.address || "", hospital: x.hospital || "", hospitalAddress: x.hospital_address || "", aed: x.aed || "", notes: x.notes || "", at: tp(x.created_at) }; });
+    st.selections = (d.selections || []).map(function (x) { return { id: x.id, sheetId: x.sheet_id, slots: x.slots || [], published: !!x.published, by: x.updated_by || "", at: tp(x.updated_at) }; });
+    st.trips = (d.trips || []).map(function (x) { return { id: x.id, sheetId: x.sheet_id, departAt: x.depart_at || "", meetPoint: x.meet_point || "", returnAt: x.return_at || "", notes: x.notes || "", vehicles: x.vehicles || [], rooms: x.rooms || [], roster: x.roster || [], roll: x.roll || {}, at: tp(x.updated_at) }; });
     return st;
   }
 
@@ -3504,6 +4096,12 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-11-04", "Travel for away games: leaders set the departure time, meeting point and return, add vehicles with drivers and seats, add rooms, and put each traveller in a car and room. A roll call shows who is here before you leave. Players see their own car and room."],
+    ["2026-11-04", "Team selection: coaches and admins pick the match-day 23 (starting 15 by position plus 8 replacements) from a list that shows who is in, maybe or out, who isn't cleared and who is injured. Publishing it shows the team to everyone and sends a notification."],
+    ["2026-11-04", "Safety: each player file has an emergency contact, allergies, conditions and medications (only coaches, admins and the player see it). Coaches log injuries, and a concussion follows the step-by-step return to play. Each game has an emergency plan with the venue, nearest hospital and AED, and staff get a medical info sheet for everyone going."],
+    ["2026-11-04", "Eligibility: leaders keep a checklist for every player (USA Rugby registration, dues, waiver, medical clearance, concussion education, academics), with expiry dates. People shows how many players are cleared, and a game warns about anyone picked or coming who isn't."],
+    ["2026-11-04", "Announcements: admins post to the whole team from Home, with an optional notification and pinning. Everyone taps Got it, and leaders see who has and hasn't seen each one."],
+    ["2026-11-04", "Availability: tap In, Maybe or Out for practices, team nights and games, from Home, the calendar or the game page. Staff see the headcount and reasons, take attendance, and each player file shows their attendance rate."],
     ["2026-11-04", "On phones the main tabs moved to a bar at the bottom of the screen: Home, Game Prep, People, Docs and More. Messages, Development and your profile and settings are under More."],
     ["2026-11-04", "Task pop-ups are shorter and clearer. Admins edit the task name right in the title, Priority is three buttons, How to do it folds away, and a ✕ closes the pop-up. Changes save as you go; after you close, a message offers Undo if you want them back the way they were."],
     ["2026-11-04", "Celebrations are lighter by default: finishing a task or subtask shows a quick Good Job! at the bottom, and the big shows play when a game sheet or project reaches 100%. Choose Milestones, Every task or Off in your profile settings, and turn the daily welcome kick off there too."],
@@ -4304,6 +4902,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     h += '<div class="sheet-title"><h1>' + esc(sheetTitle(s)) + '</h1><button type="button" class="pill rd-pill ' + rd.cls + '" data-act="rules-view" aria-label="Readiness: ' + rd.label + '. See the rules">' + rd.label + ' <span aria-hidden="true">ⓘ</span></button></div>';
     if (s.date) h += '<div class="muted">' + esc(fmtDate(s.date)) + "</div>";
     if (isPastGame(s) && canSeeRecap()) h += recapCard(s);
+    if (s.date || s.gameInfo) h += teamPanel(s);
     h += '<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">' +
       '<div class="row spread"><strong>' + doneCount(s) + " of " + req(s).length + " tasks done" + (optCount(s) ? ' <span class="muted small" style="font-weight:400">+ ' + optCount(s) + " optional</span>" : "") + '</strong><span class="muted small" style="font-variant-numeric:tabular-nums">' + p + "%</span></div>" +
       '<div class="bar"><i style="width:' + p + '%"></i></div>' + sfChips(tasks, view.sf) +
@@ -5340,10 +5939,13 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       (used.length ? '<div class="view-chips tag-filter" role="group" aria-label="Show people with a tag">' + [["", "Everyone"]].concat(used.map(function (t) { return [t, t]; })).map(function (x) {
         return '<button type="button" class="sf-chip' + (tf === x[0] ? " on" : "") + '" data-ptag="' + esc(x[0]) + '" aria-pressed="' + (tf === x[0]) + '">' + esc(x[1]) + "</button>"; }).join("") + "</div>" : "") +
       '<span class="muted small">' + shown.length + (shown.length === 1 ? " person" : " people") + "</span></div>";
+    if (isLeader()) h += clearanceCard();
+    var lead = isLeader(), staff = isStaff();
     function personItem(p) {
       var sub = byRole ? "" : '<span class="lvl">' + esc(p.role) + "</span>";
       return '<button class="item person-row" data-open-person="' + p.id + '"><div class="avatar" aria-hidden="true">' + esc(initials(p.name)) + '</div><div class="grow"><div class="title">' + esc(p.name) +
         (p.id === S.currentUserId ? ' <span class="muted small">(you)</span>' : "") + '</div><div class="person-tags">' + sub + tagChips(p) + "</div></div>" +
+        (staff && openInjury(p.id) ? '<span class="pill st-blocked">Injured</span>' : lead && p.role === "Team Member" && !eligState(p).ok ? '<span class="pill st-ip" title="Not cleared to play">⚠ Not cleared</span>' : "") +
         (p.status !== "Active" ? '<span class="pill st-ip">' + esc(p.status) + "</span>" : "") + '<span class="chev" aria-hidden="true">›</span></button>';
     }
     if (!byRole) h += shown.length ? '<div class="list">' + shown.slice().sort(function (a, b) { return ps === "za" ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name); }).map(personItem).join("") + "</div>" : '<div class="card empty">No one yet.</div>';
@@ -5445,7 +6047,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       '<div class="field"><span>Tags <span class="muted small" style="font-weight:400">tap to add or remove</span></span><div class="tag-picks">' + TAGS.map(function (t) {
         return '<button type="button" class="tag-pick' + (t === "Admin" ? " admin" : "") + '" data-tagpick="' + esc(t) + '" aria-pressed="' + (tags.indexOf(t) >= 0) + '">' + esc(t) + "</button>"; }).join("") + "</div>" +
       '<span class="muted small" style="font-weight:400">Admin can edit templates, sheets, the calendar and people.</span></div>';
-    openModal("<h1>" + (isNew ? "Invite person" : esc(p.name)) + '</h1><form style="display:flex;flex-direction:column;gap:12px">' +
+    openModal("<h1>" + (isNew ? "Invite person" : esc(p.name)) + "</h1>" + (!isNew && (p.id === S.currentUserId || isLeader()) ? '<button type="button" class="btn" id="pm-file" style="align-self:flex-start">Player file: attendance, eligibility' + (isStaff() || p.id === S.currentUserId ? ", medical" : "") + " ›</button>" : "") + '<form style="display:flex;flex-direction:column;gap:12px">' +
       fld("Name", "pm-name", p.name, admin, "text", ' placeholder="First and last name"') +
       '<div class="grid2">' + fld("Email", "pm-email", p.email, admin, "email", ' placeholder="name@example.com"') + fld("Phone", "pm-phone", p.phone, admin, "tel") + "</div>" +
       (admin ? roleSel : '<div class="field"><span>Level and tags</span><div class="person-tags"><span class="lvl">' + esc(p.role) + "</span>" + tagChips(p) + "</div></div>") +
@@ -5456,6 +6058,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         : '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Close</button></div>') + "</form>" +
       (isNew && admin ? '<div class="invite-link"><div class="grow" style="min-width:0"><div class="title">Invite link</div><div class="muted small">The app link to send people you have already added.</div></div><button type="button" class="btn" id="pm-copy-link">Copy invite link</button></div>' : ""),
       function (el) {
+        var pf = el.querySelector("#pm-file"); if (pf) pf.addEventListener("click", function () { playerModal(p, function () { personModal(p); }); });
         if (!admin) return;
         var rs = el.querySelector("#pm-resend"); if (rs) rs.addEventListener("click", function () { closeModal(); resendInvite(p); });
         var pn = el.querySelector("#pm-notify"); if (pn) pn.addEventListener("click", function () { closeModal(); sendNoticeModal(p.id); });
@@ -6678,11 +7281,12 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
         '<div class="field"><span>When</span><div class="ro">' + esc(fmtDate(e.date)) + " · " + esc(evWhen(e)) + (e.repeat ? '<div class="muted small">' + esc(repeatText(e.repeat)) + "</div>" : "") + "</div></div>" +
         (e.location ? '<div class="field"><span>Where</span><div class="ro">' + esc(e.location) + "</div></div>" : "") +
         (e.notes ? '<div class="field"><span>Notes</span><div class="ro" style="white-space:pre-wrap">' + esc(e.notes) + "</div></div>" : "") +
+        availBlock("ev:" + e.id, e.date) +
         '<div class="row" style="justify-content:flex-end"><button type="button" class="btn primary" data-close>Close</button></div>');
       return;
     }
     var kl = EV_KINDS[e.kind].toLowerCase();
-    openModal("<h1>" + (isNew ? "Add " : "Edit ") + kl + '</h1><form id="f-ev" style="display:flex;flex-direction:column;gap:12px">' +
+    openModal("<h1>" + (isNew ? "Add " : "Edit ") + kl + "</h1>" + (isNew ? "" : '<details class="ev-avail"><summary>Availability and attendance <span class="muted small">' + availCounts("ev:" + e.id)["in"] + " in</span></summary>" + availBlock("ev:" + e.id, e.date) + "</details>") + '<form id="f-ev" style="display:flex;flex-direction:column;gap:12px">' +
       '<label class="field">Type<select id="ev-kind"><option value="practice"' + (e.kind === "practice" ? " selected" : "") + '>Practice</option><option value="team_night"' + (e.kind === "team_night" ? " selected" : "") + ">Team night</option></select></label>" +
       fld("Name <span class=\"muted small\" style=\"font-weight:400\">optional</span>", "ev-title", e.title || "", true, "text", ' placeholder="' + esc(EV_KINDS[e.kind]) + '"') +
       fld(inSeries ? "Date of this one" : isNew ? "Date (first one, if it repeats)" : "Date", "ev-date", e.date || todayIso(), true, "date", " required") +
@@ -6866,7 +7470,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       (mode === "agenda" ? "" : '<div class="menu-wrap"><button class="kebab cal-mode-btn" id="cal-mode" aria-label="Calendar view: ' + esc(modeLabel) + '" aria-haspopup="true" aria-expanded="false" data-menu="cal-mode">' + esc(modeLabel) +
       ' <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>' +
       '<div class="menu" role="menu" id="cal-mode-items" hidden>' + CAL_MODES.filter(function (x) { return x[0] !== "agenda"; }).map(function (x) { return '<button role="menuitemradio" aria-checked="' + (x[0] === mode) + '" data-act="cal-mode" data-mode="' + x[0] + '">' + (x[0] === mode ? "✓ " : "") + esc(x[1]) + "</button>"; }).join("") + "</div></div>") +
-      kebab("cal-menu", [["cal-subscribe", "Add to my calendar app"]], true) + "</div>";
+      kebab("cal-menu", [["cal-subscribe", "Add to my calendar app"], ["ann-all", "Announcements"]].concat(isAdmin() ? [["ann-new", "Post an announcement"]] : []), true) + "</div>" + teamHome();
     h += '<div class="cal-bar-top"><div class="cal-nav"><button type="button" class="icon-btn" data-act="cal-prev" aria-label="Previous ' + unit + '">' + chev("M15 18l-6-6 6-6") + "</button>" +
       '<div class="cal-month" aria-live="polite">' + esc(title) + '</div><button type="button" class="icon-btn" data-act="cal-next" aria-label="Next ' + unit + '">' + chev("M9 18l6-6-6-6") + "</button></div>" +
       '<div class="cal-tabs" role="tablist" aria-label="Calendar layout"><button type="button" role="tab" data-act="cal-mode" data-mode="agenda" aria-selected="' + (mode === "agenda") + '">My agenda</button>' +
