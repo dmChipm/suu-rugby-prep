@@ -114,7 +114,7 @@ label.field { display: flex; flex-direction: column; gap: 4px; font-weight: 600;
 .empty { padding: 28px 18px; text-align: center; color: var(--muted); }
 .note { background: var(--red-soft); color: var(--ink); border-radius: 10px; padding: 10px 14px; font-size: .9rem; }
 
-.scrim { position: fixed; inset: 0; background: rgba(20, 8, 10, .55); display: grid; place-items: center; padding: 16px; z-index: 20; }
+.scrim { position: fixed; inset: 0; background: rgba(20, 8, 10, .55); display: grid; place-items: center; padding: 16px; z-index: 32; }
 .modal:focus { outline: none; }
 html.modal-open, html.modal-open body { overflow: hidden; overscroll-behavior: none; }
 .scrim, .modal { overscroll-behavior: contain; }
@@ -123,7 +123,7 @@ html.modal-open, html.modal-open body { overflow: hidden; overscroll-behavior: n
 .m-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .m-head h1 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .m-head .btn { flex: none; }
-.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-weight: 600; z-index: 30; font-size: .92rem; max-width: calc(100% - 32px); }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-weight: 600; z-index: 45; font-size: .92rem; max-width: calc(100% - 32px); }
 .tasks li { align-items: flex-start; }
 .tasks .check { flex: none; padding-top: 2px; }
 .tasks .num { padding-top: 4px; }
@@ -626,6 +626,29 @@ li.is-done .txt { text-decoration-thickness: 2px; text-decoration-color: var(--r
   #more-pop svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
   #more-pop .badge { margin-left: auto; }
 }
+/* Task pop-up: title edited in place, a close button, folding sections, priority buttons and an Undo toast. */
+.m-head .title-in { flex: 1; min-width: 0; font-family: var(--display); font-weight: 800; font-size: 1.3rem; color: var(--ink); border: 0; border-bottom: 2px dashed var(--line); border-radius: 0; background: transparent; padding: 2px 0 4px; }
+.m-head .title-in:focus { outline: none; border-bottom-color: var(--red); }
+.m-head .m-close { flex: none; width: 44px; height: 44px; font-size: 1.1rem; border-radius: 999px; border: 2px solid var(--line); background: var(--surface); }
+.tk-fold { border-top: 1px solid var(--line); padding-top: 10px; }
+.tk-fold > summary { cursor: pointer; display: flex; align-items: baseline; gap: 10px; font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); min-height: 32px; }
+.tk-fold > summary .muted { text-transform: none; letter-spacing: 0; font-weight: 600; }
+.tk-fold > .tk-sec { border-top: 0; padding-top: 10px; }
+.tk-fold > .tk-sec > h2 { display: none; }
+.prio-seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.prio-seg button { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); font: inherit; font-weight: 700; color: var(--ink); }
+.prio-seg button[aria-checked="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.toast.has-act { display: flex; align-items: center; gap: 14px; padding-right: 8px; pointer-events: auto; }
+.toast-act { border: 0; border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 800; padding: 6px 14px; min-height: 36px; }
+.quick-check { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 40; pointer-events: none; display: flex; align-items: center; gap: 10px; padding: 8px 16px 8px 8px; border-radius: 999px; background: var(--red); color: #fff; box-shadow: 0 6px 18px rgba(0, 0, 0, .2); animation: qc-in .35s cubic-bezier(.2, 1.6, .4, 1) both; transition: opacity .3s, transform .3s; max-width: calc(100vw - 32px); }
+.quick-check.out { opacity: 0; transform: translate(-50%, 8px); }
+.quick-check .qc-mark { width: 30px; height: 30px; border-radius: 999px; background: #fff; color: var(--red); display: grid; place-items: center; font-weight: 900; flex: none; }
+.quick-check b { display: block; font-family: var(--display); font-style: italic; font-size: 1.05rem; line-height: 1.1; }
+.quick-check small { display: block; font-size: .78rem; opacity: .9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60vw; }
+@keyframes qc-in { from { opacity: 0; transform: translate(-50%, 16px) scale(.8); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+@media (min-width: 700px) { .quick-check { bottom: calc(28px + env(safe-area-inset-bottom, 0px)); } }
+.set-items li.set-fx { flex-direction: column; align-items: stretch; gap: 8px; } .set-fx .grow { display: flex; flex-direction: column; }
+.set-fx .prio-seg button { flex: 1; }
 .ps-skip { position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: .78rem; color: rgba(255, 255, 255, .55); }
 @keyframes ps-neon-on { 0% { opacity: 0; } 8% { opacity: 1; } 14% { opacity: .15; } 22% { opacity: 1; } 30% { opacity: .35; } 36%, 70% { opacity: 1; } 74% { opacity: .55; } 78%, 100% { opacity: 1; } }
 @keyframes np-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1520,6 +1543,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   var INTRO_KEY = KEY + "-intro-day", introChecked = false;
   function maybeDailyIntro() {
     if (introChecked) return; introChecked = true;
+    if (!introOn()) return;
     try { if (localStorage.getItem(INTRO_KEY) === todayIso()) return; localStorage.setItem(INTRO_KEY, todayIso()); } catch (e) { return; }
     // Wait for the loading screen to finish fading so the two don't overlap.
     var tries = 0; (function go() { if (document.querySelector(".boot-loader") && tries++ < 30) return setTimeout(go, 200); dailyIntro(); })();
@@ -2108,12 +2132,24 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     catch (e) { i = Math.floor(Math.random() * FX_TURN.length); }
     if (FX_TURN[i] === "cannon") cannonShow(label); else pinataShow(label, FX_TURN[i]);
   }
+  // Each person picks how much celebrating they want (profile settings, this device): "milestones" (the default) plays the big shows
+  // only when a game sheet or project reaches 100% and a quick check for everything else; "all" plays a show for every task; "off" only the quick check.
+  function fxMode() { try { var v = localStorage.getItem(KEY + "-fx"); return v === "all" || v === "off" ? v : "milestones"; } catch (e) { return "milestones"; } }
+  function introOn() { try { return localStorage.getItem(KEY + "-intro") !== "off"; } catch (e) { return true; } }
+  function celebrate(label, milestone) { var m = fxMode(); if (m === "all" || (m === "milestones" && milestone)) playShow(label); else quickCheck(label); }
+  // The quick check: a small "Good Job!" that pops up above the bottom of the screen for a second and never blocks a tap.
+  function quickCheck(label) {
+    var old = document.querySelector(".quick-check"); if (old) old.remove();
+    var el = document.createElement("div"); el.className = "quick-check"; el.setAttribute("role", "status");
+    el.innerHTML = '<span class="qc-mark" aria-hidden="true">✓</span><span><b>Good Job!</b>' + (label ? "<small>" + esc(String(label).replace(/^Done: /, "")) + "</small>" : "") + "</span>";
+    document.body.appendChild(el); setTimeout(function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 300); }, 1300);
+  }
   function celebrateTask(t) {
     var sh = (S.sheets || []).filter(function (x) { return x.tasks.indexOf(t) >= 0; })[0];
-    if (sh && req(sh).length && doneCount(sh) === req(sh).length) return playShow(sheetTitle(sh) + " is 100% ready!");
+    if (sh && req(sh).length && doneCount(sh) === req(sh).length) return celebrate(sheetTitle(sh) + " is 100% ready!", true);
     var pj = (S.projects || []).filter(function (x) { return x.tasks.indexOf(t) >= 0; })[0];
-    if (pj && preq(pj).length && preq(pj).every(isDone)) return playShow(pj.name + " is 100% done!");
-    playShow(t.text ? "Done: " + t.text : "");
+    if (pj && preq(pj).length && preq(pj).every(isDone)) return celebrate(pj.name + " is 100% done!", true);
+    celebrate(t.text ? "Done: " + t.text : "", false);
   }
   // Blocked always carries a reason (asked for in the pop-up and the quick status menu); any other status clears it.
   function setStatus(t, status, completed, reason) {
@@ -2501,9 +2537,17 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   function prioField(prefix, t, editable, optNote) {
     if (!editable) return ""; // Only admins set priority; critical tasks already show !!! in the title.
     var v = imp(t) ? "critical" : t.optional ? "optional" : "";
-    return '<label class="field prio">Priority<select id="' + prefix + '-prio">' + [["", "Normal"], ["critical", "!!! Critical"], ["optional", "Optional"]].map(function (x) {
-      return '<option value="' + x[0] + '"' + (x[0] === v ? " selected" : "") + ">" + x[1] + "</option>"; }).join("") + '</select><span class="muted small prio-note" style="font-weight:400"' + (v === "optional" ? "" : " hidden") + ">Optional " + esc(optNote || "doesn't count toward progress") + "</span></label>";
+    var opts = [["", "Normal"], ["critical", "!!! Critical"], ["optional", "Optional"]];
+    return '<div class="field prio"><span id="' + prefix + '-prio-k">Priority</span><div class="seg prio-seg" role="radiogroup" aria-labelledby="' + prefix + '-prio-k">' + opts.map(function (x) {
+      return '<button type="button" role="radio" data-prio-v="' + x[0] + '" aria-checked="' + (x[0] === v) + '">' + x[1] + "</button>"; }).join("") + "</div>" +
+      '<select id="' + prefix + '-prio" hidden tabindex="-1" aria-hidden="true">' + opts.map(function (x) {
+      return '<option value="' + x[0] + '"' + (x[0] === v ? " selected" : "") + ">" + x[1] + "</option>"; }).join("") + '</select><span class="muted small prio-note" style="font-weight:400"' + (v === "optional" ? "" : " hidden") + ">Optional " + esc(optNote || "doesn't count toward progress") + "</span></div>";
   }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-prio-v]"); if (!b) return;
+    var sel = b.closest(".prio").querySelector("select"); if (!sel || sel.value === b.dataset.prioV) return;
+    sel.value = b.dataset.prioV; sel.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   function prioRead(el, prefix, t) {
     var sel = el.querySelector("#" + prefix + "-prio"); if (!sel) return;
     t.importance = sel.value === "critical" ? "crucial" : ""; t.optional = sel.value === "optional";
@@ -2511,6 +2555,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   // The note under Priority explains Optional only while Optional is picked.
   document.addEventListener("change", function (e) {
     if (!e.target.matches || !e.target.matches(".prio select")) return;
+    e.target.parentNode.querySelectorAll("[data-prio-v]").forEach(function (b) { b.setAttribute("aria-checked", String(b.dataset.prioV === e.target.value)); });
     var n = e.target.parentNode.querySelector(".prio-note"); if (n) n.hidden = e.target.value !== "optional";
   }, true);
   function flagLevel(t) { var f = flagsOf(t); return f.some(function (x) { return x.lv === "bad"; }) ? "bad" : f.length ? "warn" : ""; }
@@ -2586,15 +2631,20 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
 
   var toastTimer;
-  function toast(msg) {
+  // act: optional { label, fn } shown as a button in the toast (Undo), which then stays up longer.
+  function toast(msg, act) {
     var old = document.querySelector(".toast"); if (old) old.remove();
-    var el = document.createElement("div"); el.className = "toast"; el.setAttribute("role", "status"); el.textContent = msg;
-    document.body.appendChild(el); clearTimeout(toastTimer); toastTimer = setTimeout(function () { el.remove(); }, 2200);
+    var el = document.createElement("div"); el.className = "toast" + (act ? " has-act" : ""); el.setAttribute("role", "status"); el.textContent = msg;
+    if (act) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "toast-act"; b.textContent = act.label;
+      b.addEventListener("click", function () { clearTimeout(toastTimer); el.remove(); act.fn(); }); el.appendChild(b);
+    }
+    document.body.appendChild(el); clearTimeout(toastTimer); toastTimer = setTimeout(function () { el.remove(); }, act ? 6000 : 2200);
   }
 
   // ---------- modal ----------
   function openModal(html, onReady) {
-    onModalClose = null;
+    onModalClose = null; afterModalClose = null;
     var root = document.getElementById("modal-root");
     root.innerHTML = '<div class="scrim"><div class="modal" role="dialog" aria-modal="true">' + html + "</div></div>";
     var scrim = root.firstChild;
@@ -2605,7 +2655,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     var f = scrim.querySelector("input, select"), touch = window.matchMedia && matchMedia("(pointer: coarse)").matches;
     if (touch) { scrim.firstChild.setAttribute("tabindex", "-1"); scrim.firstChild.focus({ preventScroll: true }); } else if (f) f.focus();
   }
-  var onModalClose = null;
+  var onModalClose = null, afterModalClose = null;
   // While a pop-up is open, block pull-to-refresh: a downward swipe that would scroll past the top of the pop-up does nothing.
   var modalTouchY = null;
   document.addEventListener("touchstart", function (e) { modalTouchY = document.getElementById("modal-root").firstChild && e.touches.length === 1 ? e.touches[0].clientY : null; }, { passive: true });
@@ -2616,7 +2666,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }, { passive: false });
   // On a computer, refreshing or closing the tab with a pop-up open asks first.
   window.addEventListener("beforeunload", function (e) { if (document.getElementById("modal-root").firstChild) { e.preventDefault(); e.returnValue = ""; } });
-  function closeModal() { if (onModalClose) { var f = onModalClose; onModalClose = null; f(); } document.getElementById("modal-root").innerHTML = ""; document.documentElement.classList.remove("modal-open"); if (typeof ONLINE !== "undefined" && ONLINE) setTimeout(flushPendingPull, 0); }
+  function closeModal() { if (onModalClose) { var f = onModalClose; onModalClose = null; f(); } document.getElementById("modal-root").innerHTML = ""; document.documentElement.classList.remove("modal-open"); if (typeof ONLINE !== "undefined" && ONLINE) setTimeout(flushPendingPull, 0);  var g = afterModalClose; afterModalClose = null; if (g) g(); }
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
 
   // ---------- header ----------
@@ -3454,6 +3504,9 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Update log shown on the Development tab, newest first. Add a line here with every change that goes live.
   var UPDATES = [
+    ["2026-11-04", "On phones the main tabs moved to a bar at the bottom of the screen: Home, Game Prep, People, Docs and More. Messages, Development and your profile and settings are under More."],
+    ["2026-11-04", "Task pop-ups are shorter and clearer. Admins edit the task name right in the title, Priority is three buttons, How to do it folds away, and a ✕ closes the pop-up. Changes save as you go; after you close, a message offers Undo if you want them back the way they were."],
+    ["2026-11-04", "Celebrations are lighter by default: finishing a task or subtask shows a quick Good Job! at the bottom, and the big shows play when a game sheet or project reaches 100%. Choose Milestones, Every task or Off in your profile settings, and turn the daily welcome kick off there too."],
     ["2026-11-04", "Fixed the app's look on tablets and computers. Since Oct 23 a styling mistake left many screens wider than a phone partly unstyled, including the Home agenda, task pop-ups, game recaps and the welcome kick. Phones were not affected."],
     ["2026-10-25", "The daily welcome kick is drawn more true to scale: a smaller ball, tee and boot, and posts shaped like real ones (5.6 m wide with the crossbar at 3 m)."],
     ["2026-10-25", "Past games have a Game recap for coaches, the presidency and admins. It shows how many tasks were done (on time and late) and lists every task that was missed, with its owner and due date. A past game's card in Game Prep shows the same numbers."],
@@ -4688,6 +4741,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   function fmtStamp(ms) { var d = new Date(ms); return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
 
   // Instructions and links together in one box. Admins get one pencil to edit both in place.
+  function howPeek(text, nLinks) { var x = []; if (text) x.push("Instructions"); if (nLinks) x.push(nLinks + (nLinks === 1 ? " link" : " links")); return x.length ? x.join(" · ") : "Nothing yet"; }
   function refBlock(text, links, from, canEdit) {
     return '<div class="ref-box" data-ref="how"><div class="ref-head"><b>Instructions</b>' +
       (canEdit ? '<button type="button" class="icon-btn ref-edit" data-ref-edit aria-label="Edit instructions and links" title="Edit">' + PENCIL + "</button>" : "") +
@@ -4713,17 +4767,18 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   function taskFoot(px, canRemove) {
     return '<div class="tk-foot"><div class="row">' + (px ? '<button type="button" class="link-btn" id="' + px + '-archive">Archive</button>' : "") +
       (canRemove && px ? '<button type="button" class="link-btn danger" id="' + px + '-remove">Remove</button>' : "") + "</div>" +
-      '<div class="row"><button type="button" class="btn" data-cancel>Cancel</button><button type="button" class="btn primary" data-close>Done</button></div></div>';
+      '<span class="muted small">Changes save as you go</span></div>';
   }
-  // Cancel: pop-ups save as you go, so Cancel puts the task (and its template task, when it has one) back the way it was when the pop-up opened.
+  // Pop-ups save as you go. On close, if anything changed, a toast offers Undo, which puts the task (and its template task) back the way it was.
   function wireCancel(el, objs) {
-    var b = el.querySelector("[data-cancel]"); if (!b) return;
-    var copies = objs.map(function (o) { return o ? JSON.parse(JSON.stringify(o)) : null; });
-    b.addEventListener("click", function () {
-      el.dataset.cancelled = "1"; onModalClose = null;
-      objs.forEach(function (o, i) { if (!o) return; Object.keys(o).forEach(function (k) { if (!(k in copies[i])) delete o[k]; }); Object.assign(o, JSON.parse(JSON.stringify(copies[i]))); });
-      save(); closeModal(); render(); toast("Changes cancelled");
-    });
+    var copies = objs.map(function (o) { return o ? JSON.parse(JSON.stringify(o)) : null; }), before = JSON.stringify(copies);
+    afterModalClose = function () {
+      if (JSON.stringify(objs) === before) return;
+      toast("Changes saved", { label: "Undo", fn: function () {
+        objs.forEach(function (o, i) { if (!o) return; Object.keys(o).forEach(function (k) { if (!(k in copies[i])) delete o[k]; }); Object.assign(o, JSON.parse(JSON.stringify(copies[i]))); });
+        save(); render(); toast("Changes undone");
+      } });
+    };
   }
   function armTap(b, label, go) { b.addEventListener("click", function () { if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = label; return; } go(); }); }
   function howToBlock(text, open) {
@@ -4929,7 +4984,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       if (tg.matches("[data-sub-chk]")) {
         var q = byId(t.subtasks || [], tg.closest("[data-sub]").dataset.sub); if (!q) return;
         q.done = tg.checked; q.by = tg.checked ? currentUser().name : ""; drawSubs(); changed();
-        if (q.done) playShow("Done: " + q.text);
+        if (q.done) celebrate("Done: " + q.text, false);
         return;
       }
       if (tg.matches("[data-tf-doc]")) {
@@ -4961,7 +5016,11 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
 
   // Adding a task to one game sheet: everything the owner needs in one form, with due-date shortcuts counted back from game day.
   // A task pop-up's title with a Done button beside it, so a long pop-up can be closed without scrolling to the bottom.
-  function taskHead(t) { return '<div class="m-head"><h1 style="font-size:1.3rem">' + ttl(t.text, t) + '</h1><button type="button" class="btn primary" data-close>Done</button></div>'; }
+  // Task pop-up title with a close button. editId: admins edit the title right there instead of in a separate Task box.
+  function taskHead(t, editId) {
+    return '<div class="m-head">' + (editId ? '<input type="text" class="title-in" id="' + editId + '" value="' + esc(t.text) + '" aria-label="Task name" autocomplete="off">' : '<h1 style="font-size:1.3rem">' + ttl(t.text, t) + "</h1>") +
+      '<button type="button" class="icon-btn m-close" data-close aria-label="Close">✕</button></div>';
+  }
   function newSheetTaskModal(s, name) {
     var what = s.gameInfo ? "game" : "event", sup = [];
     var picks = s.date ? [[0, what === "game" ? "Game day" : "Event day"], [1, "1 day before"], [3, "3 days before"], [7, "1 week before"], [14, "2 weeks before"]] : [];
@@ -5002,8 +5061,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     var admin = isAdmin();
     var mt = masterTaskOf(s, t), canSup = admin || isMine(t), sup = (t.supporters || []).slice();
     function howSec() { return refBlock(howTo(s, t), linkList(linksOf(s, t)), mt && admin ? "From the " + s.masterName + " template, so edits here update every sheet made from it." : "", admin); }
-    openModal(taskHead(t) + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") + '<form style="display:flex;flex-direction:column;gap:12px">' +
-      (admin ? fld("Task", "tk-text", t.text, true) : "") +
+    openModal(taskHead(t, admin ? "tk-text" : "") + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") + '<form style="display:flex;flex-direction:column;gap:12px">' +
       propsBlock("tk", t, admin ? ownerCombo("tk-owner", t.owner) : fld("Owner", "", t.owner, false), admin, admin, t.due && s.date ? dueOffsetText(daysBetween(t.due, s.date), s) : "") +
       doneLine(t) +
       prioField("tk", t, admin, "doesn't count toward this sheet's progress") +
@@ -5012,7 +5070,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       '<section class="tk-sec"><h2>Work <span class="h2-count" id="tk-subcount"></span></h2>' + workBlock("tk", admin || isMine(t) || isSupporting(t)) +
       (needsConfirm(t) ? fld("Confirmation <span class=\"muted small\" style=\"font-weight:400\">" + (confirmDue(t, s) ? "follow up by " + esc(fmtShort(confirmDue(t, s))) + ". " : "") + "Confirmation number, who confirmed, or other proof</span>", "tk-confirm", t.confirmation || "", true, "text") : "") + "</section>" +
       // Non-admins can't add instructions or links, so an empty box would only say "none yet".
-      (admin || howTo(s, t) || linkList(linksOf(s, t)).length ? '<section class="tk-sec" id="tk-how"><h2>How to do it</h2>' + howSec() + "</section>" : "") +
+      (admin || howTo(s, t) || linkList(linksOf(s, t)).length ? '<details class="tk-fold"><summary>How to do it<span class="muted small">' + esc(howPeek(howTo(s, t), linkList(linksOf(s, t)).length)) + '</span></summary><section class="tk-sec" id="tk-how"><h2>How to do it</h2>' + howSec() + "</section></details>" : "") +
       '<section class="tk-sec"><h2>Notes</h2><ul class="notes" id="tk-notes-list"></ul>' +
       '<div class="note-add"><textarea id="tk-note-new" rows="2" placeholder="Add a note for everyone working on this task" aria-label="New note"></textarea><button type="button" class="btn" id="tk-note-add">Add</button></div></section>' +
       historyHtml() +
@@ -5084,8 +5142,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
     var due = admin
       ? '<label class="field">Due Date<span class="row" style="gap:8px;flex-wrap:nowrap"><input type="number" id="mt-off" min="-60" max="365" step="1" style="width:6em" value="' + (t.dueOffset === null ? "" : esc(t.dueOffset)) + '"><span class="muted small" style="font-weight:400">days before the ' + what + " (0 = " + what + " day)</span></span></label>"
       : fld("Due Date", "", t.dueOffset === null || t.dueOffset === "" ? "" : dueOffsetText(t.dueOffset, m), false);
-    openModal(taskHead(t) + '<form style="display:flex;flex-direction:column;gap:12px">' +
-      (admin ? fld("Task", "mt-text", t.text, true) : "") +
+    openModal(taskHead(t, admin ? "mt-text" : "") + '<form style="display:flex;flex-direction:column;gap:12px">' +
       due +
       '<div class="field fu-field"><span>Follow-up</span><label class="chk small"><input type="checkbox" id="mt-confirm"' + (t.needsConfirm ? " checked" : "") + (admin ? "" : " disabled") + "> Requires a follow-up confirmation</label>" +
         '<label class="row small fu-days" id="mt-fu-row"' + (t.needsConfirm ? "" : " hidden") + ' style="gap:8px;flex-wrap:nowrap">Confirm<input type="number" id="mt-fu" min="0" max="365" step="1" style="width:5em" value="' + (t.confirmOffset === null || t.confirmOffset === undefined ? "" : esc(t.confirmOffset)) + '"' + (admin ? "" : " disabled") + '><span class="muted">days before the ' + what + " (0 = " + what + " day)</span></label></div>" +
@@ -5096,7 +5153,7 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       (admin ? fld("Details <span class=\"muted small\" style=\"font-weight:400\">how to do this task</span>", "mt-details", t.details, true, "area", ' rows="6" placeholder="Explain the steps, who to contact, and anything to watch out for."') : howToBlock(t.details, true)) +
       fld("Links", "mt-links", t.links, admin, "links", ' placeholder="https://"') +
       '<p class="muted small" style="margin:0">Status, Date Completed and Other Notes are tracked on each game sheet. The due date is worked out from the ' + what + ' date when a sheet is created.</p>' +
-      (admin ? '<div class="row spread"><button type="button" class="btn danger" id="mt-remove">Remove task</button><div class="row"><button type="button" class="btn" data-cancel>Cancel</button><button type="button" class="btn primary" data-close>Done</button></div></div>'
+      (admin ? '<div class="row spread"><button type="button" class="btn danger" id="mt-remove">Remove task</button><div class="row"><span class="muted small">Changes save as you go</span></div></div>'
         : '<div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-close>Close</button></div>') + "</form>",
       function (el) {
         wireTemplateSubs(el, t, admin);
@@ -5333,6 +5390,10 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
       '<li><button type="button" class="set-link" id="set-notif-center"><strong>Notification center <span class="nc-badge" hidden></span></strong><span class="muted small">Every notification sent to you</span></button><span aria-hidden="true">›</span></li>' +
       '<li><button type="button" class="set-link" id="set-calendar"><strong>Add to my calendar</strong><span class="muted small">Your tasks and game days in Google or Apple Calendar</span></button><span aria-hidden="true">›</span></li>' +
       '<li><button type="button" class="set-link" id="set-ai"><strong>Connect an AI assistant</strong><span class="muted small">Use the team app from Claude, ChatGPT and others</span></button><span aria-hidden="true">›</span></li>' +
+      '<li class="set-fx"><div class="grow"><strong id="set-fx-k">Celebrations</strong><span class="muted small">Big shows when a game sheet or project hits 100%, or for every task</span></div>' +
+        '<div class="seg prio-seg" role="radiogroup" aria-labelledby="set-fx-k">' + [["milestones", "Milestones"], ["all", "Every task"], ["off", "Off"]].map(function (x) {
+          return '<button type="button" role="radio" data-fx="' + x[0] + '" aria-checked="' + (fxMode() === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div></li>" +
+      '<li><label class="chk" for="set-intro"><input type="checkbox" id="set-intro"' + (introOn() ? " checked" : "") + "> Daily welcome kick</label></li>" +
       '<li><label class="chk" for="set-sound"><input type="checkbox" id="set-sound"' + (soundOn() ? " checked" : "") + "> Celebration sounds</label></li>" +
       (isAdmin() ? '<li><button type="button" class="set-link" id="set-open-analytics"><strong>Analytics</strong><span class="muted small">Who finishes what, how often and how fast</span></button><span aria-hidden="true">›</span></li>' +
         '<li><button type="button" class="set-link" id="set-status-log"><strong>Status log</strong><span class="muted small">Every status change and assignment</span></button><span aria-hidden="true">›</span></li>' +
@@ -5341,6 +5402,12 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   function wireSettingsItems(el) {
     var pb = el.querySelector("#set-push"); if (pb) wirePushBox(pb);
     el.querySelector("#set-sound").addEventListener("change", function (e) { setSound(e.target.checked); toast(e.target.checked ? "Sounds on" : "Sounds off"); });
+    el.querySelector("#set-intro").addEventListener("change", function (e) { try { localStorage.setItem(KEY + "-intro", e.target.checked ? "on" : "off"); } catch (x) {} toast(e.target.checked ? "Welcome kick on" : "Welcome kick off"); });
+    el.querySelectorAll("[data-fx]").forEach(function (b) { b.addEventListener("click", function () {
+      try { localStorage.setItem(KEY + "-fx", b.dataset.fx); } catch (x) {}
+      el.querySelectorAll("[data-fx]").forEach(function (o) { o.setAttribute("aria-checked", String(o === b)); });
+      toast(b.dataset.fx === "off" ? "Celebrations off" : b.dataset.fx === "all" ? "A celebration for every task" : "Big celebrations for milestones");
+    }); });
     var nc = el.querySelector("#set-notif-center");
     nc.addEventListener("click", function () { closeModal(); notifCenterModal(); });
     if (ONLINE) sb.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null).then(function (r) {
@@ -6370,9 +6437,8 @@ html.is-dragging, html.is-dragging * { cursor: grabbing !important; user-select:
   }
   function projectTaskModal(pj, t) {
     var mgr = canManageProject(pj), canWork = mgr || isMine(t) || isSupporting(t), psup = (t.supporters || []).slice(), pool = projectPool(pj);
-    openModal(taskHead(t) + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") +
+    openModal(taskHead(t, mgr ? "pk-text" : "") + (flagsOf(t).length ? '<div class="meta">' + flagChips(t) + "</div>" : "") +
       '<div class="muted small">' + esc(pj.name) + '</div><form style="display:flex;flex-direction:column;gap:12px">' +
-      (mgr ? fld("Task", "pk-text", t.text, true) : "") +
       propsBlock("pk", t, mgr ? ownerCombo("pk-owner", t.owner) : fld("Owner", "", t.owner, false), mgr, true, "") +
       doneLine(t) +
       prioField("pk", t, isAdmin(), "doesn't count toward the project's progress") +
